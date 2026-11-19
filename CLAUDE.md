@@ -11,9 +11,9 @@ to be valid. That is this system's central rule — a required lens that did not
 
 ## Layout
 
-This repository **is** a Claude Code plugin. Consuming projects mount it as a git submodule at
-`.claude/skills/quorate/`, where a folder carrying `.claude-plugin/plugin.json` is discovered in
-place with no install step.
+This repository is a framework for Claude Code, mounted as a git submodule rather than installed from a
+marketplace. Consuming projects mount it at `.claude/skills/quorate/`, where its plugin manifest,
+`.claude-plugin/plugin.json`, is discovered in place with no install step and gives its skills the `quorate:` names.
 
 | Path | What it is |
 |---|---|

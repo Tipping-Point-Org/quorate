@@ -3,7 +3,8 @@
 Evidence-backed review, audit and code change for Claude Code: parallel agents, checked across model families,
 reconciled into one gated verdict.
 
-quorate is a Claude Code plugin. It reviews and audits work through parallel review lenses, each an isolated
+quorate is a framework for Claude Code, mounted as a git submodule; a plugin manifest gives its skills the
+`quorate:` names. It reviews and audits work through parallel review lenses, each an isolated
 subprocess, held at a barrier and reconciled into one verdict. It fixes what a review found in a separate, later run,
 and it writes tests. Around those it gives you the steps before and after: recording what was asked, planning and
 reviewing a plan, widening the options before a hard choice, and gating a release. Every finding cites evidence that a
