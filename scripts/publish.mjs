@@ -20,7 +20,9 @@
 //   5. unless --no-suite (a --dry-run only): the snapshot runs on its own (check-syntax, the suite, new-run --dry-run), in
 //      its own repository, and a shipped file the checks changed refuses the publish;
 //   6. unless --dry-run: the snapshot replaces the tracked content of --out, committed as --identity with the release's
-//      CHANGELOG entry as its message. Pushing is the operator's step.
+//      CHANGELOG entry as its message, then the snapshot's own scripts/check-secrets.mjs over --out's whole history, its
+//      output recorded in --out's git directory; a snapshot shipping none is refused first, and a failing scan undoes the
+//      commit. Pushing is the operator's step.
 //
 // Exit: 0 committed (or a clean dry run) · 1 a finding, a failed check or a refused step · 2 the command line.
 import fs from 'node:fs';
@@ -338,6 +340,12 @@ try {
     console.log('publish: --dry-run: nothing was committed');
   } else {
     // 6. into the public clone: its tracked content replaced by the snapshot, one commit, never pushed.
+    // I-6: the public CI's scan is the snapshot's own, so a snapshot that ships none is refused before --out is touched
+    // (G-11 of 20261119-051632-m2-9c-secret-scan): its absence was a notice, and the commit stood unscanned.
+    const PUBLIC_SCAN = 'scripts/check-secrets.mjs';
+    if (!plan.ship.some((f) => f.path === PUBLIC_SCAN)) {
+      stop(`the snapshot ships no ${PUBLIC_SCAN}, so the public CI's secret scan cannot run in --out; nothing was committed`);
+    }
     const out = path.resolve(a.out);
     const og = (args, opts = {}) => gitSync(args, { cwd: out, encoding: 'utf8', maxBuffer: BIG, ...opts });
     if (og(['rev-parse', '--is-inside-work-tree']).stdout?.trim() !== 'true') stop(`--out ${out} is not a git working tree`);
@@ -358,6 +366,12 @@ try {
     // 20261116-221234-m2-9a-high-2).
     const listed = og(['ls-files', '-z']);
     if (listed.status !== 0) stop(`git ls-files in --out failed: ${(listed.stderr ?? '').trim()}`);
+    // Where --out stood before this publish, so a rejected commit can be undone (G-10 of 20261119-051632-m2-9c-secret-scan).
+    // null is an unborn branch: a fresh clone of an empty repository.
+    const priorHead = og(['rev-parse', '--verify', '--quiet', 'HEAD^{commit}']);
+    const prior = priorHead.status === 0 ? priorHead.stdout.trim() : null;
+    const gitDir = og(['rev-parse', '--absolute-git-dir']);
+    if (gitDir.status !== 0) stop(`git rev-parse --absolute-git-dir in --out failed: ${(gitDir.stderr ?? '').trim()}`);
     // No link is followed below --out (G-35 of 20261117-013640-m2-9a-final): each level of a path deleted or written there
     // is held to not being a symbolic link or junction, so a link standing in the clone cannot redirect a deletion or a
     // copy outside it. Where git would already report such a layout as a change, this holds the same rule at the write.
@@ -389,7 +403,47 @@ try {
       GIT_AUTHOR_NAME: identity.name, GIT_AUTHOR_EMAIL: identity.email,
       GIT_COMMITTER_NAME: identity.name, GIT_COMMITTER_EMAIL: identity.email } });
     if (c.status !== 0) stop(`the commit in --out failed: ${(c.stderr ?? '').trim()}`);
-    const head = og(['rev-parse', 'HEAD']).stdout.trim();
+    const head = (og(['rev-parse', 'HEAD']).stdout ?? '').trim() || '(HEAD unread)';
+    // The public repository's CI secret scan, run here as it runs there: the published tree's own check-secrets over
+    // --out's WHOLE history, with the shipped rules and .gitleaksignore (M2 stage 9c, 2026-11-19; operator: "Build the
+    // fakes at runtime (Recommended)"). 2a669ba0 passed every check above and failed this one on GitHub, since the
+    // scan above reads the snapshot alone, with the shipped ignore file set aside. The scan reads history, so it runs on
+    // the commit; a failure UNDOES that commit (I-6: a failing result blocks it; G-10 of
+    // 20261119-051632-m2-9c-secret-scan), where it once stood at HEAD awaiting a hand reset. Its output is recorded in
+    // --out's git directory, which is in --out and is never tracked or shipped (I-6; G-11).
+    const cs = spawnSync(process.execPath, [path.join(out, ...PUBLIC_SCAN.split('/'))], { cwd: out, env: childEnv,
+      stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: BIG });
+    const csText = `${cs.stdout ?? ''}${cs.stderr ?? ''}`;
+    if (csText) process.stdout.write(csText.endsWith('\n') ? csText : `${csText}\n`);
+    const csExit = cs.status ?? cs.error?.code;
+    const csLog = path.join(gitDir.stdout.trim(), 'quorate-publish', 'check-secrets.log');
+    // Nothing between the commit and the undo may throw (G-11 of 20261119-055149-m2-9c-secret-scan-remediation-review): a
+    // record that could not be written once threw past the undo, leaving the rejected commit at HEAD. A failed record is
+    // said, and the undo below runs either way.
+    let recorded;
+    try {
+      fs.mkdirSync(path.dirname(csLog), { recursive: true });
+      fs.writeFileSync(csLog, `# publish: the public CI's secret scan: node ${PUBLIC_SCAN}, in --out, over its whole history\n`
+        + `# commit ${head} (source commit ${sourceCommit})\n# exit ${csExit}${cs.error ? ` (${cs.error.message})` : ''}\n${csText}`);
+      recorded = `recorded in ${csLog}`;
+    } catch (e) {
+      recorded = `its result could not be recorded in ${csLog} (${e.message}); its output is above`;
+    }
+    if (cs.status !== 0) {
+      // --out was clean before this publish (checked above), so returning it to its prior commit loses nothing of the
+      // operator's. An unborn branch has no prior commit: the ref is deleted, the index emptied and the shipped files removed.
+      let undone;
+      if (prior) {
+        undone = og(['reset', '--quiet', '--hard', prior]).status === 0;
+      } else {
+        undone = og(['update-ref', '-d', 'HEAD']).status === 0 && og(['read-tree', '--empty']).status === 0;
+        if (undone) for (const { path: rel } of plan.ship) fs.rmSync(path.join(out, rel), { force: true });
+      }
+      stop(`the public CI's secret scan (${PUBLIC_SCAN} in --out, over its whole history) fails on ${head} (exit ${csExit}), `
+        + `${recorded}: ${undone ? `the commit was undone, --out is back at ${prior ?? 'its unborn branch'}; fix the finding and publish again`
+          : `undoing it FAILED: do not push; reset --out by hand with git -C ${out} reset --hard ${prior ?? '(delete HEAD)'}`}`);
+    }
+    console.log(`publish: the public CI's secret scan passes over --out's whole history (${PUBLIC_SCAN}); ${recorded}`);
     console.log(`publish: committed ${head} in ${out} as ${identity.name} <${identity.email}>; not pushed (the operator's step)`);
   }
 } catch (e) {

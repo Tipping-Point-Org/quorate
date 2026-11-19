@@ -121,3 +121,20 @@ e2971cf163492de53b1ffb470b1993761eb38d2a:tests/regression-command-log.test.mjs:q
 # credential. The fixture builds them at runtime after the follow-up review (operator, 2026-11-16: "Fingerprint both, fix
 # the fixture (Recommended)").
 810ae9df6c037eba07640492e95c6210d4ee5e9d:tests/regression-publish.test.mjs:quorate-key-value:166
+# The PUBLIC repository's first commit (github.com/Tipping-Point-Org/quorate, 2a669ba0, M2 stage 9c, 2026-11-19): the
+# 13 made-up test values above shipped there as literals, and its CI scans its whole history, where none of this
+# file's other fingerprints can match. Each was read before it was listed: none is a credential. The tests build them
+# at runtime since (operator, 2026-11-19: "Build the fakes at runtime (Recommended)"), so only this commit needs them.
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-arms-surface-ars-r3.test.mjs:quorate-key-value:11
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-arms-surface-ars-r5.test.mjs:quorate-key-value:12
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-arms-surface-link-classes.test.mjs:quorate-key-value:21
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-ledger-review-ltr3-remediation.test.mjs:quorate-key-value-unquoted:84
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-panel-runtime.test.mjs:quorate-key-value:561
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-panel-runtime.test.mjs:quorate-key-value:562
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-panel-runtime.test.mjs:quorate-key-value:563
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-panel-runtime.test.mjs:quorate-key-value:563
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-panel-runtime.test.mjs:quorate-key-value:650
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-panel-runtime.test.mjs:quorate-key-value:651
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-key-value:32
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-key-value-unquoted:32
+2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-sk-api-key:32

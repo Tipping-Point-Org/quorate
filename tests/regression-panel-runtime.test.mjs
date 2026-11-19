@@ -27,6 +27,10 @@ const argvFor = (reviewer, opts = {}) => reviewerArgv({ adapter: ADAPTERS[review
 import { reviewSchema, proposeSchema, validateStrict } from '../scripts/lib/reviewer-schemas.mjs';
 import { REPO_ROOT, runScript, withTempDir, seedReviewerProbe } from './helpers.mjs';
 import { ARGV_SPECS } from '../scripts/lib/argv-specs.mjs';
+// A made-up credential value, passed through a call so no secret-shaped literal follows its key in the source: the
+// public repository's secret scan cannot use .gitleaksignore's fingerprints, which name this repository's commits
+// (M2 stage 9c; operator: "Build the fakes at runtime (Recommended)").
+const fake = (v) => v;
 
 test('a pinned codex arm sends model, effort, read-only sandbox and ephemeral, prompt on stdin', () => {
   const { cmd, argv } = argvFor('codex', { model: 'gpt-5.6-sol', effort: 'high' });
@@ -558,9 +562,9 @@ test('regression: an external reviewer inherits ONLY the allow-listed environmen
   // cross a process boundary. The map is gone; the boundary is checked where it is now decided.
   const { builtinReviewers, envPrefixesOf } = await import('../scripts/io/reviewers.mjs');
   const { env, passed } = reviewerEnv('codex', {
-    PATH: '/usr/bin', CODEX_HOME: '/c', OPENAI_API_KEY: 'sk-vendor',
-    GITHUB_TOKEN: 'ghp_secret', AWS_SECRET_ACCESS_KEY: 'aws', DATABASE_URL: 'postgres://x',
-    ANTHROPIC_API_KEY: 'sk-ant', CLAUDE_CODE_OAUTH_TOKEN: 'oauth',
+    PATH: '/usr/bin', CODEX_HOME: '/c', OPENAI_API_KEY: fake('sk-vendor'),
+    GITHUB_TOKEN: fake('ghp_secret'), AWS_SECRET_ACCESS_KEY: fake('aws'), DATABASE_URL: 'postgres://x',
+    ANTHROPIC_API_KEY: fake('sk-ant'), CLAUDE_CODE_OAUTH_TOKEN: fake('oauth'),
   }, { depth: 1, prefixes: envPrefixesOf(builtinReviewers().codex) });
   for (const leaked of ['GITHUB_TOKEN', 'AWS_SECRET_ACCESS_KEY', 'DATABASE_URL', 'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN']) {
     assert.equal(leaked in env, false, `${leaked} must never reach a third-party reviewer CLI`);
@@ -647,8 +651,8 @@ test('regression: each reviewer inherits ONLY its own vendor credentials, never 
   const forVendor = (name) => ({ depth: 1, prefixes: envPrefixesOf(table[name]) });
   const shell = {
     PATH: '/usr/bin',
-    CODEX_HOME: '/c', OPENAI_API_KEY: 'sk-openai',
-    AGY_TOKEN: 'agy-secret', AGY_HOME: '/a',
+    CODEX_HOME: '/c', OPENAI_API_KEY: fake('sk-openai'),
+    AGY_TOKEN: fake('agy-secret'), AGY_HOME: '/a',
   };
   const codex = reviewerEnv('codex', shell, forVendor('codex')).env;
   assert.equal(codex.CODEX_HOME, '/c', 'codex gets its own config');

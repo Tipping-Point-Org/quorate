@@ -29,7 +29,8 @@ import path from 'node:path';
 import { REPO_ROOT } from './helpers.mjs';
 import { vendorFailureReason } from '../scripts/lib/decisions.mjs';
 
-const SECRET = 'ANTHROPIC_API_KEY=sk-ant-not-a-real-key-0123456789 refused by proxy at 10.2.3.4';
+// Built at runtime, so no secret-shaped literal sits in the source (.gitleaksignore's convention; M2 stage 9c).
+const SECRET = ['ANTHROPIC_API_KEY', 'sk-ant-not-a-real-' + 'key-0123456789 refused by proxy at 10.2.3.4'].join('=');
 
 test('the tracked reason states the failure and quotes no vendor output', () => {
   const reason = vendorFailureReason({

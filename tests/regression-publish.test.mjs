@@ -46,9 +46,13 @@ function fixture(t, { files = {}, manifest = {}, local = { patterns: [{ name: 'o
     'scripts/check-syntax.mjs': 'process.exit(0);\n',
     'tests/run-all.mjs': 'process.exit(0);\n',
     'scripts/new-run.mjs': 'process.exit(0);\n',
+    // The public CI's scan, as a stand-in that passes: a committing publish refuses without it (G-11 of
+    // 20261119-051632-m2-9c-secret-scan).
+    'scripts/check-secrets.mjs': 'console.log("stand-in scan: clean"); process.exit(0);\n',
     ...files,
   };
   for (const [rel, text] of Object.entries(all)) {
+    if (text === null) continue;
     fs.mkdirSync(path.dirname(path.join(repo, rel)), { recursive: true });
     fs.writeFileSync(path.join(repo, rel), text);
   }
@@ -74,6 +78,57 @@ test('a clean snapshot is committed into the public clone: exclusions gone, earl
   assert.ok(!fs.existsSync(path.join(f.out, 'stale.txt')), "the earlier release's file survived the snapshot");
   assert.equal(git(f.out, 'rev-list', '--count', 'HEAD').stdout.trim(), '2');
   assert.match(r.output, /not pushed/);
+});
+
+// M2 stage 9c (2026-11-19): 2a669ba0 passed every publish check and failed the public CI's secret scan, which runs the
+// published tree's own check-secrets over the clone's whole history. A committing publish now runs that same script there.
+// I-6: the scan's result is recorded in --out, and a failing result blocks the commit (G-10 and G-11 of
+// 20261119-051632-m2-9c-secret-scan): the rejected commit is undone, never left at HEAD for a hand reset.
+const scanLog = (out) => path.join(out, '.git', 'quorate-publish', 'check-secrets.log');
+test('a committing publish runs the published tree\'s check-secrets in --out, records it there, and passes', (t) => {
+  const passing = fixture(t, { files: { 'scripts/check-secrets.mjs': 'import fs from "node:fs"; console.log("stand-in scan: clean"); process.exit(fs.existsSync(".git") ? 0 : 3);\n' } });
+  const r2 = passing.commit();
+  assert.equal(r2.status, 0, r2.output);
+  assert.match(r2.output, /the public CI's secret scan passes over --out's whole history/);
+  assert.match(fs.readFileSync(scanLog(passing.out), 'utf8'), /exit 0[\s\S]*stand-in scan: clean/, 'the passing scan was not recorded in --out');
+  assert.equal(git(passing.out, 'status', '--porcelain').stdout, '', 'the record dirtied the public clone');
+});
+
+test('a failing public scan blocks the commit: --out is back at its earlier release, the result recorded', (t) => {
+  const failing = fixture(t, { files: { 'scripts/check-secrets.mjs': 'console.log("stand-in scan: a finding"); process.exit(1);\n' } });
+  const before = git(failing.out, 'rev-parse', 'HEAD').stdout.trim();
+  const r = failing.commit();
+  assert.equal(r.status, 1, r.output);
+  assert.match(r.output, /public CI's secret scan \(scripts\/check-secrets\.mjs in --out, over its whole history\) fails/);
+  assert.equal(git(failing.out, 'rev-parse', 'HEAD').stdout.trim(), before, 'the rejected commit was left at HEAD');
+  assert.equal(git(failing.out, 'status', '--porcelain').stdout, '', 'the rejected snapshot was left in the working tree');
+  assert.ok(fs.existsSync(path.join(failing.out, 'stale.txt')), "the earlier release's content was not restored");
+  assert.match(fs.readFileSync(scanLog(failing.out), 'utf8'), /exit 1[\s\S]*stand-in scan: a finding/, 'the failing scan was not recorded in --out');
+});
+
+// G-11 of 20261119-055149-m2-9c-secret-scan-remediation-review: the record was written between the commit and the
+// rollback, so a record that could not be written (here a regular file where its folder goes) threw past the undo and
+// left the rejected commit at HEAD. The undo must not depend on the record.
+test('a failing public scan whose record cannot be written still undoes the commit, and says the record failed', (t) => {
+  const failing = fixture(t, { files: { 'scripts/check-secrets.mjs': 'console.log("stand-in scan: a finding"); process.exit(1);\n' } });
+  fs.writeFileSync(path.join(failing.out, '.git', 'quorate-publish'), 'a file where the record folder goes\n');
+  const before = git(failing.out, 'rev-parse', 'HEAD').stdout.trim();
+  const r = failing.commit();
+  assert.equal(r.status, 1, r.output);
+  assert.equal(git(failing.out, 'rev-parse', 'HEAD').stdout.trim(), before, 'an unwritable record left the rejected commit at HEAD');
+  assert.equal(git(failing.out, 'status', '--porcelain').stdout, '', 'the rejected snapshot was left in the working tree');
+  assert.match(r.output, /the commit was undone/);
+  assert.match(r.output, /could not be recorded/, 'the failed record was not said');
+});
+
+test('a snapshot without scripts/check-secrets.mjs is refused before --out is touched', (t) => {
+  const none = fixture(t, { files: { 'scripts/check-secrets.mjs': null } });
+  const before = git(none.out, 'rev-parse', 'HEAD').stdout.trim();
+  const r = none.commit();
+  assert.equal(r.status, 1, r.output);
+  assert.match(r.output, /ships no scripts\/check-secrets\.mjs/);
+  assert.equal(git(none.out, 'rev-parse', 'HEAD').stdout.trim(), before, 'a publish without its scan committed');
+  assert.ok(fs.existsSync(path.join(none.out, 'stale.txt')), '--out was changed before the refusal');
 });
 
 test('the commit message is the release CHANGELOG entry, with the source commit', (t) => {
@@ -279,16 +334,21 @@ test('an allowance that matches nothing is stale and refuses the publish', (t) =
   assert.match(r.output, /allowance matched nothing, so it is stale: gone\.md windows-drive-path/);
 });
 
-test('a gitleaks finding is allowed only through its report, by file and rule', (t) => {
-  const allowed = fixture(t, { files: { 'src/fixture-secret.js': 'planted\n' },
-    manifest: { allow: [{ path: 'src/fixture-secret.js', pattern: 'gitleaks:generic-api-key', line_sha256: lineSha256('planted'), reason: 'a test plants it' }] } });
-  const r = allowed.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: FINDING_SCANNER });
-  assert.equal(r.status, 0, r.output);
-  assert.match(r.output, /gitleaks: every finding allowed by the manifest/);
-  const not = fixture(t, { files: { 'src/fixture-secret.js': 'planted\n' } });
-  const r2 = not.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: FINDING_SCANNER });
+// M2 stage 9c (2026-11-19): 2a669ba0 published as clean with 13 gitleaks findings allowed by the manifest, and the public
+// repository's CI secret scan failed on all 13, since it scans with the shipped rules and cannot read the manifest (and a
+// .gitleaksignore fingerprint names a commit of this repository). A gitleaks finding is never allowed now: publish
+// refuses whatever the public CI's scan would refuse.
+test('a gitleaks finding always refuses the publish, and the manifest cannot allow one', (t) => {
+  const finding = fixture(t, { files: { 'src/fixture-secret.js': 'planted\n' } });
+  const r = finding.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: FINDING_SCANNER });
+  assert.equal(r.status, 1, r.output);
+  assert.match(r.output, /src\/fixture-secret\.js:1 gitleaks:generic-api-key/);
+  const allow = [{ path: 'src/fixture-secret.js', pattern: 'gitleaks:generic-api-key', line_sha256: lineSha256('planted'), reason: 'a test plants it' }];
+  assert.match(validateManifest({ version: 1, allow }).error, /a gitleaks finding, which is never allowed/);
+  const allowed = fixture(t, { files: { 'src/fixture-secret.js': 'planted\n' }, manifest: { allow } });
+  const r2 = allowed.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: FINDING_SCANNER });
   assert.equal(r2.status, 1, r2.output);
-  assert.match(r2.output, /src\/fixture-secret\.js:1 gitleaks:generic-api-key/);
+  assert.doesNotMatch(r2.output, /every finding allowed by the manifest/);
 });
 
 test('an allowance can name neither a marker nor an identity pattern', () => {

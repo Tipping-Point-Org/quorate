@@ -204,7 +204,7 @@ reads one says so and skips.
 
 ## Tests
 
-4709 regression tests. Every one records the defect it exists to prevent, in its own text. The count is verified
+4713 regression tests. Every one records the defect it exists to prevent, in its own text. The count is verified
 against the tree on every push, because a stated number that has gone stale is an inert guarantee.
 
 ```

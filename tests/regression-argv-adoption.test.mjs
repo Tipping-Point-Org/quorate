@@ -303,6 +303,9 @@ const SITES = [
   { at: 'io/cli-freshness.mjs:run-session', child: 'run-session', argv: ['freshness', '--repo-root', REPO_ROOT] },
   // io/contract-reader.mjs:20 the one contract reader.
   { at: 'io/contract-reader.mjs:new-run', child: 'new-run', argv: ['--print-contract', '--repo-root', REPO_ROOT] },
+  // publish.mjs: the public CI's secret scan, the published tree's check-secrets run in --out with no arguments (M2 stage
+  // 9c, 2026-11-19).
+  { at: 'publish.mjs:check-secrets', child: 'check-secrets', argv: [] },
 ];
 
 /** The template lines that run the script: `node {{capture_rel}} ...`, each a command a node is told to run. */

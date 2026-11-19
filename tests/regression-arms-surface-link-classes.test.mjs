@@ -18,7 +18,7 @@ const git = (cwd, ...args) => {
   return r.stdout;
 };
 const link = (target, at) => fs.symlinkSync(target, at, process.platform === 'win32' ? 'junction' : 'dir');
-const SECRET = 'OUTSIDE-CONTENT';
+const SECRET = ['OUTSIDE', 'CONTENT'].join('-'); // built at runtime (.gitleaksignore's convention)
 
 function sandbox(t) {
   const d = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'q-classes-')));

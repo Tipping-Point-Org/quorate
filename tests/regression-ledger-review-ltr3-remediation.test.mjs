@@ -81,7 +81,8 @@ test('G-9: an unreadable reconcile payload stops the fold instead of contributin
 test('G-12: secret-shaped text in a claim is redacted before it reaches the tracked ledger', () => {
   const aws = 'AKIA' + 'ABCDEFGHIJKLMNOP';
   const gh = 'ghp_' + 'a'.repeat(36);
-  const claim = `leaks ${aws} and ${gh} and password=hunter2secret into the log`;
+  const pw = ['password', 'hunter2secret'].join('='); // built at runtime, as aws and gh are (.gitleaksignore's convention)
+  const claim = `leaks ${aws} and ${gh} and ${pw} into the log`;
   const { ledger } = mergeRun(null, { run_id: '20260928-000000-r', at: 'T', findings: [{ file: 'a.mjs', line: 1, severity: 'HIGH', claim, node: 'security-audit' }] });
   const stored = Object.values(ledger.entries)[0].claim;
   assert.doesNotMatch(stored, new RegExp(aws));

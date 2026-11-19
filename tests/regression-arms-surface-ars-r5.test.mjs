@@ -9,7 +9,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { buildArmsSurface } from '../scripts/io/snapshot.mjs';
 
-const SECRET = 'OUTSIDE-CONTENT-THAT-IS-LONG';
+const SECRET = ['OUTSIDE', 'CONTENT', 'THAT', 'IS', 'LONG'].join('-'); // built at runtime (.gitleaksignore's convention)
 const git = (cwd, ...args) => {
   const r = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd, encoding: 'utf8' });
   assert.equal(r.status, 0, `git ${args.join(' ')}: ${r.stderr}`);

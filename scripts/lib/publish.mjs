@@ -47,8 +47,12 @@ export const lineSha256 = (text) => crypto.createHash('sha256').update(String(te
  * - patterns: a shipped file whose text matches one is a finding (machine-local shapes).
  * - markers: literal strings a placeholder carries; a shipped file containing one refuses the publish.
  * - allow: a hit the operator accepted (2026-11-13: "Declared allowances (Recommended)"), by file and by the name of a
- *   manifest pattern or `gitleaks:<RuleID>`, each with its reason. Never a marker or a local identity pattern: those are
- *   always fixed in the text. An allowance that matches nothing refuses the publish, so the list cannot go stale.
+ *   manifest pattern, each with its reason. Never a marker or a local identity pattern: those are always fixed in the
+ *   text. Never a gitleaks finding either (M2 stage 9c, 2026-11-19; operator: "Build the fakes at runtime
+ *   (Recommended)"): the public repository's CI scans its history with the shipped rules and knows nothing of this
+ *   manifest, and a .gitleaksignore fingerprint names a commit of this repository, never the published one, so an
+ *   allowed gitleaks finding published as "clean" and failed the public CI's scan. A secret-shaped test value is built
+ *   at runtime instead. An allowance that matches nothing refuses the publish, so the list cannot go stale.
  *   Each names ONE hit by `line_sha256`, the hash of its line's trimmed text (lineSha256; amended 2026-11-16, operator:
  *   "Tighten to per-line, amend I-3 (Recommended)"): an allowance keyed by file and pattern alone silenced every hit of
  *   that pattern in that file (G-19 of 20261116-221234-m2-9a-high-2).
@@ -91,8 +95,11 @@ export function validateManifest(m) {
     if (typeof a.line_sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(a.line_sha256)) {
       return { error: `allow ${a.path} ${a.pattern}: no line_sha256, the hash of the one line it allows; publish prints it beside each finding` };
     }
-    if (!names.has(a.pattern) && !/^gitleaks:\S+$/.test(a.pattern)) {
-      return { error: `allow ${a.path}: ${JSON.stringify(a.pattern)} is neither a manifest pattern nor gitleaks:<RuleID>; a marker or an identity pattern is never allowed` };
+    if (/^gitleaks:/.test(a.pattern)) {
+      return { error: `allow ${a.path}: ${JSON.stringify(a.pattern)} is a gitleaks finding, which is never allowed: the public repository's CI scans with the shipped rules and cannot honour an allowance here, so build the value at runtime instead` };
+    }
+    if (!names.has(a.pattern)) {
+      return { error: `allow ${a.path}: ${JSON.stringify(a.pattern)} is not a manifest pattern; a marker, an identity pattern or a gitleaks finding is never allowed` };
     }
   }
   return { manifest: { exclude, replace, patterns, markers, allow } };
