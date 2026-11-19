@@ -1,0 +1,1216 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-20T23:00:58.339Z",
+  "finished_at": "2026-09-20T23:43:59.872Z",
+  "tolerance": 15,
+  "not_run": [],
+  "scores": [
+    {
+      "seed": "clamp-silent-noop",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 43,
+          "severity": "HIGH",
+          "claim": "The `SEVERITY_RUNGS.includes(floor)` / `SEVERITY_RUNGS.includes(ceiling)` guards on lines 42-43 SKIP the clamp instead of rejecting the value, so a floor or ceiling that is not a rung is discarded and the function returns the unclamped severity as if it had capped it. The throw these replaced was load-bearing, not defensive: spawn-node.mjs:1770-1774 still states \"Both THROW on a value that is not "
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {},
+      "defect_line": 43
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "doc-consistency-review"
+      ],
+      "hits": [
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 104,
+          "severity": "MEDIUM",
+          "claim": "The \"What the external arm is given\" list describes an assembly the prompt builder does not produce: buildCodexShadowPrompt renders prompts/_templates/shadow-arm.md, whose body is {{arm_constraints}} (EXTERNAL_ARM_CONSTRAINTS), {{lens_contract}} (the lens SKILL.md with frontmatter stripped by skillInstructions), {{run_brief}} and {{brief_feedback}} (codex-prompts.mjs:311-321, shadow-arm.md:13-20) "
+        },
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 101,
+          "severity": "MEDIUM",
+          "claim": "\"An external reviewer has no session context, no brief, and no memory of the run\" is false of the shadow arm and contradicts this same document 46 lines earlier, where line 55 states \"A shadow arm receives the shadowed lens's own criteria and the run brief\"; the builder passes the run brief into the prompt's \"# Run brief\" section on every shadow spawn (codex-prompts.mjs:316 into shadow-arm.md:19),"
+        }
+      ],
+      "expected_hit": [
+        "doc-consistency-review"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {},
+      "defect_line": 101
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit",
+        "security-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 92,
+          "severity": "BLOCKER",
+          "claim": "The bundle test `/^-[A-Za-z]/` decides WHETHER to scan a single-dash cluster from its first character, so a token opening with a DIGIT returns non-forbidden with its remaining characters never examined. That is a real git spelling: `git grep` declares OPT_NUMBER_CALLBACK (`-<num>` = `-C NUM`) and parse_short_opt keeps parsing the SAME token after consuming the digits, so `-2Ocat` is `-2 -O cat` an"
+        },
+        {
+          "node": "security-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 92,
+          "severity": "BLOCKER",
+          "claim": "forbiddenTailToken decides WHETHER to scan a short-flag cluster with /^-[A-Za-z]/, so a single-dash token opening with a DIGIT returns false with not one character examined. git grep declares OPT_NUMBER_CALLBACK and parse_short_opt resumes parsing the SAME token after the digits — shown live this run: `git grep -1n` applied both one line of context and line numbers from one token (evidence/securit"
+        }
+      ],
+      "expected_hit": [
+        "code-audit",
+        "security-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {},
+      "defect_line": 92
+    },
+    {
+      "seed": "probe-substring-match",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 703,
+          "severity": "BLOCKER",
+          "claim": "`classifyPanelProbe` decides a reviewer never ran via `n.item.includes(reviewer)` over every not_checked entry — contradicting its own comment at 696-701 and orphaning UNAVAILABLE_ROLES (line 374, now with no production reader). Only `unavailable()` writes a real failure marker, anchored: `external reviewer '<n>'` / `external proposer '<n>'` / `tie-breaker '<n>'`. But `runtimeNotChecked()` (extern"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {},
+      "defect_line": 703
+    },
+    {
+      "seed": "prose-before-payload",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 85,
+          "severity": "MEDIUM",
+          "claim": "classifyResult tests `!hasPayload` before the `schemaVariant === 'none'` branch, so the input the graph's only prose node always presents — variant 'none', no structured_output, markdown in `result` — now returns {branch:'no-payload', state:'DEGRADED'} instead of {branch:'prose', state:'OK'}. This function is the declared single owner of that decision (spawn-node.mjs:1704 calls the order 'the cont"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      },
+      "defect_line": 87
+    },
+    {
+      "seed": "status-never-a-pass",
+      "tolerance": 40,
+      "caught": true,
+      "caught_by": [
+        "contract-audit"
+      ],
+      "hits": [
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 1014,
+          "severity": "HIGH",
+          "claim": "I-6 requires a `status != ok` response to be classified a SOFT failure, with the arm recorded as having delivered no usable result and nothing from it converted into a counted finding or verdict. No such classification exists on any path: the block that performed it was removed at this line, and control now falls from the `!p` hard-failure check (1003) straight into ordinary result handling, so a "
+        },
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 1044,
+          "severity": "HIGH",
+          "claim": "I-9 requires a non-ok status in proposal mode to return `candidates: []` AND a not_checked entry naming the reviewer and its reason, so an emptied pool stays distinguishable from a reviewer that genuinely found nothing. Line 1044 builds the pool as `Array.isArray(p.candidates) ? p.candidates : []` with no status test on any path reaching it, so a proposer answering `{status:'incomplete', reason:'c"
+        }
+      ],
+      "expected_hit": [
+        "contract-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "contract-audit": 7
+      },
+      "defect_line": 1010
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/spawn-node.mjs",
+          "line": 1818,
+          "severity": "HIGH",
+          "claim": "`verdictFloorFromFindings` and `raiseVerdict` are imported at spawn-node.mjs:20 and called nowhere in the file — the capture shows both symbols in spawn-node.mjs on the import line only. So the validator runs the basis clamp (1783-1793), the severity clamp (1794-1817) and the ceiling (1818-1826), then writes the model's self-declared `payload.verdict` verbatim to status.verdict and the report (183"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 4
+      },
+      "defect_line": 1815
+    }
+  ],
+  "summary": {
+    "seeds": 7,
+    "caught": 7,
+    "overall_recall": 1,
+    "lenses": {
+      "code-audit": {
+        "expected": 5,
+        "caught": 5,
+        "recall": 1,
+        "cost_usd": 17.061886
+      },
+      "doc-consistency-review": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 2.0376874999999997
+      },
+      "security-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 2.138124
+      },
+      "contract-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 4.110417
+      }
+    }
+  },
+  "config": {
+    "corpus_commit": "07db3f6b1a8059fa1706f245b54378343360fdd6",
+    "framework": {
+      "name": "quorate",
+      "version": "0.2.0",
+      "commit": "07db3f6b1a8059fa1706f245b54378343360fdd6",
+      "dirty": true,
+      "layout": "bench"
+    },
+    "declared_models": {
+      "judgment": "opus",
+      "mechanical": "sonnet"
+    },
+    "declared_effort": {
+      "judgment": "high"
+    },
+    "runtime": "claude",
+    "runtime_version": "2.1.278 (Claude Code)",
+    "node_version": "v24.13.1",
+    "measured_at": "2026-09-20T23:00:58.339Z",
+    "alias_caveat": "Model aliases float: the provider may replace the model behind \"opus\"/\"sonnet\" at any time. A result is only comparable to another with the same runtime_version and a nearby measured_at. Re-measure before trusting an older number, and never carry a recall figure forward across a model change in either direction."
+  },
+  "runs": [
+    {
+      "seed": "clamp-silent-noop",
+      "costs": {
+        "code-audit": 3.3971670000000005,
+        "reconcile": 1.2370085
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 46,
+          "cache_creation_input_tokens": 158235,
+          "cache_read_input_tokens": 2489324,
+          "output_tokens": 22797,
+          "output_tokens_details": {
+            "thinking_tokens": 13244
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 158235,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 4403,
+              "cache_read_input_tokens": 153930,
+              "cache_creation_input_tokens": 4305,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 4305
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 36,
+          "cache_creation_input_tokens": 47217,
+          "cache_read_input_tokens": 756317,
+          "output_tokens": 15460,
+          "output_tokens_details": {
+            "thinking_tokens": 7756
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 47217,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 4638,
+              "cache_read_input_tokens": 57257,
+              "cache_creation_input_tokens": 4443,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 4443
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 30,
+        "reconcile": 33
+      },
+      "duration_ms": {
+        "code-audit": 368331,
+        "reconcile": 185325
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "costs": {
+        "doc-consistency-review": 2.0376874999999997,
+        "reconcile": 1.8188380000000002
+      },
+      "usage": {
+        "doc-consistency-review": {
+          "input_tokens": 38,
+          "cache_creation_input_tokens": 92177,
+          "cache_read_input_tokens": 1239905,
+          "output_tokens": 19831,
+          "output_tokens_details": {
+            "thinking_tokens": 12022
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 92177,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 5415,
+              "cache_read_input_tokens": 90030,
+              "cache_creation_input_tokens": 2147,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2147
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 34,
+          "cache_creation_input_tokens": 86558,
+          "cache_read_input_tokens": 849026,
+          "output_tokens": 21143,
+          "output_tokens_details": {
+            "thinking_tokens": 11673
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 86558,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2192,
+              "cache_read_input_tokens": 78711,
+              "cache_creation_input_tokens": 7847,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 7847
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "doc-consistency-review": 20,
+        "reconcile": 33
+      },
+      "duration_ms": {
+        "doc-consistency-review": 291997,
+        "reconcile": 248252
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "costs": {
+        "code-audit": 2.7679905,
+        "reconcile": 2.177566,
+        "security-audit": 2.138124
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 36,
+          "cache_creation_input_tokens": 119712,
+          "cache_read_input_tokens": 1584131,
+          "output_tokens": 31145,
+          "output_tokens_details": {
+            "thinking_tokens": 16545
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 119712,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 4898,
+              "cache_read_input_tokens": 127899,
+              "cache_creation_input_tokens": 9482,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 9482
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 52,
+          "cache_creation_input_tokens": 85255,
+          "cache_read_input_tokens": 1620662,
+          "output_tokens": 20577,
+          "output_tokens_details": {
+            "thinking_tokens": 11144
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 85255,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 5301,
+              "cache_read_input_tokens": 98072,
+              "cache_creation_input_tokens": 1666,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1666
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "security-audit": {
+          "input_tokens": 44,
+          "cache_creation_input_tokens": 73630,
+          "cache_read_input_tokens": 1458058,
+          "output_tokens": 26903,
+          "output_tokens_details": {
+            "thinking_tokens": 18344
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 73630,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 6872,
+              "cache_read_input_tokens": 90117,
+              "cache_creation_input_tokens": 1182,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1182
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 28,
+        "reconcile": 44,
+        "security-audit": 28
+      },
+      "duration_ms": {
+        "code-audit": 364917,
+        "reconcile": 317211,
+        "security-audit": 344428
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "costs": {
+        "code-audit": 3.3648360000000004,
+        "reconcile": 1.927446
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 64,
+          "cache_creation_input_tokens": 130407,
+          "cache_read_input_tokens": 2477142,
+          "output_tokens": 32875,
+          "output_tokens_details": {
+            "thinking_tokens": 15158
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 130407,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 5552,
+              "cache_read_input_tokens": 140420,
+              "cache_creation_input_tokens": 7656,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 7656
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 50,
+          "cache_creation_input_tokens": 66735,
+          "cache_read_input_tokens": 1345992,
+          "output_tokens": 23474,
+          "output_tokens_details": {
+            "thinking_tokens": 10784
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 66735,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3789,
+              "cache_read_input_tokens": 77342,
+              "cache_creation_input_tokens": 3876,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3876
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 47,
+        "reconcile": 38
+      },
+      "duration_ms": {
+        "code-audit": 504093,
+        "reconcile": 258788
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "costs": {
+        "code-audit": 3.571808,
+        "reconcile": 1.9843575
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 54,
+          "cache_creation_input_tokens": 140052,
+          "cache_read_input_tokens": 2766586,
+          "output_tokens": 31509,
+          "output_tokens_details": {
+            "thinking_tokens": 21956
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 140052,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 4045,
+              "cache_read_input_tokens": 152937,
+              "cache_creation_input_tokens": 4784,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 4784
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 42,
+          "cache_creation_input_tokens": 78538,
+          "cache_read_input_tokens": 1182935,
+          "output_tokens": 24292,
+          "output_tokens_details": {
+            "thinking_tokens": 11466
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 78538,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3194,
+              "cache_read_input_tokens": 83985,
+              "cache_creation_input_tokens": 9036,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 9036
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 36,
+        "reconcile": 34
+      },
+      "duration_ms": {
+        "code-audit": 513494,
+        "reconcile": 294759
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "status-never-a-pass",
+      "costs": {
+        "contract-audit": 4.110417,
+        "intent-capture": 2.3420245,
+        "reconcile": 2.9028149999999995
+      },
+      "usage": {
+        "contract-audit": {
+          "input_tokens": 72,
+          "cache_creation_input_tokens": 133660,
+          "cache_read_input_tokens": 3413364,
+          "output_tokens": 42671,
+          "output_tokens_details": {
+            "thinking_tokens": 26827
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 133660,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 12288,
+              "cache_read_input_tokens": 132606,
+              "cache_creation_input_tokens": 1054,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1054
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "intent-capture": {
+          "input_tokens": 16,
+          "cache_creation_input_tokens": 121827,
+          "cache_read_input_tokens": 470949,
+          "output_tokens": 35528,
+          "output_tokens_details": {
+            "thinking_tokens": 16285
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 121827,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 32106,
+              "cache_read_input_tokens": 112177,
+              "cache_creation_input_tokens": 9650,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 9650
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 68,
+          "cache_creation_input_tokens": 94181,
+          "cache_read_input_tokens": 2243130,
+          "output_tokens": 33564,
+          "output_tokens_details": {
+            "thinking_tokens": 15611
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 94181,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 4621,
+              "cache_read_input_tokens": 102063,
+              "cache_creation_input_tokens": 6601,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 6601
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "contract-audit": 49,
+        "intent-capture": 14,
+        "reconcile": 54
+      },
+      "duration_ms": {
+        "contract-audit": 622451,
+        "intent-capture": 437704,
+        "reconcile": 459385
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "intent-capture": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "costs": {
+        "code-audit": 3.960084500000001,
+        "reconcile": 2.0370585
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 68,
+          "cache_creation_input_tokens": 130087,
+          "cache_read_input_tokens": 3373949,
+          "output_tokens": 38876,
+          "output_tokens_details": {
+            "thinking_tokens": 21156
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 130087,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 5276,
+              "cache_read_input_tokens": 138669,
+              "cache_creation_input_tokens": 9087,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 9087
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 44,
+          "cache_creation_input_tokens": 80537,
+          "cache_read_input_tokens": 1295887,
+          "output_tokens": 23341,
+          "output_tokens_details": {
+            "thinking_tokens": 12554
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 80537,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 6394,
+              "cache_read_input_tokens": 94667,
+              "cache_creation_input_tokens": 353,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 353
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 42,
+        "reconcile": 44
+      },
+      "duration_ms": {
+        "code-audit": 547777,
+        "reconcile": 285434
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    }
+  ],
+  "total_cost_usd": 41.78,
+  "scored_cost_usd": 41.78,
+  "unscored_cost_usd": 0,
+  "unscored_spend": [],
+  "total_usage": {
+    "input_tokens": 764,
+    "output_tokens": 443986,
+    "thinking_tokens": 242525,
+    "cache_creation_input_tokens": 1638808,
+    "cache_read_input_tokens": 28567357
+  }
+}

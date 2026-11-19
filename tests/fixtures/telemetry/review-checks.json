@@ -1,0 +1,43 @@
+{
+  "results": [
+    {
+      "check": "build",
+      "class": "barrier",
+      "status": "PASS",
+      "exit_code": 0,
+      "outcome": "passed"
+    },
+    {
+      "check": "test",
+      "class": "evidence",
+      "status": "PASS",
+      "exit_code": 0,
+      "outcome": "passed"
+    },
+    {
+      "check": "lint",
+      "class": "evidence",
+      "status": "SKIPPED"
+    },
+    {
+      "check": "fmt_check",
+      "class": "evidence",
+      "status": "SKIPPED"
+    },
+    {
+      "check": "typecheck",
+      "class": "evidence",
+      "status": "SKIPPED"
+    },
+    {
+      "check": "audit",
+      "class": "evidence",
+      "status": "SKIPPED"
+    },
+    {
+      "check": "deny",
+      "class": "evidence",
+      "status": "SKIPPED"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "clamp-silent-noop",
+  "title": "clampSeverity silently ignores an unrecognised floor or ceiling, so a misconfigured degraded lens runs uncapped while every artifact says otherwise",
+  "source": "historical",
+  "found_by": "self-review; recorded in the decisions.mjs header as the founding defect of the module",
+  "defect": {
+    "file": "scripts/lib/decisions.mjs",
+    "anchor": "if (ceiling !== null && SEVERITY_RUNGS.includes(ceiling))",
+    "lenses": [
+      "code-audit"
+    ],
+    "severity_floor": "HIGH"
+  },
+  "scope": [
+    "scripts/lib"
+  ],
+  "removes_tests": true,
+  "notes": "The original shipped exactly this: a guard of the form `if (RUNGS.includes(ceiling))` fell through when a VERDICT ('RISK') was passed to the severity parameter, and the cap quietly did nothing. The tell: spawn-node passes verdict ceilings and severity ceilings through nearby call paths, and a validator that skips instead of throwing produces the paperwork of a guarantee without the guarantee. v2 (2026-09-01): the patch now also strips the module-header and docstring prose narrating the historical fix. The v1 patch left them, and the 2026-09-01T19-15 catch cited the docstring contradiction directly — an ASSISTED catch measuring doc-vs-code matching, not pre-discovery detection."
+}

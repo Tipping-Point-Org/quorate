@@ -1,0 +1,8 @@
+$ node --test tests/regression-admit-run-adoption.test.mjs
+# admitted: test_one tests/regression-admit-run-adoption.test.mjs
+# cwd: C:\work\quorate
+# exit: 1
+# timeout: 15 minute(s)
+# elapsed: 2.4 of 30 minute(s)
+# captured: 2026-10-23T03:27:55.208Z
+------------------------------------------------------------------------

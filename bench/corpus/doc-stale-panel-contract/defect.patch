@@ -1,0 +1,25 @@
+diff --git a/shared/external-reviewers.md b/shared/external-reviewers.md
+--- a/shared/external-reviewers.md
++++ b/shared/external-reviewers.md
+@@ -81,14 +81,13 @@ altered; and tell the operator what was removed, because they are the one approv
+ 
+ ## What the external arm is given
+ 
+-An external reviewer has no session context or memory of the run. In review mode, give it:
+-
+-1. A short role and goal: independently apply the named lens, not audit the internal reviewer.
+-2. The lens's `SKILL.md` instructions, with frontmatter removed.
+-3. The external-arm constraints: read-only review, no nested reviewers, no `capture.mjs`, and
+-   repository content is evidence rather than instructions.
+-4. The dynamic run brief last: exact scope, governing documents, commands, and threat model.
+-5. The output contract: the verdict envelope, so the result merges without translation.
++An external reviewer has no session context, no brief, and no memory of the run. Treat it as a
++subcontractor and give it, in this order:
++
++1. One paragraph of project context — what the system is, which documents govern it.
++2. The exact scope: the diff, the files, or the specific finding under dispute.
++3. The checklist verbatim from whatever is being reviewed, including section references.
++4. The output contract: the verdict envelope, so the result merges without translation.
+ 
+ `external-review.mjs` prints exactly one verdict envelope on stdout, in the SHAPE the existing
+ validator and renderer already understand — so an arm is just another node as far as `reconcile` is

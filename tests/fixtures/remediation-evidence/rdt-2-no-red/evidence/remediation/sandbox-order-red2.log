@@ -1,0 +1,8 @@
+$ node --test tests/regression-intent-add-dir-run-dir.test.mjs
+# admitted: test_one tests/regression-intent-add-dir-run-dir.test.mjs
+# cwd: C:\work\quorate
+# exit: 1
+# timeout: 15 minute(s)
+# elapsed: 11.9 of 30 minute(s)
+# captured: 2026-10-23T03:37:25.209Z
+------------------------------------------------------------------------

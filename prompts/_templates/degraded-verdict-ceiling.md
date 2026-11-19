@@ -1,0 +1,1 @@
+Degraded: your verdict may not exceed {{verdict_ceiling}} — except one a §6 invariant finding drives, which is never capped. This is a VERDICT ceiling (PASS|RISK|FAIL), not a severity — the two are separate caps, each enforced by the validator with that exception.

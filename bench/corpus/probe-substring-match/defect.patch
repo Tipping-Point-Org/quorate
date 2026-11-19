@@ -1,0 +1,55 @@
+diff --git a/scripts/lib/decisions.mjs b/scripts/lib/decisions.mjs
+index 65def4c..3fcd487 100644
+--- a/scripts/lib/decisions.mjs
++++ b/scripts/lib/decisions.mjs
+@@ -288,15 +288,8 @@ export function classifyPanelProbe(envelope, reviewer) {
+   // unpinned runtime (`codex model`, `codex reasoning effort`) a perfectly reachable arm that had
+   // returned PASS was reported `unavailable`. Caught by a live probe on 2026-08-31, which is
+   // precisely the class of defect the offline suite cannot see: both arms round-tripped.
+-  // Built from the SHARED role list, not a literal alternation. The alternation was
+-  // `(reviewer|proposer)`; external-review then grew a third mode whose failure marker reads
+-  // `tie-breaker '<name>'`, matched nothing, and a tie-break whose reviewer was missing, refused or
+-  // denied egress was recorded state OK — a silent adjudication reading exactly like one that
+-  // happened (G-44). One owner, so an emitter and its classifier cannot describe the same failure
+-  // differently again.
+-  const subject = new RegExp(`^(${UNAVAILABLE_ROLES.join('|')}) '${reviewer}'$`);
+   const named = (envelope.not_checked ?? []).find(
+-    (n) => n && typeof n.item === 'string' && subject.test(n.item.trim()),
++    (n) => n && typeof n.item === 'string' && n.item.includes(reviewer),
+   );
+   if (named) return { state: 'unavailable', reason: named.reason ?? 'unstated' };
+   // THE FIELD THAT MODE ACTUALLY HAS. A review envelope carries `verdict`; a TIE-BREAK envelope
+diff --git a/tests/regression-panel-probe.test.mjs b/tests/regression-panel-probe.test.mjs
+--- a/tests/regression-panel-probe.test.mjs
++++ b/tests/regression-panel-probe.test.mjs
+@@ -66,30 +66,3 @@ test("another arm's not_checked entry does not mark this arm unavailable", () =>
+ // is regression-reviewer-preflight's check-reviewers test, and refusing a reviewer it does not know is
+ // regression-tiebreak-probe's (its fixture name, like this one, can never become valid).
+ 
+-test('regression: an unpinned-runtime note does not make a reachable arm look unavailable', () => {
+-  // The classifier matched any not_checked item CONTAINING the reviewer's name. When the adapter
+-  // began reporting an unpinned model as `{item: "codex model"}`, a live probe that returned PASS
+-  // was classified `unavailable` — a working transport reported as a broken one. Found by the
+-  // 2026-08-31 live probe; the offline suite could not see it because both arms answered.
+-  const envelope = {
+-    schema_version: 1, source: 'codex', verdict: 'PASS',
+-    not_checked: [
+-      { item: 'codex model', reason: 'not pinned; ambient default' },
+-      { item: 'codex reasoning effort', reason: 'not pinned; ambient default' },
+-    ],
+-  };
+-  assert.deepEqual(classifyPanelProbe(envelope, 'codex'), { state: 'reachable', reason: 'verdict PASS' });
+-});
+-
+-test('the arm genuinely not running is still unavailable, by the exact item unavailable() writes', () => {
+-  for (const item of ["external reviewer 'codex'", "external proposer 'codex'"]) {
+-    const envelope = {
+-      schema_version: 1, source: 'codex', verdict: 'RISK',
+-      not_checked: [{ item, reason: "'codex' is not on PATH" }],
+-    };
+-    assert.deepEqual(
+-      classifyPanelProbe(envelope, 'codex'),
+-      { state: 'unavailable', reason: "'codex' is not on PATH" },
+-    );
+-  }
+-});

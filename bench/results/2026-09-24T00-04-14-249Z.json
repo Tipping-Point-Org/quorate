@@ -1,0 +1,1560 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-24T00:04:14.249Z",
+  "finished_at": "2026-09-24T00:21:29.427Z",
+  "tolerance": 15,
+  "not_run": [],
+  "scores": [
+    {
+      "seed": "clamp-silent-noop",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 42,
+          "severity": "HIGH",
+          "claim": "clampSeverity now skips the floor/ceiling when the value is not in SEVERITY_RUNGS (`floor !== null && SEVERITY_RUNGS.includes(floor)` / same for ceiling), where it previously threw. So a misconfigured cap, for example a verdict like 'RISK' or a mis-cased 'medium', turns the clamp into a silent no-op: it returns the model's original severity, and no error or counter shows that the cap was ignored. "
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1
+      },
+      "reconcile": {
+        "state": "kept",
+        "kept": true,
+        "anchored": [
+          "G-1"
+        ],
+        "decisions": {
+          "G-1": {
+            "decision": "confirmed"
+          }
+        }
+      },
+      "defect_line": 43
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "doc-consistency-review"
+      ],
+      "hits": [
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 101,
+          "severity": "MEDIUM",
+          "claim": "This section now says an external reviewer gets 'no brief', only a project-context paragraph, the scope, a verbatim checklist and the output contract, in that order. The builder the doc itself names as the only source of external prompts does something else: codex-prompts.mjs:314-316 fills shadow-arm.md with arm_constraints (EXTERNAL_ARM_CONSTRAINTS), lens_contract (the lens SKILL.md with frontmat"
+        }
+      ],
+      "expected_hit": [
+        "doc-consistency-review"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {},
+      "reconcile": {
+        "state": "kept",
+        "kept": true,
+        "anchored": [
+          "G-1"
+        ],
+        "decisions": {
+          "G-1": {
+            "decision": "confirmed"
+          }
+        }
+      },
+      "defect_line": 101
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit",
+        "security-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 92,
+          "severity": "MEDIUM",
+          "claim": "The bundle gate `if (!/^-[A-Za-z]/.test(t)) return false;` returns non-forbidden for any single-dash token whose second character is not a letter, so the cluster scan below it (lines 96-98) never runs for a digit-led bundle. That is wrong because git grep parses `-<num>` as `-C NUM` (OPT_NUMBER_CALLBACK) and keeps parsing the same token, so `-2Ocat` is `-2 -O cat`, and `O` is exactly the forbidden"
+        },
+        {
+          "node": "security-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 92,
+          "severity": "HIGH",
+          "claim": "The bundle check is back to `/^-[A-Za-z]/`, so a single-dash token starting with a digit returns false without its characters being checked. git grep reads `-<num>` as `-C NUM` and keeps parsing the same token, so `-2Oecho` is `-2 -O echo`, which reaches --open-files-in-pager, and git runs that pager through a shell. Through capture.mjs (the sanctioned evidence channel, which calls this guard at c"
+        }
+      ],
+      "expected_hit": [
+        "code-audit",
+        "security-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {},
+      "reconcile": {
+        "state": "kept",
+        "kept": true,
+        "anchored": [
+          "G-1"
+        ],
+        "decisions": {
+          "G-1": {
+            "decision": "confirmed"
+          }
+        }
+      },
+      "defect_line": 92
+    },
+    {
+      "seed": "probe-substring-match",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 703,
+          "severity": "HIGH",
+          "claim": "classifyPanelProbe now marks an arm unavailable when ANY not_checked item merely contains the reviewer name (`n.item.includes(reviewer)`), replacing the anchored `^(external reviewer|external proposer|tie-breaker) '<name>'$` match built from UNAVAILABLE_ROLES. This is wrong because external-review.mjs:577/585 routinely emits items like `codex model` and `codex reasoning effort` for an unpinned run"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1
+      },
+      "reconcile": {
+        "state": "kept",
+        "kept": true,
+        "anchored": [
+          "G-2"
+        ],
+        "decisions": {
+          "G-2": {
+            "decision": "confirmed"
+          }
+        }
+      },
+      "defect_line": 703
+    },
+    {
+      "seed": "prose-before-payload",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 85,
+          "severity": "MEDIUM",
+          "claim": "classifyResult now tests `!hasPayload` before `schemaVariant === 'none'`. The uncommitted diff moved the prose branch below the no-payload check and deleted the comment saying 'ORDER IS THE CONTRACT'. That order is wrong because a prose node has no structured output by definition, so any call with schemaVariant 'none', hasPayload false and non-empty resultText returns { branch: 'no-payload', state"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1
+      },
+      "reconcile": {
+        "state": "kept",
+        "kept": true,
+        "anchored": [
+          "G-1"
+        ],
+        "decisions": {
+          "G-1": {
+            "decision": "confirmed"
+          }
+        }
+      },
+      "defect_line": 87
+    },
+    {
+      "seed": "status-never-a-pass",
+      "tolerance": 40,
+      "caught": true,
+      "caught_by": [
+        "contract-audit"
+      ],
+      "hits": [
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 1066,
+          "severity": "HIGH",
+          "claim": "I-5 says that in propose mode a non-ok status empties the pool and says so. The propose branch now emits `candidates: kept` from whatever the reviewer returned, with no status check anywhere before it. The status branch was removed, and a grep for p.status finds no reader. A proposer that returns `status:'incomplete'` with a few candidates therefore produces a partial pool that looks complete, and"
+        },
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 1033,
+          "severity": "MEDIUM",
+          "claim": "I-2 requires a non-empty reason whenever status is not ok, checked after parsing because strict mode makes `reason` an always-present string. The schema still declares `reason: str` (reviewer-schemas.mjs:53, 92, 161). The post-parse check that replaced an empty reason with an explicit '(no reason given, though the contract requires one)' was deleted. So a non-ok response with an empty reason is no"
+        }
+      ],
+      "expected_hit": [
+        "contract-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "contract-audit": 2
+      },
+      "reconcile": {
+        "state": "kept",
+        "kept": true,
+        "anchored": [
+          "G-1",
+          "G-2"
+        ],
+        "decisions": {
+          "G-1": {
+            "decision": "symptom",
+            "root_cause_group": "G-3"
+          },
+          "G-2": {
+            "decision": "symptom",
+            "root_cause_group": "G-3"
+          }
+        }
+      },
+      "defect_line": 1028
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/spawn-node.mjs",
+          "line": 1817,
+          "severity": "HIGH",
+          "claim": "The §2 verdict floor is no longer applied: spawn-node imports verdictFloorFromFindings and raiseVerdict (line 20) but never calls them, and it goes straight from the severity clamp to the verdictCeiling cap at line 1818-1820. So payload.verdict is whatever the model declared, whatever its kept findings are. A lens that returns verdict PASS next to a kept BLOCKER or HIGH finding is recorded as OK/P"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      },
+      "reconcile": {
+        "state": "kept",
+        "kept": true,
+        "anchored": [
+          "G-3"
+        ],
+        "decisions": {
+          "G-3": {
+            "decision": "confirmed"
+          }
+        }
+      },
+      "defect_line": 1815
+    }
+  ],
+  "summary": {
+    "seeds": 7,
+    "caught": 7,
+    "overall_recall": 1,
+    "lenses": {
+      "code-audit": {
+        "expected": 5,
+        "caught": 5,
+        "recall": 1,
+        "cost_usd": 2.2551908
+      },
+      "doc-consistency-review": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 0.5888256000000001
+      },
+      "security-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 0.650546
+      },
+      "contract-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 0.5825155999999999
+      }
+    }
+  },
+  "config": {
+    "corpus_commit": "d64101ea97e341ac663ba0e37e7cbcfed362bd26",
+    "framework": {
+      "name": "quorate",
+      "version": "0.2.0",
+      "commit": "d64101ea97e341ac663ba0e37e7cbcfed362bd26",
+      "dirty": true,
+      "layout": "bench"
+    },
+    "declared_models": {
+      "judgment": "opus",
+      "mechanical": "sonnet"
+    },
+    "declared_effort": {
+      "judgment": "medium"
+    },
+    "override": {
+      "model": null,
+      "effort": "medium",
+      "external_panel": false
+    },
+    "runtime": "claude",
+    "runtime_version": "2.1.281 (Claude Code)",
+    "node_version": "v24.13.1",
+    "measured_at": "2026-09-24T00:04:14.249Z",
+    "alias_caveat": "Model aliases float: the provider may replace the model behind \"opus\"/\"sonnet\" at any time. A result is only comparable to another with the same runtime_version and a nearby measured_at. Re-measure before trusting an older number, and never carry a recall figure forward across a model change in either direction."
+  },
+  "runs": [
+    {
+      "seed": "clamp-silent-noop",
+      "costs": {
+        "code-audit": 0.6095336,
+        "reconcile": 0.2923988,
+        "second-opinion": 0.3078862
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 22,
+          "cache_creation_input_tokens": 47980,
+          "cache_read_input_tokens": 555628,
+          "output_tokens": 5724,
+          "output_tokens_details": {
+            "thinking_tokens": 1058
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 47980,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2394,
+              "cache_read_input_tokens": 64067,
+              "cache_creation_input_tokens": 568,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 568
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 10,
+          "cache_creation_input_tokens": 24949,
+          "cache_read_input_tokens": 134934,
+          "output_tokens": 3289,
+          "output_tokens_details": {
+            "thinking_tokens": 451
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 24949,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2109,
+              "cache_read_input_tokens": 36373,
+              "cache_creation_input_tokens": 3059,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3059
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "second-opinion": {
+          "input_tokens": 8,
+          "cache_creation_input_tokens": 29753,
+          "cache_read_input_tokens": 139551,
+          "output_tokens": 2096,
+          "output_tokens_details": {
+            "thinking_tokens": 70
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 29753,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1663,
+              "cache_read_input_tokens": 43582,
+              "cache_creation_input_tokens": 1360,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1360
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 14,
+        "reconcile": 10,
+        "second-opinion": 4
+      },
+      "duration_ms": {
+        "code-audit": 63972,
+        "reconcile": 35677,
+        "second-opinion": 25260
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "second-opinion": {
+          "model": "opus",
+          "effort": "low"
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "costs": {
+        "doc-consistency-review": 0.5888256000000001,
+        "reconcile": 0.3022862,
+        "second-opinion": 0.3178568
+      },
+      "usage": {
+        "doc-consistency-review": {
+          "input_tokens": 22,
+          "cache_creation_input_tokens": 43124,
+          "cache_read_input_tokens": 527828,
+          "output_tokens": 6909,
+          "output_tokens_details": {
+            "thinking_tokens": 1014
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 43124,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1924,
+              "cache_read_input_tokens": 57507,
+              "cache_creation_input_tokens": 2272,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2272
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 10,
+          "cache_creation_input_tokens": 27615,
+          "cache_read_input_tokens": 135231,
+          "output_tokens": 2714,
+          "output_tokens_details": {
+            "thinking_tokens": 425
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 27615,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1743,
+              "cache_read_input_tokens": 39001,
+              "cache_creation_input_tokens": 3097,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3097
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "second-opinion": {
+          "input_tokens": 8,
+          "cache_creation_input_tokens": 29633,
+          "cache_read_input_tokens": 142304,
+          "output_tokens": 2615,
+          "output_tokens_details": {
+            "thinking_tokens": 250
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 29633,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1899,
+              "cache_read_input_tokens": 43786,
+              "cache_creation_input_tokens": 1036,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1036
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "doc-consistency-review": 14,
+        "reconcile": 6,
+        "second-opinion": 4
+      },
+      "duration_ms": {
+        "doc-consistency-review": 81777,
+        "reconcile": 31180,
+        "second-opinion": 29527
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "second-opinion": {
+          "model": "opus",
+          "effort": "low"
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "costs": {
+        "code-audit": 0.433348,
+        "reconcile": 0.3122746,
+        "second-opinion": 0.3191074,
+        "security-audit": 0.650546
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 14,
+          "cache_creation_input_tokens": 36965,
+          "cache_read_input_tokens": 302560,
+          "output_tokens": 3853,
+          "output_tokens_details": {
+            "thinking_tokens": 524
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 36965,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2346,
+              "cache_read_input_tokens": 52121,
+              "cache_creation_input_tokens": 1499,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1499
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 14,
+          "cache_creation_input_tokens": 22506,
+          "cache_read_input_tokens": 191553,
+          "output_tokens": 4693,
+          "output_tokens_details": {
+            "thinking_tokens": 411
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 22506,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1383,
+              "cache_read_input_tokens": 35009,
+              "cache_creation_input_tokens": 1980,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1980
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "second-opinion": {
+          "input_tokens": 8,
+          "cache_creation_input_tokens": 30543,
+          "cache_read_input_tokens": 138857,
+          "output_tokens": 2348,
+          "output_tokens_details": {
+            "thinking_tokens": 105
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 30543,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1655,
+              "cache_read_input_tokens": 43599,
+              "cache_creation_input_tokens": 2133,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2133
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "security-audit": {
+          "input_tokens": 26,
+          "cache_creation_input_tokens": 45431,
+          "cache_read_input_tokens": 651070,
+          "output_tokens": 7839,
+          "output_tokens_details": {
+            "thinking_tokens": 1365
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 45431,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2038,
+              "cache_read_input_tokens": 59540,
+              "cache_creation_input_tokens": 2546,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2546
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 8,
+        "reconcile": 10,
+        "second-opinion": 6,
+        "security-audit": 15
+      },
+      "duration_ms": {
+        "code-audit": 44118,
+        "reconcile": 46979,
+        "second-opinion": 28215,
+        "security-audit": 84355
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "second-opinion": {
+          "model": "opus",
+          "effort": "low"
+        },
+        "security-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "costs": {
+        "code-audit": 0.37884120000000004,
+        "reconcile": 0.5028124,
+        "second-opinion": 0.3751586
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 12,
+          "cache_creation_input_tokens": 34043,
+          "cache_read_input_tokens": 245246,
+          "output_tokens": 2870,
+          "output_tokens_details": {
+            "thinking_tokens": 181
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 34043,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1709,
+              "cache_read_input_tokens": 50228,
+              "cache_creation_input_tokens": 470,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 470
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 18,
+          "cache_creation_input_tokens": 38987,
+          "cache_read_input_tokens": 347422,
+          "output_tokens": 6068,
+          "output_tokens_details": {
+            "thinking_tokens": 980
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 38987,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1677,
+              "cache_read_input_tokens": 51304,
+              "cache_creation_input_tokens": 2166,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2166
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "second-opinion": {
+          "input_tokens": 12,
+          "cache_creation_input_tokens": 34631,
+          "cache_read_input_tokens": 229513,
+          "output_tokens": 2608,
+          "output_tokens_details": {
+            "thinking_tokens": 333
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 34631,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1564,
+              "cache_read_input_tokens": 48893,
+              "cache_creation_input_tokens": 927,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 927
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 7,
+        "reconcile": 10,
+        "second-opinion": 6
+      },
+      "duration_ms": {
+        "code-audit": 33919,
+        "reconcile": 60166,
+        "second-opinion": 31079
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "second-opinion": {
+          "model": "opus",
+          "effort": "low"
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "costs": {
+        "code-audit": 0.4244523999999999,
+        "reconcile": 0.45512680000000005,
+        "second-opinion": 0.3395152
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 14,
+          "cache_creation_input_tokens": 35468,
+          "cache_read_input_tokens": 302262,
+          "output_tokens": 4010,
+          "output_tokens_details": {
+            "thinking_tokens": 745
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 35468,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2077,
+              "cache_read_input_tokens": 51064,
+              "cache_creation_input_tokens": 1059,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1059
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 22,
+          "cache_creation_input_tokens": 33602,
+          "cache_read_input_tokens": 372114,
+          "output_tokens": 5590,
+          "output_tokens_details": {
+            "thinking_tokens": 600
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 33602,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1532,
+              "cache_read_input_tokens": 45932,
+              "cache_creation_input_tokens": 2153,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2153
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "second-opinion": {
+          "input_tokens": 8,
+          "cache_creation_input_tokens": 32037,
+          "cache_read_input_tokens": 139336,
+          "output_tokens": 2766,
+          "output_tokens_details": {
+            "thinking_tokens": 178
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 32037,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2173,
+              "cache_read_input_tokens": 43383,
+              "cache_creation_input_tokens": 3843,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3843
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 9,
+        "reconcile": 12,
+        "second-opinion": 4
+      },
+      "duration_ms": {
+        "code-audit": 45134,
+        "reconcile": 56349,
+        "second-opinion": 32155
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "second-opinion": {
+          "model": "opus",
+          "effort": "low"
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "status-never-a-pass",
+      "costs": {
+        "contract-audit": 0.5825155999999999,
+        "intent-capture": 0.9843519999999999,
+        "reconcile": 0.5562966,
+        "second-opinion": 0.3732696
+      },
+      "usage": {
+        "contract-audit": {
+          "input_tokens": 20,
+          "cache_creation_input_tokens": 47560,
+          "cache_read_input_tokens": 516778,
+          "output_tokens": 4930,
+          "output_tokens_details": {
+            "thinking_tokens": 454
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 47560,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2778,
+              "cache_read_input_tokens": 63334,
+              "cache_creation_input_tokens": 967,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 967
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "intent-capture": {
+          "input_tokens": 12,
+          "cache_creation_input_tokens": 93213,
+          "cache_read_input_tokens": 212300,
+          "output_tokens": 9807,
+          "output_tokens_details": {
+            "thinking_tokens": 1885
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 93213,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 8477,
+              "cache_read_input_tokens": 85492,
+              "cache_creation_input_tokens": 16047,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 16047
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 24,
+          "cache_creation_input_tokens": 44403,
+          "cache_read_input_tokens": 479683,
+          "output_tokens": 5252,
+          "output_tokens_details": {
+            "thinking_tokens": 1048
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 44403,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2170,
+              "cache_read_input_tokens": 58386,
+              "cache_creation_input_tokens": 500,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 500
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "second-opinion": {
+          "input_tokens": 12,
+          "cache_creation_input_tokens": 32808,
+          "cache_read_input_tokens": 234988,
+          "output_tokens": 3188,
+          "output_tokens_details": {
+            "thinking_tokens": 339
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 32808,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2150,
+              "cache_read_input_tokens": 46662,
+              "cache_creation_input_tokens": 1335,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1335
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "contract-audit": 12,
+        "intent-capture": 10,
+        "reconcile": 13,
+        "second-opinion": 6
+      },
+      "duration_ms": {
+        "contract-audit": 54078,
+        "intent-capture": 94696,
+        "reconcile": 63527,
+        "second-opinion": 35377
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "intent-capture": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "second-opinion": {
+          "model": "opus",
+          "effort": "low"
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "costs": {
+        "code-audit": 0.4090155999999999,
+        "reconcile": 0.3396916,
+        "second-opinion": 0.3064608
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 12,
+          "cache_creation_input_tokens": 36058,
+          "cache_read_input_tokens": 251218,
+          "output_tokens": 3513,
+          "output_tokens_details": {
+            "thinking_tokens": 231
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 36058,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2088,
+              "cache_read_input_tokens": 51212,
+              "cache_creation_input_tokens": 1501,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1501
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 16,
+          "cache_creation_input_tokens": 26573,
+          "cache_read_input_tokens": 230918,
+          "output_tokens": 4043,
+          "output_tokens_details": {
+            "thinking_tokens": 755
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 26573,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2297,
+              "cache_read_input_tokens": 39881,
+              "cache_creation_input_tokens": 1175,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1175
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "second-opinion": {
+          "input_tokens": 6,
+          "cache_creation_input_tokens": 30245,
+          "cache_read_input_tokens": 98584,
+          "output_tokens": 2238,
+          "output_tokens_details": {
+            "thinking_tokens": 156
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 30245,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1892,
+              "cache_read_input_tokens": 43539,
+              "cache_creation_input_tokens": 1895,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1895
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 8,
+        "reconcile": 9,
+        "second-opinion": 3
+      },
+      "duration_ms": {
+        "code-audit": 38033,
+        "reconcile": 44011,
+        "second-opinion": 30048
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "second-opinion": {
+          "model": "opus",
+          "effort": "low"
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    }
+  ],
+  "total_cost_usd": 10.16,
+  "scored_cost_usd": 10.16,
+  "unscored_cost_usd": 0,
+  "unscored_spend": [],
+  "total_usage": {
+    "input_tokens": 330,
+    "output_tokens": 98963,
+    "thinking_tokens": 13558,
+    "cache_creation_input_tokens": 858127,
+    "cache_read_input_tokens": 6579878
+  }
+}

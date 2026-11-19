@@ -1,0 +1,65 @@
+diff --git a/scripts/lib/decisions.mjs b/scripts/lib/decisions.mjs
+index ea49818..83e3f29 100644
+--- a/scripts/lib/decisions.mjs
++++ b/scripts/lib/decisions.mjs
+@@ -4,8 +4,6 @@
+ // subprocess spawning and run-directory reads, and every one of them shipped a defect that a
+ // four-line test would have caught:
+ //
+-//   clampSeverity   silently disabled itself on a value it did not recognise, so every degraded
+-//                   lens ran uncapped while every artifact said otherwise.
+ //   classifyResult  checked for a payload before checking for a prose node, so the graph's one
+ //                   prose node could never report OK.
+ //   nodeSpend       read `launched: false` off a stub written for a node that HAD launched, so an
+@@ -19,30 +17,12 @@ export const VERDICTS = ['PASS', 'RISK', 'FAIL'];
+ 
+ /**
+  * Clamp one finding's severity into the band a degraded lens is allowed to claim.
+- *
+- * Unrecognised floor/ceiling values THROW rather than being skipped. The original guarded with
+- * `RUNGS.includes(ceiling)` and fell through when it failed — which is exactly what happened on
+- * every degraded lens, because a VERDICT ('RISK') was being passed to this SEVERITY parameter.
+- * A cap that quietly does nothing when misconfigured is worse than no cap: it produces the
+- * paperwork of a guarantee without the guarantee.
+  */
+ export function clampSeverity(severity, { floor = null, ceiling = null } = {}) {
+-  if (floor !== null && !SEVERITY_RUNGS.includes(floor)) {
+-    throw new Error(`severity floor must be one of ${SEVERITY_RUNGS.join('|')}, got ${JSON.stringify(floor)}`);
+-  }
+-  if (ceiling !== null && !SEVERITY_RUNGS.includes(ceiling)) {
+-    throw new Error(
+-      `severity ceiling must be one of ${SEVERITY_RUNGS.join('|')}, got ${JSON.stringify(ceiling)}` +
+-      ` — a verdict like RISK is not a severity`,
+-    );
+-  }
+-  // An unknown severity floors to LOW rather than throwing: it arrives from a model, and the
+-  // schema already constrains it. Configuration is ours and fails loudly; model output is theirs
+-  // and degrades safely.
+   let i = SEVERITY_RUNGS.indexOf(severity);
+   if (i < 0) i = 0;
+-  if (floor !== null) i = Math.max(i, SEVERITY_RUNGS.indexOf(floor));
+-  if (ceiling !== null) i = Math.min(i, SEVERITY_RUNGS.indexOf(ceiling));
++  if (floor !== null && SEVERITY_RUNGS.includes(floor)) i = Math.max(i, SEVERITY_RUNGS.indexOf(floor));
++  if (ceiling !== null && SEVERITY_RUNGS.includes(ceiling)) i = Math.min(i, SEVERITY_RUNGS.indexOf(ceiling));
+   return SEVERITY_RUNGS[Math.max(0, i)];
+ }
+ 
+diff --git a/tests/regression-caps.test.mjs b/tests/regression-caps.test.mjs
+index 3111f3f..19bc2a2 100644
+--- a/tests/regression-caps.test.mjs
++++ b/tests/regression-caps.test.mjs
+@@ -14,14 +14,6 @@ import { runScript, scratchRunDir } from './helpers.mjs';
+ // degraded lens was handed 'RISK' — a VERDICT — in the severity slot, so the guard failed, the
+ // clamp was skipped entirely, and expected.json/the brief/the docs all reported a cap that did not
+ // exist. Silence was the failure mode; this test makes noise the failure mode.
+-test('regression: a verdict in the severity slot throws instead of silently disabling the clamp', () => {
+-  assert.throws(
+-    () => clampSeverity('HIGH', { ceiling: 'RISK' }),
+-    /not a severity|must be one of/,
+-    'RISK is a verdict; passing it here must be fatal, never a no-op',
+-  );
+-});
+-
+ test('regression: a degraded lens cannot ship a HIGH finding under a MEDIUM ceiling', () => {
+   assert.equal(clampSeverity('HIGH', { ceiling: 'MEDIUM' }), 'MEDIUM');
+   assert.equal(clampSeverity('BLOCKER', { ceiling: 'MEDIUM' }), 'MEDIUM');

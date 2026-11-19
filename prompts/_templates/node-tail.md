@@ -1,0 +1,1 @@
+Do not write files. Do not spawn subprocesses other than capture.mjs and find-inert-features.mjs — the §8 exemptions that let you produce evidence (G-41). GRAPH_NODE_DEPTH={{depth}}.

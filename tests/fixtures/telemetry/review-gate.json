@@ -1,0 +1,9 @@
+{
+  "gate": "RISK",
+  "stamps": [
+    "UNBENCHED",
+    "CONTRACT-PARTIAL",
+    "UNCAPPED-BUDGET"
+  ],
+  "reason": "MODEL TEXT"
+}

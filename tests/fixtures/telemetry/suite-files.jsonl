@@ -1,0 +1,6 @@
+{"event":"summary","file":"<repo>/tests/regression-adapter-tool-lists.test.mjs","counts":{"tests":14,"failed":0,"passed":14,"cancelled":0,"skipped":0,"todo":0,"topLevel":14,"suites":0}}
+{"event":"file","file":"<repo>/tests/regression-adapter-tool-lists.test.mjs","duration_ms":364.931}
+{"event":"summary","file":"<repo>/tests/regression-bench-and-counts.test.mjs","counts":{"tests":38,"failed":0,"passed":38,"cancelled":0,"skipped":0,"todo":0,"topLevel":38,"suites":0}}
+{"event":"file","file":"<repo>/tests/regression-bench-and-counts.test.mjs","duration_ms":3333.5792}
+{"event":"summary","file":"<repo>/tests/regression-telemetry-run-time.test.mjs","counts":{"tests":11,"failed":0,"passed":11,"cancelled":0,"skipped":0,"todo":0,"topLevel":11,"suites":0}}
+{"event":"file","file":"<repo>/tests/regression-telemetry-run-time.test.mjs","duration_ms":25034.8542}

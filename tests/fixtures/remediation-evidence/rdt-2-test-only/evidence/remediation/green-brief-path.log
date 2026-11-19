@@ -1,0 +1,8 @@
+$ node --test tests/regression-brief-path-shell-safe.test.mjs
+# admitted: test_one tests/regression-brief-path-shell-safe.test.mjs
+# cwd: C:\work\quorate
+# exit: 0
+# timeout: 15 minute(s)
+# elapsed: 6.4 of 30 minute(s)
+# captured: 2026-10-23T03:31:50.501Z
+------------------------------------------------------------------------

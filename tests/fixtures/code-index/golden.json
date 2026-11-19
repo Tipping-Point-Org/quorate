@@ -1,0 +1,520 @@
+{
+  "about": "Expected answers over the fixtures beside this file, derived by reading them by hand (code-index.plan.md stage 2). Each sweep's name is quoted from story-pipeline's requirements, 'Why' section, where source is 'why'. Rows list only the fields a sweep checks; a query's rows may carry more.",
+  "roots": {
+    "python": "python",
+    "python-broken": "python-broken",
+    "javascript": "javascript"
+  },
+  "sweeps": [
+    {
+      "name": "`by_model` comparisons against a locality call",
+      "source": "why",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "operand": "pkg.use.locality"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/use.py",
+          "line": 15,
+          "enclosing": "pkg.use.build",
+          "op": "==",
+          "left": {
+            "kind": "attribute",
+            "path": "config.by_model"
+          },
+          "right": {
+            "kind": "call"
+          }
+        }
+      ]
+    },
+    {
+      "name": "`\"auto\"` literals keyed by enclosing function",
+      "source": "why",
+      "language": "python",
+      "shape": "literals",
+      "args": {
+        "value": "auto"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/client.py",
+          "line": 4,
+          "enclosing": "pkg.client.complete"
+        },
+        {
+          "path": "pkg/config.py",
+          "line": 2,
+          "enclosing": "pkg.config.LLMConfig.__init__"
+        },
+        {
+          "path": "pkg/settings.py",
+          "line": 3,
+          "enclosing": "pkg.settings.LLMSettings"
+        },
+        {
+          "path": "pkg/sfx.py",
+          "line": 8,
+          "enclosing": "pkg.sfx.render"
+        },
+        {
+          "path": "pkg/use.py",
+          "line": 10,
+          "enclosing": "pkg.use.build"
+        },
+        {
+          "path": "pkg/use.py",
+          "line": 26,
+          "enclosing": "pkg.use.check"
+        }
+      ]
+    },
+    {
+      "name": "modules reaching a model entry point",
+      "source": "why",
+      "language": "python",
+      "shape": "calls",
+      "args": {
+        "callee": "pkg.client.complete"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/sfx.py",
+          "line": 8,
+          "enclosing": "pkg.sfx.render",
+          "callee": "pkg.client.complete",
+          "callee_text": "_complete"
+        }
+      ]
+    },
+    {
+      "name": "`LLMConfig(` construction sites and their keyword sets",
+      "source": "why",
+      "language": "python",
+      "shape": "constructions",
+      "args": {
+        "type": "pkg.config.LLMConfig"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/use.py",
+          "line": 10,
+          "enclosing": "pkg.use.build",
+          "keywords": [
+            "provider",
+            "model",
+            "by_model"
+          ],
+          "dict_keys": [
+            "fast",
+            "slow"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "the settings models' string fields",
+      "source": "why",
+      "language": "python",
+      "shape": "symbol",
+      "args": {
+        "name": "pkg.settings.",
+        "kind": "field",
+        "annotation": "str"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/settings.py",
+          "line": 2,
+          "qualified": "pkg.settings.LLMSettings.provider",
+          "kind": "field",
+          "default": "ollama"
+        },
+        {
+          "path": "pkg/settings.py",
+          "line": 3,
+          "qualified": "pkg.settings.LLMSettings.model",
+          "kind": "field",
+          "default": "auto"
+        }
+      ]
+    },
+    {
+      "name": "`assert_local_allowed`'s call sites",
+      "source": "why",
+      "language": "python",
+      "shape": "calls",
+      "args": {
+        "callee": "pkg.client.assert_local_allowed"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/use.py",
+          "line": 11,
+          "enclosing": "pkg.use.build",
+          "callee_text": "guard"
+        }
+      ]
+    },
+    {
+      "name": "`Asset(` sites",
+      "source": "why",
+      "language": "python",
+      "shape": "constructions",
+      "args": {
+        "type": "pkg.config.Asset"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/use.py",
+          "line": 14,
+          "enclosing": "pkg.use.build",
+          "keywords": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "locality consumers",
+      "source": "why",
+      "language": "python",
+      "shape": "calls",
+      "args": {
+        "callee": "pkg.use.locality"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/use.py",
+          "line": 12,
+          "enclosing": "pkg.use.build"
+        },
+        {
+          "path": "pkg/use.py",
+          "line": 15,
+          "enclosing": "pkg.use.build"
+        }
+      ]
+    },
+    {
+      "name": "binding sites passing a settings object where a config was expected",
+      "source": "why",
+      "language": "python",
+      "shape": "calls",
+      "args": {
+        "callee": "pkg.use.bind",
+        "arg_path": "self.settings.llm"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/use.py",
+          "line": 17,
+          "enclosing": "pkg.use.build"
+        }
+      ]
+    },
+    {
+      "name": "a bare `except Exception` lexically inside a function that calls, or is, one of these helpers",
+      "source": "consumer zero, 2026-10-20",
+      "language": "python",
+      "shape": "handlers",
+      "args": {
+        "calls_any": [
+          "pkg.client.complete"
+        ]
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/sfx.py",
+          "line": 9,
+          "enclosing": "pkg.sfx.render",
+          "caught": "Exception"
+        }
+      ]
+    },
+    {
+      "name": "a comparison against a literal held in a variable",
+      "source": "why (error table)",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "auto"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/use.py",
+          "line": 27,
+          "enclosing": "pkg.use.check",
+          "literal": "auto",
+          "via": "wanted"
+        }
+      ]
+    },
+    {
+      "name": "callees of a function, through an import alias",
+      "source": "shape coverage",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "pkg.sfx.render"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/sfx.py",
+          "line": 8,
+          "callee": "pkg.client.complete",
+          "resolved": true,
+          "in_manifest": true
+        }
+      ]
+    },
+    {
+      "name": "callees reaching outside the manifest",
+      "source": "shape coverage",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "pkg.sfx.mystery"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "pkg/sfx.py",
+          "line": 21,
+          "callee": "missing.module.thing",
+          "resolved": true,
+          "in_manifest": false
+        }
+      ]
+    },
+    {
+      "name": "callees with an edge nothing resolves",
+      "source": "shape coverage",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "pkg.sfx.dynamic"
+      },
+      "outcome": "partial",
+      "expected": [
+        {
+          "path": "pkg/sfx.py",
+          "line": 25,
+          "callee": "builtins.getattr",
+          "resolved": true,
+          "in_manifest": false
+        },
+        {
+          "path": "pkg/sfx.py",
+          "line": 25,
+          "callee": null,
+          "resolved": false
+        }
+      ]
+    },
+    {
+      "name": "a file the parser refuses",
+      "source": "shape coverage",
+      "language": "python-broken",
+      "shape": "symbol",
+      "args": {
+        "name": "pkg.broken."
+      },
+      "outcome": "parse_error",
+      "expected": [],
+      "why_outcome": "parse_error since code-index-schema-and-scope stage 5 (G-31 of 043006, G-37 of 061457): the target resolves to nothing and a file in scope failed to parse; it was partial before"
+    },
+    {
+      "name": "unresolved twin: symbol",
+      "source": "unresolved twin",
+      "language": "python",
+      "shape": "symbol",
+      "args": {
+        "name": "pkg.nothere.f"
+      },
+      "outcome": "unresolved",
+      "expected": []
+    },
+    {
+      "name": "unresolved twin: calls",
+      "source": "unresolved twin",
+      "language": "python",
+      "shape": "calls",
+      "args": {
+        "callee": "pkg.nothere.f"
+      },
+      "outcome": "unresolved",
+      "expected": []
+    },
+    {
+      "name": "unresolved twin: constructions",
+      "source": "unresolved twin",
+      "language": "python",
+      "shape": "constructions",
+      "args": {
+        "type": "pkg.nothere.T"
+      },
+      "outcome": "unresolved",
+      "expected": []
+    },
+    {
+      "name": "unresolved twin: literals",
+      "source": "unresolved twin",
+      "language": "python",
+      "shape": "literals",
+      "args": {
+        "value": "auto",
+        "within": "pkg.nothere"
+      },
+      "outcome": "unresolved",
+      "expected": []
+    },
+    {
+      "name": "unresolved twin: comparisons",
+      "source": "unresolved twin",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "local",
+        "within": "pkg.nothere"
+      },
+      "outcome": "unresolved",
+      "expected": []
+    },
+    {
+      "name": "unresolved twin: callees",
+      "source": "unresolved twin",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "pkg.nothere.f"
+      },
+      "outcome": "unresolved",
+      "expected": []
+    },
+    {
+      "name": "unresolved twin: handlers",
+      "source": "unresolved twin",
+      "language": "python",
+      "shape": "handlers",
+      "args": {
+        "calls_any": [
+          "pkg.nothere.f"
+        ]
+      },
+      "outcome": "unresolved",
+      "expected": []
+    },
+    {
+      "name": "`\"auto\"` literals in a <script> block, at the HTML file's lines",
+      "source": "why",
+      "language": "javascript",
+      "shape": "literals",
+      "args": {
+        "value": "auto"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "index.html",
+          "line": 8,
+          "enclosing": "index.render"
+        },
+        {
+          "path": "index.html",
+          "line": 14,
+          "enclosing": "index.fetchModel"
+        }
+      ]
+    },
+    {
+      "name": "JavaScript callees inside a <script> block",
+      "source": "shape coverage",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "index.render"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "index.html",
+          "line": 8,
+          "callee": "index.fetchModel",
+          "resolved": true,
+          "in_manifest": true
+        }
+      ]
+    },
+    {
+      "name": "JavaScript handlers in a function that calls a helper",
+      "source": "shape coverage",
+      "language": "javascript",
+      "shape": "handlers",
+      "args": {
+        "calls_any": [
+          "index.fetchModel"
+        ]
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "index.html",
+          "line": 9,
+          "enclosing": "index.render",
+          "caught": null
+        }
+      ]
+    },
+    {
+      "name": "a JavaScript name defined nowhere",
+      "source": "shape coverage",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "index"
+      },
+      "outcome": "partial",
+      "expected": [
+        {
+          "path": "index.html",
+          "line": 19,
+          "callee": "index.render",
+          "resolved": true,
+          "in_manifest": true
+        },
+        {
+          "path": "index.html",
+          "line": 20,
+          "callee": null,
+          "resolved": false
+        }
+      ]
+    },
+    {
+      "name": "unresolved twin: JavaScript calls",
+      "source": "unresolved twin",
+      "language": "javascript",
+      "shape": "calls",
+      "args": {
+        "callee": "index.nothere"
+      },
+      "outcome": "unresolved",
+      "expected": []
+    }
+  ]
+}

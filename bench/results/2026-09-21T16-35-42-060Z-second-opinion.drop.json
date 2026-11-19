@@ -1,0 +1,437 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-23T14:05:53.529Z",
+  "finished_at": "2026-09-23T14:13:41.146Z",
+  "measured_at": "2026-09-23",
+  "mutated_from": "2026-09-21T16-35-42-060Z.json",
+  "mutation": "drop",
+  "injection_rule": "rewrite",
+  "tolerance": 15,
+  "framework": {
+    "name": "quorate",
+    "version": "0.2.0",
+    "commit": "e2222c2a3235004dff67ffa01edc8345d6baa36a",
+    "dirty": true,
+    "layout": null
+  },
+  "judge": {
+    "id": "adj-codex",
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "effort": "high"
+  },
+  "caveats": [
+    "One mutation shape (misanchor). This measures detection of errors of that shape, not of the distribution of mistakes a real reconciler makes.",
+    "THREE MODELS: one forged the error by rewriting the reconciler's rationale to match a moved anchor, one audited it, one judged the audit. The forger is pinned to the model and effort the reconciler ran at, given no tools, and its output is checked mechanically for the tell (no line within tolerance of the true anchor; the injected line present). The forge is shown the real source at the destination, because without it the paragraph invents the line's contents and becomes checkably false about the FILE — a second and louder error than the misanchor, which would inflate recall. That bounds it; it does not make the injected error indistinguishable from a real one.",
+    "The ruling is a model grading a model. The verbatim-quote requirement and the control bound how wrong it can be silently; they do not make it a mechanical measurement.",
+    "false_alarms is the instrument's own error rate and is never subtracted from recall.",
+    "Seeds are few enough that one seed is a large fraction of the result; no aggregate threshold is honest here, per AC 8 of the parent request."
+  ],
+  "summary": {
+    "seeds": 4,
+    "scoreable": 4,
+    "caught": 4,
+    "recall": 1,
+    "mutated": {
+      "identified": 4
+    },
+    "control": {
+      "not-identified": 4
+    },
+    "false_alarms": 0,
+    "clean_control": {
+      "seeds": 4,
+      "caught": 4,
+      "recall": 1,
+      "excluded": 0
+    }
+  },
+  "spent": {
+    "second_opinion_usd": 2.5754,
+    "forge_usd": 0.8412,
+    "total_usd": 3.4167,
+    "$note": "Anthropic only. The judge runs on the adjudicator's own vendor and is not billed here."
+  },
+  "not_run": [
+    {
+      "seed": "clamp-silent-noop",
+      "reason": "cannot drop G-2: G-1 name G-2 as their root cause, so dropping it would leave live symptoms pointing at a group that is gone — an auditor that follows that pointer has found the harness rather than a misjudged drop"
+    },
+    {
+      "seed": "probe-substring-match",
+      "reason": "cannot drop G-2: G-1 name G-2 as their root cause, so dropping it would leave live symptoms pointing at a group that is gone — an auditor that follows that pointer has found the harness rather than a misjudged drop"
+    },
+    {
+      "seed": "status-never-a-pass",
+      "reason": "cannot drop G-3: G-5, G-4, G-1 name G-3 as their root cause, so dropping it would leave live symptoms pointing at a group that is gone — an auditor that follows that pointer has found the harness rather than a misjudged drop"
+    }
+  ],
+  "seeds": [
+    {
+      "seed": "doc-stale-panel-contract",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "drop",
+        "group_id": "G-1",
+        "from": "confirmed",
+        "to": "dropped",
+        "statement": "Group G-1 was dropped. That is wrong: the findings it groups were raised by more than one reporter and were confirmed before, nothing in the evidence withdraws them, and a dropped group reaches no gate and no remediation. The defect it describes would ship."
+      },
+      "target_group": "G-1",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.21081160000000002,
+        "rationale_bytes": 1380
+      },
+      "defect_line": 101,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "Given the evidence below, I think the finding should be kept at MEDIUM and the opening paragraph's account is the correct one.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.48577620000000005,
+        "forge_usd": 0.21081160000000002,
+        "total_usd": 0.6966,
+        "duration_ms": 56562,
+        "usage": {
+          "input_tokens": 16,
+          "cache_creation_input_tokens": 38701,
+          "cache_read_input_tokens": 341421,
+          "output_tokens": 5391,
+          "output_tokens_details": {
+            "thinking_tokens": 840
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 38701,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2717,
+              "cache_read_input_tokens": 52589,
+              "cache_creation_input_tokens": 1301,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1301
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "doc-consistency-review": 1.698022,
+          "reconcile": 1.1149594999999999
+        },
+        "duration_ms": {
+          "doc-consistency-review": 178702,
+          "reconcile": 135781
+        }
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "drop",
+        "group_id": "G-2",
+        "from": "confirmed",
+        "to": "dropped",
+        "statement": "Group G-2 was dropped. That is wrong: the findings it groups were raised by more than one reporter and were confirmed before, nothing in the evidence withdraws them, and a dropped group reaches no gate and no remediation. The defect it describes would ship."
+      },
+      "target_group": "G-2",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2133276,
+        "rationale_bytes": 1432
+      },
+      "defect_line": 92,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "The most serious adjudication error: G-2 was dropped when it should have been confirmed as a BLOCKER.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.8236857999999999,
+        "forge_usd": 0.2133276,
+        "total_usd": 1.037,
+        "duration_ms": 84024,
+        "usage": {
+          "input_tokens": 28,
+          "cache_creation_input_tokens": 63266,
+          "cache_read_input_tokens": 813629,
+          "output_tokens": 7736,
+          "output_tokens_details": {
+            "thinking_tokens": 1385
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 63266,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3100,
+              "cache_read_input_tokens": 76121,
+              "cache_creation_input_tokens": 2334,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2334
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.0104285000000002,
+          "reconcile": 1.2487255,
+          "security-audit": 1.451795
+        },
+        "duration_ms": {
+          "code-audit": 94156,
+          "reconcile": 196767,
+          "security-audit": 126348
+        }
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "drop",
+        "group_id": "G-2",
+        "from": "confirmed",
+        "to": "dropped",
+        "statement": "Group G-2 was dropped. That is wrong: the findings it groups were raised by more than one reporter and were confirmed before, nothing in the evidence withdraws them, and a dropped group reaches no gate and no remediation. The defect it describes would ship."
+      },
+      "target_group": "G-2",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2072316,
+        "rationale_bytes": 1326
+      },
+      "defect_line": 87,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "**The worst adjudication error in this run: G-2 is dropped, and the reconciler's own summary says it is the group to act on.**",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.6755438,
+        "forge_usd": 0.2072316,
+        "total_usd": 0.8828,
+        "duration_ms": 74260,
+        "usage": {
+          "input_tokens": 24,
+          "cache_creation_input_tokens": 50456,
+          "cache_read_input_tokens": 608299,
+          "output_tokens": 7507,
+          "output_tokens_details": {
+            "thinking_tokens": 1290
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 50456,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3103,
+              "cache_read_input_tokens": 64933,
+              "cache_creation_input_tokens": 712,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 712
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.3754925000000002,
+          "reconcile": 1.8327535000000001
+        },
+        "duration_ms": {
+          "code-audit": 256924,
+          "reconcile": 266161
+        }
+      }
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "drop",
+        "group_id": "G-3",
+        "from": "confirmed",
+        "to": "dropped",
+        "statement": "Group G-3 was dropped. That is wrong: the findings it groups were raised by more than one reporter and were confirmed before, nothing in the evidence withdraws them, and a dropped group reaches no gate and no remediation. The defect it describes would ship."
+      },
+      "target_group": "G-3",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.20984360000000002,
+        "rationale_bytes": 1540
+      },
+      "defect_line": 1815,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "With G-3 marked `dropped` in `evidence/reconcile/payload.json`, remediation only restores the arm-side floor (G-1) and leaves the lens-side floor deleted.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.5904290000000001,
+        "forge_usd": 0.20984360000000002,
+        "total_usd": 0.8003,
+        "duration_ms": 67396,
+        "usage": {
+          "input_tokens": 18,
+          "cache_creation_input_tokens": 46395,
+          "cache_read_input_tokens": 433785,
+          "output_tokens": 6622,
+          "output_tokens_details": {
+            "thinking_tokens": 1723
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 46395,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3105,
+              "cache_read_input_tokens": 61289,
+              "cache_creation_input_tokens": 295,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 295
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.4002725,
+          "reconcile": 1.2848155
+        },
+        "duration_ms": {
+          "code-audit": 168932,
+          "reconcile": 179413
+        }
+      }
+    }
+  ]
+}

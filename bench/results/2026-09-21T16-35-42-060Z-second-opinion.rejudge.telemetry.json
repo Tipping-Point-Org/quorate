@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "kind": "bench",
+  "run_id": "2026-09-21T16-35-42-060Z-second-opinion.rejudge",
+  "development_data": true,
+  "started_at": "2026-10-13T01:16:55.514Z",
+  "ended_at": "2026-10-13T01:17:29.296Z",
+  "tasks": [
+    {
+      "id": "doc-stale-panel-contract:second-opinion",
+      "task_kind": "bench-node",
+      "family": "unknown",
+      "model": "opus",
+      "effort": "medium",
+      "state": null,
+      "started_at": null,
+      "ended_at": null,
+      "duration_ms": null,
+      "duration_api_ms": null,
+      "ttft_ms": null,
+      "usage": null,
+      "model_usage": null,
+      "cost_usd": null,
+      "exit_code": null,
+      "signal": null,
+      "timed_out": null,
+      "killed_tree": null,
+      "timeout_minutes": null,
+      "num_turns": null,
+      "stop_reason": null,
+      "subtype": null,
+      "terminal_reason": null,
+      "is_error": null,
+      "api_error_status": null,
+      "permission_denials": null,
+      "reviewer_answered": null,
+      "findings": null,
+      "rejected_findings": null,
+      "verdict": null,
+      "error_kind": null,
+      "error": null,
+      "outcome": null
+    }
+  ],
+  "recall": {
+    "seeds": 1,
+    "caught": 1,
+    "overall": 1,
+    "lenses": {}
+  },
+  "cost_usd": null
+}

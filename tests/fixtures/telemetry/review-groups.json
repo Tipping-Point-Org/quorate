@@ -1,0 +1,263 @@
+[
+  {
+    "group_id": "G-1",
+    "findings": [
+      {
+        "node_id": "panel-codex-docs",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-2",
+    "findings": [
+      {
+        "node_id": "panel-codex-contract",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      },
+      {
+        "node_id": "panel-codex-docs",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-3",
+    "findings": [
+      {
+        "node_id": "panel-codex-arch",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-4",
+    "findings": [
+      {
+        "node_id": "panel-codex-contract",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-5",
+    "findings": [
+      {
+        "node_id": "panel-codex-code",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-6",
+    "findings": [
+      {
+        "node_id": "panel-codex-contract",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-7",
+    "findings": [
+      {
+        "node_id": "panel-codex-perf",
+        "severity": "LOW",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-8",
+    "findings": [
+      {
+        "node_id": "panel-codex-contract",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-9",
+    "findings": [
+      {
+        "node_id": "panel-codex-perf",
+        "severity": "LOW",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-10",
+    "findings": [
+      {
+        "node_id": "panel-codex-code",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-11",
+    "findings": [
+      {
+        "node_id": "panel-codex-perf",
+        "severity": "LOW",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-12",
+    "findings": [
+      {
+        "node_id": "panel-codex-code",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      },
+      {
+        "node_id": "panel-codex-perf",
+        "severity": "LOW",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      },
+      {
+        "node_id": "panel-codex-security",
+        "severity": "LOW",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-13",
+    "findings": [
+      {
+        "node_id": "panel-codex-contract",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      },
+      {
+        "node_id": "panel-codex-security",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-14",
+    "findings": [
+      {
+        "node_id": "panel-codex-security",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      },
+      {
+        "node_id": "panel-codex-code",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-15",
+    "findings": [
+      {
+        "node_id": "panel-codex-code",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-16",
+    "findings": [
+      {
+        "node_id": "panel-codex-contract",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-17",
+    "findings": [
+      {
+        "node_id": "panel-codex-arch",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-18",
+    "findings": [
+      {
+        "node_id": "panel-codex-security",
+        "severity": "LOW",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-19",
+    "findings": [
+      {
+        "node_id": "panel-codex-arch",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-20",
+    "findings": [
+      {
+        "node_id": "panel-codex-code",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  },
+  {
+    "group_id": "G-21",
+    "findings": [
+      {
+        "node_id": "panel-codex-docs",
+        "severity": "MEDIUM",
+        "source": "codex",
+        "claim": "MODEL TEXT"
+      }
+    ]
+  }
+]

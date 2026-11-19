@@ -1,0 +1,76 @@
+{
+  "source": "20261022-221336-ciss-d1-4-remediation (payload groups G-9, G-15, G-10, G-16); review 20261022-215413-ciss-d1-3-remediation-review",
+  "groups": [
+    {
+      "group_id": "G-9",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/lib/code-index-spec.mjs",
+        "scripts/lib/code-index-schema.mjs",
+        "tests/regression-ciss-d1-4-default-literal.test.mjs",
+        "tests/regression-code-index-spec.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/g9-red.log",
+      "green_evidence": "evidence/remediation/g9-green.log"
+    },
+    {
+      "group_id": "G-15",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "shared/code-index.md"
+      ],
+      "red_evidence": "evidence/remediation/g9-red.log",
+      "green_evidence": "evidence/remediation/g9-green.log"
+    },
+    {
+      "group_id": "G-10",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/lib/code-index-spec.mjs",
+        "scripts/lib/code-index-schema.mjs",
+        "tests/regression-ciss-d1-4-reads-rule.test.mjs",
+        "tests/regression-code-index-spec.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/g10-red.log",
+      "green_evidence": "evidence/remediation/g10-green.log"
+    },
+    {
+      "group_id": "G-16",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "shared/code-index.md",
+        "tests/regression-ciss-d1-3-compare-refusal-doc.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/g16-red.log",
+      "green_evidence": "evidence/remediation/g16-green.log"
+    }
+  ],
+  "confirmed": [
+    "G-9",
+    "G-7",
+    "G-12",
+    "G-13",
+    "G-14",
+    "G-10",
+    "G-11",
+    "G-16",
+    "G-1",
+    "G-2",
+    "G-3",
+    "G-4",
+    "G-6"
+  ],
+  "symptoms": {
+    "G-15": "G-9"
+  },
+  "reviewed_files": {
+    "G-9": "scripts/lib/code-index-spec.mjs",
+    "G-10": "scripts/lib/code-index-spec.mjs",
+    "G-15": "shared/code-index.md",
+    "G-16": "shared/code-index.md"
+  }
+}

@@ -1,0 +1,251 @@
+{
+  "$cut": "From review 20261027-015201-atl-delivery (telemetry-run-time.plan.md stage 1): only the fields a run's timeline needs; no path, no model text.",
+  "schema_version": 1,
+  "kind": "review",
+  "run_id": "20261027-015201-atl-delivery",
+  "development_data": true,
+  "started_at": "2026-10-27T01:52:01.893Z",
+  "ended_at": "2026-10-27T02:22:25.147Z",
+  "tasks": [
+    {
+      "id": "arch-review",
+      "task_kind": "lens",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:09:17.929Z",
+      "ended_at": "2026-10-27T02:09:42.455Z",
+      "duration_ms": 24526,
+      "error_kind": null
+    },
+    {
+      "id": "code-audit",
+      "task_kind": "lens",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:08:54.678Z",
+      "ended_at": "2026-10-27T02:09:17.780Z",
+      "duration_ms": 23102,
+      "error_kind": null
+    },
+    {
+      "id": "contract-audit",
+      "task_kind": "lens",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:08:54.668Z",
+      "ended_at": "2026-10-27T02:09:53.043Z",
+      "duration_ms": 58375,
+      "error_kind": null
+    },
+    {
+      "id": "doc-consistency-review",
+      "task_kind": "lens",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:09:18.225Z",
+      "ended_at": "2026-10-27T02:10:44.164Z",
+      "duration_ms": 85939,
+      "error_kind": null
+    },
+    {
+      "id": "feature-verify",
+      "task_kind": "lens",
+      "family": "anthropic",
+      "state": "SKIPPED",
+      "started_at": "2026-10-27T01:52:29.844Z",
+      "ended_at": "2026-10-27T01:52:29.844Z",
+      "duration_ms": 0,
+      "error_kind": null
+    },
+    {
+      "id": "intent-capture",
+      "task_kind": "intent-capture",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:07:58.270Z",
+      "ended_at": "2026-10-27T02:08:31.872Z",
+      "duration_ms": 33602,
+      "error_kind": null
+    },
+    {
+      "id": "panel-codex-arch",
+      "task_kind": "arm",
+      "family": "openai",
+      "state": "OK",
+      "started_at": "2026-10-27T02:08:54.495Z",
+      "ended_at": "2026-10-27T02:15:04.316Z",
+      "duration_ms": 366828,
+      "error_kind": null
+    },
+    {
+      "id": "panel-codex-code",
+      "task_kind": "arm",
+      "family": "openai",
+      "state": "OK",
+      "started_at": "2026-10-27T02:08:54.513Z",
+      "ended_at": "2026-10-27T02:14:37.699Z",
+      "duration_ms": 340053,
+      "error_kind": null
+    },
+    {
+      "id": "panel-codex-contract",
+      "task_kind": "arm",
+      "family": "openai",
+      "state": "OK",
+      "started_at": "2026-10-27T02:08:54.505Z",
+      "ended_at": "2026-10-27T02:11:22.181Z",
+      "duration_ms": 144540,
+      "error_kind": null
+    },
+    {
+      "id": "panel-codex-docs",
+      "task_kind": "arm",
+      "family": "openai",
+      "state": "OK",
+      "started_at": "2026-10-27T02:14:37.703Z",
+      "ended_at": "2026-10-27T02:20:48.326Z",
+      "duration_ms": 369462,
+      "error_kind": null
+    },
+    {
+      "id": "panel-codex-perf",
+      "task_kind": "arm",
+      "family": "openai",
+      "state": "OK",
+      "started_at": "2026-10-27T02:15:04.319Z",
+      "ended_at": "2026-10-27T02:17:12.498Z",
+      "duration_ms": 126991,
+      "error_kind": null
+    },
+    {
+      "id": "panel-codex-security",
+      "task_kind": "arm",
+      "family": "openai",
+      "state": "OK",
+      "started_at": "2026-10-27T02:11:22.184Z",
+      "ended_at": "2026-10-27T02:16:20.611Z",
+      "duration_ms": 297235,
+      "error_kind": null
+    },
+    {
+      "id": "perf-audit",
+      "task_kind": "lens",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:09:42.631Z",
+      "ended_at": "2026-10-27T02:09:57.373Z",
+      "duration_ms": 14742,
+      "error_kind": null
+    },
+    {
+      "id": "reconcile",
+      "task_kind": "reconcile",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:20:48.516Z",
+      "ended_at": "2026-10-27T02:21:40.084Z",
+      "duration_ms": 51568,
+      "error_kind": null
+    },
+    {
+      "id": "second-opinion",
+      "task_kind": "second-opinion",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:21:40.223Z",
+      "ended_at": "2026-10-27T02:22:25.147Z",
+      "duration_ms": 44924,
+      "error_kind": null
+    },
+    {
+      "id": "security-audit",
+      "task_kind": "lens",
+      "family": "anthropic",
+      "state": "OK",
+      "started_at": "2026-10-27T02:08:54.683Z",
+      "ended_at": "2026-10-27T02:09:18.071Z",
+      "duration_ms": 23388,
+      "error_kind": null
+    },
+    {
+      "id": "ui-audit",
+      "task_kind": "lens",
+      "family": "anthropic",
+      "state": "SKIPPED",
+      "started_at": "2026-10-27T01:52:29.842Z",
+      "ended_at": "2026-10-27T01:52:29.842Z",
+      "duration_ms": 0,
+      "error_kind": null
+    },
+    {
+      "id": "check:build",
+      "task_kind": "check",
+      "family": "unknown",
+      "state": "PASS",
+      "started_at": null,
+      "ended_at": null,
+      "duration_ms": null,
+      "error_kind": "exit-0"
+    },
+    {
+      "id": "check:test",
+      "task_kind": "check",
+      "family": "unknown",
+      "state": "FAIL",
+      "started_at": null,
+      "ended_at": null,
+      "duration_ms": null,
+      "error_kind": "killed-by-capture-at-its-deadline"
+    },
+    {
+      "id": "check:lint",
+      "task_kind": "check",
+      "family": "unknown",
+      "state": "SKIPPED",
+      "started_at": null,
+      "ended_at": null,
+      "duration_ms": null,
+      "error_kind": null
+    },
+    {
+      "id": "check:fmt_check",
+      "task_kind": "check",
+      "family": "unknown",
+      "state": "SKIPPED",
+      "started_at": null,
+      "ended_at": null,
+      "duration_ms": null,
+      "error_kind": null
+    },
+    {
+      "id": "check:typecheck",
+      "task_kind": "check",
+      "family": "unknown",
+      "state": "SKIPPED",
+      "started_at": null,
+      "ended_at": null,
+      "duration_ms": null,
+      "error_kind": null
+    },
+    {
+      "id": "check:audit",
+      "task_kind": "check",
+      "family": "unknown",
+      "state": "SKIPPED",
+      "started_at": null,
+      "ended_at": null,
+      "duration_ms": null,
+      "error_kind": null
+    },
+    {
+      "id": "check:deny",
+      "task_kind": "check",
+      "family": "unknown",
+      "state": "SKIPPED",
+      "started_at": null,
+      "ended_at": null,
+      "duration_ms": null,
+      "error_kind": null
+    }
+  ]
+}

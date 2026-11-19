@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-02T02:34:51.734Z",
+  "finished_at": "2026-09-02T02:48:09.924Z",
+  "tolerance": 15,
+  "not_run": [],
+  "scores": [
+    {
+      "seed": "status-never-a-pass",
+      "caught": true,
+      "caught_by": [
+        "contract-audit"
+      ],
+      "hits": [
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 462,
+          "severity": "HIGH",
+          "claim": "I-3 requires a non-ok status in proposal mode to empty that arm's candidate pool visibly and distinguishably from a genuinely empty pool, but the propose branch starting at line 452 reads only `p.candidates`, filtering for objects with at least one key, and never inspects `p.status`; a proposer answering `{\"status\":\"incomplete\",\"reason\":\"cut short before finishing\",\"candidates\":[{\"name\":\"partial\"}"
+        }
+      ],
+      "expected_hit": [
+        "contract-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "contract-audit": 4
+      }
+    }
+  ],
+  "summary": {
+    "seeds": 1,
+    "caught": 1,
+    "overall_recall": 1,
+    "lenses": {
+      "contract-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": null
+      }
+    }
+  },
+  "total_cost_usd": 4.5
+}

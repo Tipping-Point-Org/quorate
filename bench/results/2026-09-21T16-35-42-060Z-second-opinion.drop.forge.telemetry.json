@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "kind": "bench",
+  "run_id": "2026-09-21T16-35-42-060Z-second-opinion.drop.forge",
+  "development_data": true,
+  "started_at": null,
+  "ended_at": null,
+  "tasks": [
+    {
+      "id": "doc-stale-panel-contract:second-opinion",
+      "task_kind": "bench-node",
+      "family": null,
+      "model": null,
+      "effort": null,
+      "duration_ms": null,
+      "num_turns": null,
+      "usage": null,
+      "cost_usd": null
+    },
+    {
+      "id": "numeric-bundle-pager:second-opinion",
+      "task_kind": "bench-node",
+      "family": null,
+      "model": null,
+      "effort": null,
+      "duration_ms": null,
+      "num_turns": null,
+      "usage": null,
+      "cost_usd": null
+    },
+    {
+      "id": "prose-before-payload:second-opinion",
+      "task_kind": "bench-node",
+      "family": null,
+      "model": null,
+      "effort": null,
+      "duration_ms": null,
+      "num_turns": null,
+      "usage": null,
+      "cost_usd": null
+    }
+  ],
+  "recall": {
+    "seeds": null,
+    "caught": null,
+    "overall": null,
+    "lenses": {}
+  },
+  "cost_usd": null
+}

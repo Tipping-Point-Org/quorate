@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "graph-verdict",
+  "description": "Base verdict envelope for a graph verification lens. spawn-node.mjs derives per-lens variants from this document in memory and inlines the variant into --json-schema; this file is never passed as a path.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "node_id",
+    "intent_sha",
+    "verdict",
+    "findings",
+    "checked_clean",
+    "not_checked",
+    "out_of_scope_observations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9]{6}-[a-z0-9-]+$",
+      "description": "Echo the run_id from your brief exactly."
+    },
+    "node_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Echo the node_id from your brief exactly."
+    },
+    "intent_sha": {
+      "type": "string",
+      "pattern": "^([a-f0-9]{64}|)$",
+      "description": "Echo intent_sha256 from your brief. Empty string if your brief says you may not read intent.md."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "RISK", "FAIL"],
+      "description": "FAIL if any BLOCKER or HIGH finding you are prepared to defend. RISK if findings exist but none is demonstrated, or you ran degraded. PASS if you checked your scope and found nothing above LOW."
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "basis", "file", "line", "claim", "evidence_path"],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["BLOCKER", "HIGH", "MEDIUM", "LOW"]
+          },
+          "basis": {
+            "type": "string",
+            "enum": ["intent", "architecture_doc", "invariant", "measurement", "convention"],
+            "description": "What kind of authority this finding rests on. Your brief restricts which values you may use."
+          },
+          "invariant": {
+            "type": "string",
+            "enum": [
+              "",
+              "data_loss",
+              "credential_exposure",
+              "memory_unsafety",
+              "crash_on_valid_input",
+              "unbounded_resource_growth",
+              "silent_error_swallowing"
+            ],
+            "description": "Required when basis is invariant. Empty string otherwise."
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Repo-relative path. Must exist."
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "1-indexed line. Must not exceed the file length. 0 only for whole-file findings."
+          },
+          "claim": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1200,
+            "description": "What is wrong, why it is wrong, and what it causes. Three clauses, not one."
+          },
+          "evidence_path": {
+            "type": "string",
+            "pattern": "^evidence/[a-z0-9-]+/[A-Za-z0-9._-]+$",
+            "description": "Run-relative path printed back to you by capture.mjs. Must be under your own node's evidence dir."
+          },
+          "intent_ref": {
+            "type": "string",
+            "pattern": "^I-[0-9]{1,3}$",
+            "description": "Criterion id from intent.md. Only contract lenses may emit this; the key is absent from every other lens's schema."
+          }
+        }
+      }
+    },
+    "checked_clean": {
+      "type": "array",
+      "maxItems": 60,
+      "items": {
+        "type": "string",
+        "minLength": 5
+      },
+      "description": "What you checked and found sound. Specific, not 'the code'."
+    },
+    "not_checked": {
+      "type": "array",
+      "maxItems": 60,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item", "reason"],
+        "properties": {
+          "item": { "type": "string", "minLength": 3 },
+          "reason": { "type": "string", "minLength": 3 }
+        }
+      },
+      "description": "Silence is not a verdict. An empty array on a non-trivial scope is itself a defect."
+    },
+    "out_of_scope_observations": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "note"],
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "note": { "type": "string", "minLength": 10 }
+        }
+      },
+      "description": "Reported, never counted toward the verdict."
+    }
+  }
+}

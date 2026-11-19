@@ -1,0 +1,593 @@
+{
+  "about": "The scope table of shared/code-index.md as a case matrix (code-index-schema-and-scope.plan.md stage 2): one sweep per case id per language that has the construct; each name begins with its id. Expected answers derived by reading the fixtures by hand.",
+  "roots": {
+    "python": "python",
+    "javascript": "javascript"
+  },
+  "sweeps": [
+    {
+      "name": "S01 — python callees of sc.s01_local_import.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s01_local_import.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "sc/s01_local_import.py",
+          "line": 3,
+          "callee": "sc.helpers.make",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S02 — python callees of sc.s02_local_def.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s02_local_def.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "sc/s02_local_def.py",
+          "line": 4,
+          "callee": "sc.s02_local_def.f.inner",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S03 — python callees of sc.s03_class_body_import.C",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s03_class_body_import.C"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "sc/s03_class_body_import.py",
+          "line": 3,
+          "callee": "sc.helpers.make",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S04 — python callees of sc.s04_module_def.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s04_module_def.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "sc/s04_module_def.py",
+          "line": 6,
+          "callee": "sc.s04_module_def.g",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S05 — python callees of sc.s05_module_import.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s05_module_import.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "sc/s05_module_import.py",
+          "line": 5,
+          "callee": "sc.helpers.make",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S07 — python callees of sc.s07_builtin.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s07_builtin.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "sc/s07_builtin.py",
+          "line": 2,
+          "callee": "builtins.len",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S08 — python callees of sc.s08_self_method.C.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s08_self_method.C.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "sc/s08_self_method.py",
+          "line": 6,
+          "callee": "sc.s08_self_method.C.m",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S09 — python callees of sc.s09_class_name_from_method.C.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s09_class_name_from_method.C.f"
+      },
+      "outcome": "partial",
+      "expected": [
+        {
+          "path": "sc/s09_class_name_from_method.py",
+          "line": 6,
+          "callee": null,
+          "resolved": false
+        }
+      ]
+    },
+    {
+      "name": "S10 — python callees of sc.s10_closure.outer.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s10_closure.outer.f"
+      },
+      "outcome": "partial",
+      "expected": [
+        {
+          "path": "sc/s10_closure.py",
+          "line": 6,
+          "callee": null,
+          "resolved": false
+        }
+      ]
+    },
+    {
+      "name": "S11 — python callees of sc.s11_computed.f",
+      "source": "scope table",
+      "language": "python",
+      "shape": "callees",
+      "args": {
+        "of": "sc.s11_computed.f"
+      },
+      "outcome": "partial",
+      "expected": [
+        {
+          "path": "sc/s11_computed.py",
+          "line": 2,
+          "callee": "builtins.getattr",
+          "resolved": true
+        },
+        {
+          "path": "sc/s11_computed.py",
+          "line": 2,
+          "callee": null,
+          "resolved": false
+        }
+      ]
+    },
+    {
+      "name": "S02 — javascript callees of s02_local_def.f",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "s02_local_def.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "s02_local_def.mjs",
+          "line": 5,
+          "callee": "s02_local_def.f.inner",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S04 — javascript callees of s04_module_def.f",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "s04_module_def.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "s04_module_def.mjs",
+          "line": 5,
+          "callee": "s04_module_def.g",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S05 — javascript callees of s05_module_import.f",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "s05_module_import.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "s05_module_import.mjs",
+          "line": 3,
+          "callee": "helpers.make",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S06 — javascript callees of s06_export.f",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "s06_export.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "s06_export.mjs",
+          "line": 5,
+          "callee": "s06_export.g",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S07 — javascript callees of s07_builtin.f",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "s07_builtin.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "s07_builtin.mjs",
+          "line": 2,
+          "callee": "globals.parseInt",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S08 — javascript callees of s08_self_method.C.f",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "s08_self_method.C.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "s08_self_method.mjs",
+          "line": 6,
+          "callee": "s08_self_method.C.m",
+          "resolved": true
+        }
+      ]
+    },
+    {
+      "name": "S10 — javascript callees of s10_closure.outer.f",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "s10_closure.outer.f"
+      },
+      "outcome": "partial",
+      "expected": [
+        {
+          "path": "s10_closure.mjs",
+          "line": 4,
+          "callee": null,
+          "resolved": false
+        }
+      ]
+    },
+    {
+      "name": "S11 — javascript callees of s11_computed.f",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "callees",
+      "args": {
+        "of": "s11_computed.f"
+      },
+      "outcome": "partial",
+      "expected": [
+        {
+          "path": "s11_computed.mjs",
+          "line": 2,
+          "callee": null,
+          "resolved": false
+        }
+      ]
+    },
+    {
+      "name": "R00 — python literal through sc.r00_single",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r00_single.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "sc/r00_single.py",
+          "line": 3,
+          "literal": "a",
+          "via": "wanted"
+        }
+      ]
+    },
+    {
+      "name": "R01 — python literal through sc.r01_assign",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r01_assign.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R02 — python literal through sc.r02_augmented",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r02_augmented.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R03 — python literal through sc.r03_destructuring",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r03_destructuring.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R04 — python literal through sc.r04_for_target",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r04_for_target.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R05 — python literal through sc.r05_with_as",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r05_with_as.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R06 — python literal through sc.r06_except_as",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r06_except_as.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R07 — python literal through sc.r07_walrus",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r07_walrus.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R08 — python literal through sc.r08_del",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r08_del.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R10 — python literal through sc.r10_parameter",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r10_parameter.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R11 — python literal through sc.r11_nested_write",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r11_nested_write.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R11 — python literal through sc.r11_global_write",
+      "source": "scope table",
+      "language": "python",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "sc.r11_global_write.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R00 — javascript literal through r00_single",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "r00_single.f"
+      },
+      "outcome": "complete",
+      "expected": [
+        {
+          "path": "r00_single.mjs",
+          "line": 3,
+          "literal": "a",
+          "via": "wanted"
+        }
+      ]
+    },
+    {
+      "name": "R01 — javascript literal through r01_assign",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "r01_assign.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R02 — javascript literal through r02_augmented",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "r02_augmented.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R03 — javascript literal through r03_destructuring",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "r03_destructuring.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R04 — javascript literal through r04_for_target",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "r04_for_target.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R09 — javascript literal through r09_update",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "r09_update.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R10 — javascript literal through r10_parameter",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "r10_parameter.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    },
+    {
+      "name": "R11 — javascript literal through r11_nested_write",
+      "source": "scope table",
+      "language": "javascript",
+      "shape": "comparisons",
+      "args": {
+        "literal": "a",
+        "within": "r11_nested_write.f"
+      },
+      "outcome": "complete",
+      "expected": []
+    }
+  ]
+}

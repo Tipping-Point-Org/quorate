@@ -1,0 +1,8 @@
+$ node --test tests/regression-external-review-override.test.mjs
+# admitted: test_one tests/regression-external-review-override.test.mjs
+# cwd: C:\work\quorate
+# exit: 0
+# timeout: 15 minute(s)
+# elapsed: 12.6 of 30 minute(s)
+# captured: 2026-10-23T03:38:05.131Z
+------------------------------------------------------------------------

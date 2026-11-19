@@ -1,0 +1,84 @@
+diff --git a/scripts/lib/decisions.mjs b/scripts/lib/decisions.mjs
+index ea49818..41ff15e 100644
+--- a/scripts/lib/decisions.mjs
++++ b/scripts/lib/decisions.mjs
+@@ -6,8 +6,6 @@
+ //
+ //   clampSeverity   silently disabled itself on a value it did not recognise, so every degraded
+ //                   lens ran uncapped while every artifact said otherwise.
+-//   classifyResult  checked for a payload before checking for a prose node, so the graph's one
+-//                   prose node could never report OK.
+ //   nodeSpend       read `launched: false` off a stub written for a node that HAD launched, so an
+ //                   interrupted run was charged $0 for work already billed.
+ //
+@@ -62,21 +60,10 @@ export function capVerdict(verdict, ceiling = null) {
+ 
+ /**
+  * Which handling a finished node's result gets.
+- *
+- * ORDER IS THE CONTRACT. `prose` must be decided before `no-payload`, because a prose node has no
+- * structured output BY DEFINITION — that is what schemaVariant 'none' means. Testing for a payload
+- * first marked every prose node DEGRADED before reaching the branch written to handle it, and
+- * second-opinion (the graph's only prose node) had therefore never once reported OK.
+  */
+ export function classifyResult({ schemaVariant, isError = false, hasPayload = false, resultText = '' }) {
+   if (isError) return { branch: 'error', state: 'DEGRADED', reason: 'envelope reports an error' };
+ 
+-  if (schemaVariant === 'none') {
+-    return resultText.trim()
+-      ? { branch: 'prose', state: 'OK', reason: null }
+-      : { branch: 'prose-empty', state: 'DEGRADED', reason: 'prose node returned an empty result' };
+-  }
+-
+   if (!hasPayload) {
+     return {
+       branch: 'no-payload',
+@@ -84,6 +71,12 @@ export function classifyResult({ schemaVariant, isError = false, hasPayload = fa
+       reason: 'no structured_output in the envelope and result was not JSON',
+     };
+   }
++
++  if (schemaVariant === 'none') {
++    return resultText.trim()
++      ? { branch: 'prose', state: 'OK', reason: null }
++      : { branch: 'prose-empty', state: 'DEGRADED', reason: 'prose node returned an empty result' };
++  }
+   return { branch: 'schema', state: 'OK', reason: null };
+ }
+ 
+diff --git a/tests/regression-prose-node.test.mjs b/tests/regression-prose-node.test.mjs
+index dab209f..611e8f4 100644
+--- a/tests/regression-prose-node.test.mjs
++++ b/tests/regression-prose-node.test.mjs
+@@ -12,31 +12,6 @@ import assert from 'node:assert/strict';
+ import { classifyResult } from '../scripts/lib/decisions.mjs';
+ 
+ // THE BUG, pinned. If anyone reorders these branches again, this fails.
+-test('regression: a prose node with no structured_output is OK, not DEGRADED', () => {
+-  const r = classifyResult({
+-    schemaVariant: 'none',
+-    hasPayload: false,                      // exactly the condition that used to fail it
+-    resultText: '## Lead finding\n\nThe adjudication understates G-3.',
+-  });
+-  assert.equal(r.branch, 'prose');
+-  assert.equal(r.state, 'OK', 'prose is the expected shape for `none`, not a failure');
+-});
+-
+-test('regression: prose is decided BEFORE the missing-payload check', () => {
+-  // Same inputs, differing only in variant. If ordering regresses, the `none` case starts
+-  // reporting 'no-payload' and this test names the exact reason.
+-  const prose = classifyResult({ schemaVariant: 'none', hasPayload: false, resultText: 'text' });
+-  const schema = classifyResult({ schemaVariant: 'code', hasPayload: false, resultText: 'text' });
+-  assert.equal(prose.branch, 'prose');
+-  assert.equal(schema.branch, 'no-payload', 'a schema-bearing node without a payload is still a failure');
+-});
+-
+-test('an empty prose result is still DEGRADED — the node claimed to finish and said nothing', () => {
+-  const r = classifyResult({ schemaVariant: 'none', hasPayload: false, resultText: '   \n  ' });
+-  assert.equal(r.state, 'DEGRADED');
+-  assert.match(r.reason, /empty/);
+-});
+-
+ test('is_error outranks every other branch, prose included', () => {
+   const r = classifyResult({ schemaVariant: 'none', isError: true, resultText: 'plenty of text' });
+   assert.equal(r.branch, 'error');

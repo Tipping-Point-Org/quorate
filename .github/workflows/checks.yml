@@ -1,0 +1,114 @@
+# Phase 1 of the CI story: the free layer only — parse every source file and run the offline
+# regression suite on a LINUX runner. No model is ever spawned here (the suites are offline by
+# construction; live paths sit behind QUORATE_LIVE / QUORATE_BENCH opt-ins that CI never sets).
+#
+# This exists as much to answer the portability question as to gate pushes: the engine is
+# developed and hardened on one Windows machine, and a green run here is the first demonstrated
+# fact about any other platform. A red run here is therefore a FINDING, not an embarrassment —
+# it names exactly the platform assumption that was invisible from the machine that made it.
+#
+# Phase 2 — running the graph itself and surfacing gate.json as a status check — needs model
+# auth and a budget guard, and is deliberately not this file.
+name: checks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  # macOS, BY HAND ONLY (m2-public-release.plan.md stages 0 and 7; operator, 2026-11-13: "Here, once, on the release PR").
+  # A private repository pays for macOS minutes from its plan's monthly allowance at about ten times the Linux rate
+  # (docs.github.com, "Actions runner pricing"), so macOS never runs on push or pull request here. Started from the
+  # Actions tab or `gh workflow run checks.yml --ref <branch>`, a dispatch runs the macOS suite job and nothing else.
+  workflow_dispatch:
+
+# A newer push to the same pull request or branch cancels the run it supersedes (operator, 2026-11-18: "1"), so only the
+# latest commit is paid for. Kept per event, so a hand-started macOS run is never cancelled by a push.
+concurrency:
+  group: checks-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline:
+    strategy:
+      fail-fast: false
+      # EVERY MAINTAINED NODE LTS LINE (.claude/requests/node-support-policy.md; operator, 2026-10-27: "B but when the LTS
+      # being used changes to maintenance, move to the next"). The primary line, the Active LTS, runs on both platforms;
+      # each other maintained line on Linux only, which keeps a push at 4 suite jobs rather than 6 (Windows minutes count
+      # double). Update from https://raw.githubusercontent.com/nodejs/Release/main/schedule.json: a line joins at its LTS
+      # date, leaves at its end of life, and becomes the primary when the current primary enters maintenance.
+      # A hand-started run (workflow_dispatch, above) is the macOS job alone, at the primary line. A PULL REQUEST runs the
+      # primary line on Linux and Windows only, and the PUSH TO master runs every maintained line (operator, 2026-11-18:
+      # "1", to running the full Node matrix only on the push to master): every push to an open pull request re-ran four
+      # suite jobs, about 167 charged minutes each time, and the month's allowance ran out on 2026-11-18. Every line is
+      # still tested before a release, on the merge. One step list serves all three, so each runs exactly what the others run.
+      matrix:
+        include: ${{ github.event_name == 'workflow_dispatch'
+          && fromJSON('[{"os":"macos-latest","node":26}]')
+          || github.event_name == 'pull_request'
+          && fromJSON('[{"os":"ubuntu-latest","node":26},{"os":"windows-latest","node":26}]')
+          || fromJSON('[{"os":"ubuntu-latest","node":26},{"os":"windows-latest","node":26},{"os":"ubuntu-latest","node":24},{"os":"ubuntu-latest","node":22}]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      # FULL HISTORY: some regression tests read a pinned past commit (git log -p <sha>), which a
+      # depth-1 checkout does not have — "fatal: bad object" on every run until 2026-10-06.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      # The code index's Python extractor is tested here, and must actually run (code-index.plan.md stage 4):
+      # QUORATE_REQUIRE_PYTHON=1, set on the tests step, turns its conformance test's skip into a failure.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      # The JavaScript extractor loads acorn from the consumer's tree, never from quorate, so it is installed OUTSIDE the
+      # checkout, pinned, for its conformance test only (code-index.plan.md stage 5); QUORATE_REQUIRE_ACORN=1 below
+      # makes that test's skip a failure.
+      - name: acorn for the JavaScript extractor's test (pinned, outside the checkout)
+        shell: bash
+        run: npm install --prefix "$RUNNER_TEMP/acorn" --no-save --no-package-lock acorn@8.14.0
+      # The same two commands the graph_contract declares, in the same order the pre-flight
+      # barrier runs them. run-all also checks the counted facts, with the count its own run read
+      # (2026-10-07): a separate `check-counted-facts.mjs` step here ran the whole suite a second time.
+      - name: build (parse every source file)
+        run: node scripts/check-syntax.mjs
+      - name: tests (offline regression suite, and the counted facts)
+        run: node tests/run-all.mjs
+        env:
+          QUORATE_REQUIRE_PYTHON: "1"
+          QUORATE_ACORN_DIR: ${{ runner.temp }}/acorn
+          QUORATE_REQUIRE_ACORN: "1"
+
+  # The secret scan, over the WHOLE history (a few seconds): the pre-push hook scans each push
+  # locally, and this is the check that still runs when a merge happens on the forge, where no local
+  # hook does. Whether it runs is `hooks.secret_scan` in the graph_contract (absent = required), and
+  # the ENGINE says what that means (check-secrets.mjs --mode) — this file never parses the contract,
+  # so it cannot disagree with the hook. gitleaks is installed only when required: the release binary
+  # with a PINNED checksum rather than the gitleaks Action, whose licence terms for organisation
+  # accounts were not verified; a version tag can be moved, a hash cannot. Leaks exit 99 and are
+  # redacted, so a found secret is never printed into a public CI log.
+  # In a consuming project the script is at .claude/skills/quorate/scripts/check-secrets.mjs.
+  secrets:
+    # Not on a hand-started macOS run: the history it scans is the same, and push and pull request already scan it.
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26   # the primary line (node-support-policy.md)
+      - name: secret-scan policy (hooks.secret_scan, read by the engine)
+        id: policy
+        run: echo "mode=$(node scripts/check-secrets.mjs --mode)" >> "$GITHUB_OUTPUT"
+      - name: install gitleaks 8.30.1 (hash-pinned)
+        if: steps.policy.outputs.mode == 'required'
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: secret scan (full history, or skipped and said so when declared off)
+        run: node scripts/check-secrets.mjs

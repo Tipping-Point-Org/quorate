@@ -1,0 +1,2 @@
+This is a transport check, not a request to check a draft. Do not read any files, do not search, and do not run any commands.
+Reply with the JSON object below and nothing else: `status` "ok", `reason` "", and exactly one claim with `id` "probe", `text` "probe", kind "other", `looked_for` "probe" with an empty `where` and an empty `found`, grade "inferred", empty citations, an empty `trigger`, a counter-question whose `question` "probe" has an empty `answer`, `operator_only` false and verdict "stands"; and an empty `not_checked`.

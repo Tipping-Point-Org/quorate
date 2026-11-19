@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-02T02:23:55.068Z",
+  "finished_at": "2026-09-02T02:34:51.675Z",
+  "tolerance": 15,
+  "not_run": [],
+  "scores": [
+    {
+      "seed": "doc-stale-panel-contract",
+      "caught": true,
+      "caught_by": [
+        "doc-consistency-review"
+      ],
+      "hits": [
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 56,
+          "severity": "MEDIUM",
+          "claim": "The section that owns the external-arm prompt contract now describes a composition no code builds: `git grep` across every source glob finds the documented item 1, \"one paragraph of project context\", only on this doc line and nowhere in `scripts/`, while the three sections the shipped builder actually emits — `# External-arm constraints`, `# Lens contract`, `# Run brief` (scripts/lib/codex-prompts"
+        },
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 53,
+          "severity": "MEDIUM",
+          "claim": "This sentence asserts the external reviewer has \"no brief\", and the ordered list beneath it puts scope at item 2 ahead of the checklist at item 3; both are false for the shipped path. `run-graph.mjs:980` reads the shadowed lens's run brief and passes it verbatim into `buildCodexShadowPrompt`, and `tests/regression-codex-prompts.test.mjs:34` asserts the opposite ordering with an explicit rationale "
+        }
+      ],
+      "expected_hit": [
+        "doc-consistency-review"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "doc-consistency-review": 1
+      }
+    }
+  ],
+  "summary": {
+    "seeds": 1,
+    "caught": 1,
+    "overall_recall": 1,
+    "lenses": {
+      "doc-consistency-review": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": null
+      }
+    }
+  },
+  "total_cost_usd": 3.81
+}

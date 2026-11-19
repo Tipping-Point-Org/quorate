@@ -1,0 +1,20 @@
+{
+  "id": "verdict-floor-absent",
+  "title": "Nothing compares a node's verdict to the severities of the findings it kept, so a lens holding a BLOCKER can report PASS and the gate -- which reads verdicts, not severities -- propagates it",
+  "source": "historical",
+  "found_by": "self-review 20260905-053922-selfreview; panel-codex-code, found BY ABSENCE",
+  "defect": {
+    "file": "scripts/spawn-node.mjs",
+    "anchor": "status.severity_clamped += 1",
+    "lenses": [
+      "code-audit"
+    ],
+    "severity_floor": "HIGH"
+  },
+  "scope": [
+    "scripts",
+    "shared"
+  ],
+  "removes_tests": true,
+  "notes": "Chosen for a DIFFERENT detection skill from the other seeds: this defect is an ABSENCE, not a wrong line. There is no bad code to read -- the validator stores payload.verdict exactly as the model produced it and applies only the roster's verdict CEILING, which looks complete until you ask what enforces the FLOOR. The arm that found it reported searching scripts/ for any comparison between a verdict and its kept findings' severities and finding none. §2 states the rule plainly ('FAIL -- at least one BLOCKER or HIGH finding the lens is prepared to defend'; 'PASS -- found nothing above LOW'), so a lens reading the doctrine has everything it needs to notice the code does not implement it. The seed strips the doctrine paragraph asserting the floor as well as the code, because leaving it would turn a pre-discovery detection into a doc-vs-code contradiction and measure something easier. It also removes the arm-side call site, since that was part of the same guarantee and was itself missed on the first pass -- the floor existed for lenses only, and panel arms wrote verdict: env.verdict straight through. AUTHORING NOTES, from the first run of this seed. (1) contract-audit was originally listed as an expected lens because it is what found the defect in the wild, against I-9 -- but the harness spawns seeds with --no-request unless the manifest declares one, and contract-audit's condition is nonempty:run.request, so it can never be asked here and the seed scored NOT RUN rather than caught. A lens the harness cannot ask does not belong in expected. (2) The first patch removed the floor's call site and its library functions but LEFT the import, so the seeded tree carried a dangling import that code-audit correctly reported as a BLOCKER -- an artifact defect louder and easier than the real one, which is the same assisted-catch trap the clamp-silent-noop v2 note records. The pre-discovery tree was internally consistent and this patch now is too. code-audit found the real defect anyway, at spawn-node.mjs:1319: 'the only transform applied to payload.verdict is capVerdict, which lowers and never raises'."
+}

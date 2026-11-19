@@ -1,0 +1,26 @@
+{
+  "started_at": "2026-10-13T01:16:55.514Z",
+  "finished_at": "2026-10-13T01:17:29.296Z",
+  "summary": {
+    "seeds": 1,
+    "caught": 1,
+    "recall": 1
+  },
+  "seeds": [
+    {
+      "seed": "doc-stale-panel-contract",
+      "setting": {
+        "model": "opus",
+        "effort": "medium"
+      },
+      "spent": {
+        "second_opinion_usd": null,
+        "forge_usd": null,
+        "total_usd": null,
+        "duration_ms": null,
+        "usage": null,
+        "node": null
+      }
+    }
+  ]
+}

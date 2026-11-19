@@ -1,0 +1,7 @@
+quorate
+Copyright 2026 Tipping Point Org
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes unbash 6.0.4 (https://github.com/webpro-nl/unbash), vendored in third_party/unbash/ under the
+ISC License, Copyright (c) Lars Kappert; see third_party/unbash/LICENSE.

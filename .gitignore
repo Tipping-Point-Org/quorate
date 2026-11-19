@@ -1,0 +1,121 @@
+# Benchmark forensics: preserved failed runs and per-seed logs are machine-local diagnosis.
+# The scored results (bench/results/*.json) ARE tracked — they are the recall record.
+# Covers *-failed-run/ too. Preservation was widened to EVERY seed (not only failures) so the
+# envelopes carrying token accounting survive the worktree removal, and the new `<stamp>-<seed>-run`
+# name silently escaped the old `*-failed-run/` pattern -- 2.8 MB of forensics one `git add -A`
+# away from the history.
+bench/results/*-run/
+bench/results/*.log
+# `--forge-only` output. It exists to be READ — it carries whole model-written paragraphs, the
+# rationales the harness had regenerated to justify a moved anchor — so it is model text on the
+# same footing as a node log, not a recall record. The `*.json` rule above would otherwise have put
+# it on the tracked side purely because of its extension.
+bench/results/*.forge.json
+# `--rejudge` output. Same reason: an experiment on the JUDGE, run against reports that already
+# exist, not a measurement of the audited node. It carries model-written citations and would be
+# read as a recall record purely because of its extension.
+bench/results/*.rejudge.json
+
+# The suite's own TAP scratch file. run-all.mjs writes it while a run is in flight and removes it
+# after; a killed or concurrent run leaves one behind, and one was nearly committed by an
+# over-broad `git add`.
+tests/.run-all-tap-*.txt
+# Its per-file reporter's scratch file, the same way (telemetry-run-time.plan.md stage 3).
+tests/.run-all-files-*.jsonl
+
+# Run artifacts produced when quorate reviews itself.
+.claude/reviews/*/evidence/
+# Runs minted BY TESTS. They exercise the real mint path into the real reviews directory and clean
+# up in a finally — but the suite runs every file twice concurrently (check-counted-facts spawns an
+# inner `node --test`), so a cleanup can still be in flight when the tree is staged. Twice a fixture
+# run reached a commit that way. tests/helpers.mjs mintSlug() gives them this prefix.
+.claude/reviews/*-tmptest-*/
+
+# Runs minted BY THE TEST SUITE, which must never enter the history of the repository they test.
+# Three of them did (0dab5dd), along with a latest.txt pointing at one -- so the committed "most
+# recent run" was a test fixture. The slug is a literal in the test; tests/regression-test-litter
+# pins these two facts together so a renamed probe cannot quietly start being committed again.
+.claude/reviews/*driftprobe*/
+.claude/reviews/latest.txt
+.claude/reviews/*/sandbox/*/declared-docs/
+.claude/reviews/*/nodes/*.tmp
+# The /request skill's cross-family critique. It is NOT a run — it writes before anything is minted,
+# so `--evidence-dir` is "somewhere to put the reviewer's output" rather than a run directory, and the
+# `*/evidence/` rule above therefore covers only half of it. The assembled prompt sat on the tracked
+# side and a `git add -A` committed two of them: model-facing text that restates the request document
+# verbatim, which is the same content class every other rule here keeps out. The document records the
+# reviewer and model in its `critique:` field, which is the part worth keeping.
+.claude/reviews/request-critique-*/
+node_modules/
+Thumbs.db
+.DS_Store
+
+# Consumer-mount test sandbox: a cloned project quorate is installed into and reviewed.
+# Never part of the framework; regenerated on demand.
+.sandbox/
+# claim-check drafts and checker results: model text, cited by path from tracked files (claim-check request)
+.claude/claim-checks/
+# decision panel records: the question, every seat's prompt and answer, the outcome; model text (autonomous-run.plan.md stage 5)
+.claude/decisions/
+# plan-review rounds: the brief, the envelope, the verdict and the round's telemetry record; model text, read by
+# `scripts/telemetry.mjs report` (telemetry-records.plan.md stage 3)
+.claude/plan-reviews/
+# the suite's records: each test file's time and counts, this machine's runs only (telemetry-run-time.plan.md stage 3)
+.claude/suite-runs/
+
+# Session digests extracted from Claude Code transcripts (scripts/extract-sessions.mjs).
+#
+# RAW CONVERSATION AND ABSOLUTE PATHS. These hold the operator's own words verbatim, machine paths,
+# and whatever a spawned node happened to print — the same content class as .claude/reviews/evidence,
+# and excluded for the same reason. The CURATED page (blog/build-log.html) is what gets committed:
+# quoting from a digest is a deliberate act with the operator's consent, not a side effect of
+# running the extractor.
+blog/sessions/
+
+# The panel transport probe is a fact about ONE machine and one install: which reviewer CLIs
+# are reachable here, with these credentials. It was tracked, and so shipped to every consumer
+# mounting this submodule — who then read this machine's "both reachable" as their own and got
+# no transport gap in not_checked[]. It also made every submodule pointer move abort for anyone
+# who had probed, because their local probe modified a tracked file.
+.claude/panel-check.json
+# The tie-break transport probe, for exactly the same reason and after exactly the same
+# mistake: it was tracked too, so a consumer inherited this machine's record of a path it had
+# never exercised. Found one commit later, by this file being swept into that very commit.
+.claude/tiebreak-check.json
+
+# THE DEV INSTALL: a STABLE quorate, mounted where a consumer mounts it, so this repository can use
+# its own skills while developing the engine. Three layers exist deliberately:
+#
+#   root/                          the engine being developed (dirty, possibly broken)
+#   .claude/skills/quorate/        a PINNED checkout — what /request and /full-review resolve to here
+#   .sandbox/<project>/.claude/skills/quorate/   the consumer mount, for validating the mount itself
+#
+# Ignored rather than tracked, for the reason the sandbox is: it is a checkout, not content. Tracking
+# it would commit a second copy of the engine into the engine. And an UNIGNORED untracked copy is
+# worse than either — mirrorWorkingTree copies untracked files into the arms' checkout, so a whole
+# second engine would ride into the tree the external reviewers read.
+#
+# It is a `git worktree`, so it carries a real `.git` file and reports ITS OWN pinned commit rather
+# than the enclosing repository's — the distinction CLAUDE.md records as costing a wrong conclusion
+# ("a copied framework has no .git, so anything asking git for its version gets the ENCLOSING
+# repository's commit"). Refresh it deliberately: see .claude/dev-install.json.
+.claude/skills/
+
+# THE DEV INSTALL'S LOCAL HALF. Both of these describe THIS machine, and the repository has paid for
+# shipping that kind of file twice already — .claude/panel-check.json and .claude/tiebreak-check.json
+# were both tracked once, so every consumer inherited one machine's record of a transport it had never
+# exercised. Same rule here:
+#
+#   CLAUDE.local.md          carries `@.claude/skills/quorate/QUORATE.md`. Committed, that import would
+#                            point every fresh clone at a path .claude/skills/ hides from it.
+#   .claude/dev-install.json records which commit THIS machine pinned, and when. A clone has no dev
+#                            install, so a tracked pin would describe an install that does not exist.
+CLAUDE.local.md
+.claude/dev-install.json
+# Python caches the bytecode of an imported module beside it; the extractor tests import extractors/python/extract.py
+# (G-9 of 20261020-094311-ciss-delivery, where one was committed).
+__pycache__/
+
+# The operator's identity patterns the publish scan looks for (scripts/publish.mjs): never tracked, since writing a
+# username or an e-mail address into a tracked file is the leak the scan exists to stop.
+.claude/publish.local.json

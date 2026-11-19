@@ -1,0 +1,135 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git reset --hard:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git clean:*)",
+      "Bash(git branch -D:*)",
+      "Bash(npm install:*)",
+      "Bash(npm i:*)",
+      "Bash(npm ci:*)",
+      "Bash(npm add:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm install:*)",
+      "Bash(yarn add:*)",
+      "Bash(yarn install:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(uv add:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv pip install:*)",
+      "Bash(cargo install:*)",
+      "Bash(go install:*)",
+      "Bash(winget install:*)",
+      "Bash(choco install:*)",
+      "Bash(scoop install:*)",
+      "Bash(codex update:*)",
+      "Bash(claude update:*)",
+      "Bash(iex:*)",
+      "Bash(Invoke-Expression:*)",
+      "PowerShell(git reset --hard:*)",
+      "PowerShell(git push --force:*)",
+      "PowerShell(git push -f:*)",
+      "PowerShell(git clean:*)",
+      "PowerShell(git branch -D:*)",
+      "PowerShell(npm install:*)",
+      "PowerShell(npm i:*)",
+      "PowerShell(npm ci:*)",
+      "PowerShell(npm add:*)",
+      "PowerShell(pnpm add:*)",
+      "PowerShell(pnpm install:*)",
+      "PowerShell(yarn add:*)",
+      "PowerShell(yarn install:*)",
+      "PowerShell(pip install:*)",
+      "PowerShell(pip3 install:*)",
+      "PowerShell(uv add:*)",
+      "PowerShell(uv sync:*)",
+      "PowerShell(uv pip install:*)",
+      "PowerShell(cargo install:*)",
+      "PowerShell(go install:*)",
+      "PowerShell(winget install:*)",
+      "PowerShell(choco install:*)",
+      "PowerShell(scoop install:*)",
+      "PowerShell(codex update:*)",
+      "PowerShell(claude update:*)",
+      "PowerShell(iex:*)",
+      "PowerShell(Invoke-Expression:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/command-log.mjs\" || exit 2"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/stop-guard.mjs\""
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/stop-guard.mjs\" --stop-failure"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/run-session.mjs\" --session-start"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/stop-guard.mjs\" --turn-start"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/command-log.mjs\" --after"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/command-log.mjs\" --after"
+          }
+        ]
+      }
+    ]
+  }
+}

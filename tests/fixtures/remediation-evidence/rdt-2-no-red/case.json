@@ -1,0 +1,188 @@
+{
+  "source": "20261023-032501-rdt-remediation-2 (payload groups G-2, G-7, G-16, G-17, G-9, G-11, G-13, G-6, G-14); review 20261023-024719-rdt-remediation-b-review",
+  "groups": [
+    {
+      "group_id": "G-2",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/adoption-red.log",
+      "green_evidence": "evidence/remediation/adoption-green.log"
+    },
+    {
+      "group_id": "G-7",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/adoption-red.log",
+      "green_evidence": "evidence/remediation/adoption-green.log"
+    },
+    {
+      "group_id": "G-16",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/adoption-red.log",
+      "green_evidence": "evidence/remediation/adoption-green.log"
+    },
+    {
+      "group_id": "G-17",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/adoption-red.log",
+      "green_evidence": "evidence/remediation/adoption-green.log"
+    },
+    {
+      "group_id": "G-9",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "",
+      "green_evidence": "evidence/remediation/check-ledger-findings.log; evidence/remediation/check-run-dir-trust-callers.log"
+    },
+    {
+      "group_id": "G-11",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "",
+      "green_evidence": "evidence/remediation/check-run-dir-trust-callers-2.log"
+    },
+    {
+      "group_id": "G-13",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "",
+      "green_evidence": "evidence/remediation/check-sibling-census.log"
+    },
+    {
+      "group_id": "G-6",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "",
+      "green_evidence": "evidence/remediation/check-external-review-override.log; evidence/remediation/check-run-dir-trust-callers-2.log"
+    },
+    {
+      "group_id": "G-14",
+      "disposition": "fixed",
+      "cluster": "c1",
+      "files": [
+        "scripts/bench-lenses.mjs",
+        "scripts/external-review.mjs",
+        "scripts/findings-ledger.mjs",
+        "scripts/remediate.mjs",
+        "scripts/run-graph.mjs",
+        "tests/regression-admit-run-adoption.test.mjs",
+        "tests/regression-intent-add-dir-run-dir.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/sandbox-order-red2.log",
+      "green_evidence": "evidence/remediation/sandbox-order-green.log"
+    }
+  ],
+  "confirmed": [
+    "G-1",
+    "G-2",
+    "G-3",
+    "G-4",
+    "G-5",
+    "G-6",
+    "G-7",
+    "G-8",
+    "G-9",
+    "G-10",
+    "G-12",
+    "G-14",
+    "G-15",
+    "G-16",
+    "G-17",
+    "G-18",
+    "G-19",
+    "G-20",
+    "G-21",
+    "G-22",
+    "G-23",
+    "G-24"
+  ],
+  "symptoms": {
+    "G-11": "G-2",
+    "G-13": "G-2"
+  },
+  "reviewed_files": {
+    "G-2": "scripts/bench-lenses.mjs",
+    "G-6": "scripts/external-review.mjs",
+    "G-7": "scripts/external-review.mjs",
+    "G-9": "scripts/findings-ledger.mjs",
+    "G-11": "scripts/remediate.mjs",
+    "G-13": "scripts/run-graph.mjs",
+    "G-14": "scripts/run-graph.mjs",
+    "G-16": "tests/regression-admit-run-adoption.test.mjs",
+    "G-17": "tests/regression-admit-run-adoption.test.mjs"
+  }
+}

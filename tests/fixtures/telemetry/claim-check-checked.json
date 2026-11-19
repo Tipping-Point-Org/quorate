@@ -1,0 +1,284 @@
+{
+  "summary": {
+    "stands": 20,
+    "dissolved": 0,
+    "downgrade": 13,
+    "ask-operator": 6,
+    "inferred": 9
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C2",
+      "kind": "attribution",
+      "grade": "inferred",
+      "verdict": "ask-operator",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C3",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C4",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C5",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C6",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C7",
+      "kind": "behaviour",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C8",
+      "kind": "behaviour",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C9",
+      "kind": "status",
+      "grade": "inferred",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C10",
+      "kind": "status",
+      "grade": "inferred",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C11",
+      "kind": "attribution",
+      "grade": "inferred",
+      "verdict": "ask-operator",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C12",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C13",
+      "kind": "absence",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C14",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C15",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C16",
+      "kind": "behaviour",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C17",
+      "kind": "behaviour",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C18",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C19",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C20",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C21",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C22",
+      "kind": "behaviour",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C23",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C24",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C25",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C26",
+      "kind": "behaviour",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C27",
+      "kind": "capability",
+      "grade": "observed",
+      "verdict": "ask-operator",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C28",
+      "kind": "recommendation",
+      "grade": "inferred",
+      "verdict": "ask-operator",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C29",
+      "kind": "behaviour",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C30",
+      "kind": "attribution",
+      "grade": "inferred",
+      "verdict": "ask-operator",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C31",
+      "kind": "behaviour",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C32",
+      "kind": "cost",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C33",
+      "kind": "cost",
+      "grade": "inferred",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C34",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C35",
+      "kind": "absence",
+      "grade": "inferred",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C36",
+      "kind": "absence",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C37",
+      "kind": "status",
+      "grade": "observed",
+      "verdict": "downgrade",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C38",
+      "kind": "risk",
+      "grade": "observed",
+      "verdict": "stands",
+      "text": "MODEL TEXT"
+    },
+    {
+      "id": "C39",
+      "kind": "attribution",
+      "grade": "inferred",
+      "verdict": "ask-operator",
+      "text": "MODEL TEXT"
+    }
+  ]
+}

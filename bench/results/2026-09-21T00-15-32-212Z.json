@@ -1,0 +1,1223 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-21T00:15:32.212Z",
+  "finished_at": "2026-09-21T01:08:53.563Z",
+  "tolerance": 15,
+  "not_run": [],
+  "scores": [
+    {
+      "seed": "clamp-silent-noop",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 43,
+          "severity": "HIGH",
+          "claim": "clampSeverity (decisions.mjs:42-43) now skips its floor/ceiling clamp whenever the value is not a rung: the change deletes both `throw` guards and the regression test that pinned them, restoring the guard-and-fall-through shape whose failure the deleted docstring recorded (a verdict, 'RISK', in the severity slot disabled the cap on every degraded lens while every artifact reported it active). A co"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      },
+      "defect_line": 43
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "doc-consistency-review"
+      ],
+      "hits": [
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 101,
+          "severity": "MEDIUM",
+          "claim": "Lines 99-107 say an external reviewer has 'no brief' and should be given four things: project context, exact scope, the checklist verbatim, the output contract. The code sends a different prompt: buildCodexShadowPrompt (scripts/lib/codex-prompts.mjs:301-321) renders prompts/_templates/shadow-arm.md — role/goal, the external-arm constraints block, the lens contract (SKILL.md minus frontmatter), the"
+        }
+      ],
+      "expected_hit": [
+        "doc-consistency-review"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "doc-consistency-review": 1
+      },
+      "defect_line": 101
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit",
+        "security-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 92,
+          "severity": "HIGH",
+          "claim": "Line 92 scans a short-flag cluster only if it matches /^-[A-Za-z]/, so a single-dash token opening with a digit is returned non-forbidden without its characters being examined. git grep declares OPT_NUMBER_CALLBACK (-<num> is shorthand for -C NUM) and keeps parsing the same token, so `-2Ocat` is `-2 -O cat` = --open-files-in-pager, which git launches through a shell; forbiddenTailToken('-2Ocat') i"
+        },
+        {
+          "node": "security-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 92,
+          "severity": "BLOCKER",
+          "claim": "forbidden-tail.mjs:92 now reads `if (!/^-[A-Za-z]/.test(t)) return false;` (HEAD: `/^-[^-]/`), so a single-dash token whose second character is a digit returns non-forbidden before the loop that looks for `O` runs. git grep parses `-<num>` as a context count and keeps parsing the same token, so `-2Ocat` is `-2 -O cat`, the pager flag that git runs through a shell (the `-2n` probe shows git honours"
+        }
+      ],
+      "expected_hit": [
+        "code-audit",
+        "security-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 3,
+        "security-audit": 2
+      },
+      "defect_line": 92
+    },
+    {
+      "seed": "probe-substring-match",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 703,
+          "severity": "MEDIUM",
+          "claim": "classifyPanelProbe now decides `unavailable` with `n.item.includes(reviewer)` (decisions.mjs:703), a bare substring test, in place of the exact `<role> '<reviewer>'` marker match built from UNAVAILABLE_ROLES; any not_checked note that merely names the reviewer is read as proof it never ran. external-review's runtimeNotChecked() writes `<reviewer> model`, `<reviewer> reasoning effort` and `<reviewe"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {},
+      "defect_line": 703
+    },
+    {
+      "seed": "prose-before-payload",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 85,
+          "severity": "MEDIUM",
+          "claim": "`classifyResult` tests `!hasPayload` at line 85 before `schemaVariant === 'none'` at line 93, so a prose node is returned as `no-payload`/DEGRADED before its own branch can run. A prose node has no structured output by definition (spawn-node passes no --json-schema for variant 'none', :1075) and `hasPayload` is `Boolean(structured_output ?? JSON.parse(result))` (spawn-node.mjs:1695-1712), which is"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 3
+      },
+      "defect_line": 87
+    },
+    {
+      "seed": "status-never-a-pass",
+      "tolerance": 40,
+      "caught": true,
+      "caught_by": [
+        "contract-audit"
+      ],
+      "hits": [
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 1044,
+          "severity": "HIGH",
+          "claim": "I-4 requires a non-ok status in proposal mode to empty the pool visibly: candidates [] and a not_checked[] entry naming the reviewer and its reason. With the status block deleted, propose mode reaches line 1044 and returns the reviewer's `p.candidates` as parsed, so {status:'incomplete', reason:'cut short before finishing', candidates:[{name:'partial'}]} is emitted with candidates [{name:'partial'"
+        },
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 1019,
+          "severity": "HIGH",
+          "claim": "I-11 requires an adjudicator returning status != ok to be `absent` with coverage 0 and never a vote. Tie-break mode now normalises `p.supports` at lines 1019-1022 without consulting status, so a judge answering {status:'refused', supports:'<a participant>', ...} emits a ruling with `supports` set and no `tie-breaker '<reviewer>'` not_checked item. classifyPanelProbe then returns state 'reachable' "
+        },
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 1015,
+          "severity": "MEDIUM",
+          "claim": "I-6 requires reviewer-response classification (hard / soft / ok, with a missing or out-of-enum status never reading as ok) to be one pure decision in scripts/lib that callers consume. After the deletion no such decision exists anywhere: lib has classifyResult (node envelopes), classifyPanelProbe (keyed on the not_checked item text an emitter wrote) and an unexported `STATUS` enum at reviewer-schem"
+        }
+      ],
+      "expected_hit": [
+        "contract-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "contract-audit": 6
+      },
+      "defect_line": 1010
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/spawn-node.mjs",
+          "line": 1818,
+          "severity": "HIGH",
+          "claim": "Deleted here (captured diff, hunk @@ -1815,28 +1815,6 @@) is the only place a lens's verdict was raised to match its kept findings: validateVerdict compares no verdict with any severity, and verdictFloorFromFindings/raiseVerdict survive in spawn-node only as an unused import on line 20 (grep: evidence/code-audit/floor-callsites.log). So a lens returning PASS beside a BLOCKER or HIGH finding is rec"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      },
+      "defect_line": 1815
+    }
+  ],
+  "summary": {
+    "seeds": 7,
+    "caught": 7,
+    "overall_recall": 1,
+    "lenses": {
+      "code-audit": {
+        "expected": 5,
+        "caught": 5,
+        "recall": 1,
+        "cost_usd": 10.6034316
+      },
+      "doc-consistency-review": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 1.7465582000000004
+      },
+      "security-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 1.9144580000000002
+      },
+      "contract-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 2.0953131
+      }
+    }
+  },
+  "config": {
+    "corpus_commit": "07db3f6b1a8059fa1706f245b54378343360fdd6",
+    "framework": {
+      "name": "quorate",
+      "version": "0.2.0",
+      "commit": "07db3f6b1a8059fa1706f245b54378343360fdd6",
+      "dirty": true,
+      "layout": "bench"
+    },
+    "declared_models": {
+      "judgment": "opus",
+      "mechanical": "sonnet"
+    },
+    "declared_effort": {
+      "judgment": "xhigh"
+    },
+    "runtime": "claude",
+    "runtime_version": "2.1.278 (Claude Code)",
+    "node_version": "v24.13.1",
+    "measured_at": "2026-09-21T00:15:32.212Z",
+    "alias_caveat": "Model aliases float: the provider may replace the model behind \"opus\"/\"sonnet\" at any time. A result is only comparable to another with the same runtime_version and a nearby measured_at. Re-measure before trusting an older number, and never carry a recall figure forward across a model change in either direction."
+  },
+  "runs": [
+    {
+      "seed": "clamp-silent-noop",
+      "costs": {
+        "code-audit": 2.5312908,
+        "reconcile": 0.666206
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 84,
+          "cache_creation_input_tokens": 210407,
+          "cache_read_input_tokens": 5928724,
+          "output_tokens": 50375,
+          "output_tokens_details": {
+            "thinking_tokens": 35496
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 210407,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 8065,
+              "cache_read_input_tokens": 206075,
+              "cache_creation_input_tokens": 4332,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 4332
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 30,
+          "cache_creation_input_tokens": 72625,
+          "cache_read_input_tokens": 838830,
+          "output_tokens": 20788,
+          "output_tokens_details": {
+            "thinking_tokens": 12676
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 72625,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 5733,
+              "cache_read_input_tokens": 85042,
+              "cache_creation_input_tokens": 2053,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2053
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 60,
+        "reconcile": 36
+      },
+      "duration_ms": {
+        "code-audit": 617054,
+        "reconcile": 206775
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "costs": {
+        "doc-consistency-review": 1.7465582000000004,
+        "reconcile": 0.8850825999999999
+      },
+      "usage": {
+        "doc-consistency-review": {
+          "input_tokens": 78,
+          "cache_creation_input_tokens": 138678,
+          "cache_read_input_tokens": 3653701,
+          "output_tokens": 46095,
+          "output_tokens_details": {
+            "thinking_tokens": 30929
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 138678,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 10180,
+              "cache_read_input_tokens": 135566,
+              "cache_creation_input_tokens": 3112,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3112
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 32,
+          "cache_creation_input_tokens": 100971,
+          "cache_read_input_tokens": 961623,
+          "output_tokens": 28881,
+          "output_tokens_details": {
+            "thinking_tokens": 20634
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 100971,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 9409,
+              "cache_read_input_tokens": 94283,
+              "cache_creation_input_tokens": 6688,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 6688
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "doc-consistency-review": 57,
+        "reconcile": 41
+      },
+      "duration_ms": {
+        "doc-consistency-review": 483876,
+        "reconcile": 282004
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "costs": {
+        "code-audit": 2.8478290000000004,
+        "reconcile": 1.3027591,
+        "security-audit": 1.9144580000000002
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 74,
+          "cache_creation_input_tokens": 262607,
+          "cache_read_input_tokens": 6294315,
+          "output_tokens": 53839,
+          "output_tokens_details": {
+            "thinking_tokens": 39252
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 262607,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 11233,
+              "cache_read_input_tokens": 276655,
+              "cache_creation_input_tokens": 2580,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2580
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 48,
+          "cache_creation_input_tokens": 125993,
+          "cache_read_input_tokens": 1786958,
+          "output_tokens": 44623,
+          "output_tokens_details": {
+            "thinking_tokens": 33114
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 122706,
+            "ephemeral_5m_input_tokens": 3287
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 12104,
+              "cache_read_input_tokens": 128136,
+              "cache_creation_input_tokens": 9040,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 9040
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "security-audit": {
+          "input_tokens": 68,
+          "cache_creation_input_tokens": 163815,
+          "cache_read_input_tokens": 3908185,
+          "output_tokens": 47894,
+          "output_tokens_details": {
+            "thinking_tokens": 35255
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 162805,
+            "ephemeral_5m_input_tokens": 1010
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 13558,
+              "cache_read_input_tokens": 170510,
+              "cache_creation_input_tokens": 8923,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 8923
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 67,
+        "reconcile": 52,
+        "security-audit": 50
+      },
+      "duration_ms": {
+        "code-audit": 566252,
+        "reconcile": 476056,
+        "security-audit": 545751
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "costs": {
+        "code-audit": 1.6562404000000002,
+        "reconcile": 0.9957495999999999
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 56,
+          "cache_creation_input_tokens": 167459,
+          "cache_read_input_tokens": 3199062,
+          "output_tokens": 34648,
+          "output_tokens_details": {
+            "thinking_tokens": 24493
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 167459,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 4717,
+              "cache_read_input_tokens": 179723,
+              "cache_creation_input_tokens": 4364,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 4364
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 32,
+          "cache_creation_input_tokens": 101088,
+          "cache_read_input_tokens": 1158768,
+          "output_tokens": 35958,
+          "output_tokens_details": {
+            "thinking_tokens": 27869
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 101088,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 14960,
+              "cache_read_input_tokens": 107198,
+              "cache_creation_input_tokens": 8360,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 8360
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 44,
+        "reconcile": 39
+      },
+      "duration_ms": {
+        "code-audit": 475560,
+        "reconcile": 369096
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "costs": {
+        "code-audit": 2.0463418,
+        "reconcile": 1.2820747
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 58,
+          "cache_creation_input_tokens": 198096,
+          "cache_read_input_tokens": 3963909,
+          "output_tokens": 46106,
+          "output_tokens_details": {
+            "thinking_tokens": 34602
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 198096,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 13967,
+              "cache_read_input_tokens": 213899,
+              "cache_creation_input_tokens": 825,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 825
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 40,
+          "cache_creation_input_tokens": 121931,
+          "cache_read_input_tokens": 1520906,
+          "output_tokens": 49385,
+          "output_tokens_details": {
+            "thinking_tokens": 39096
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 119424,
+            "ephemeral_5m_input_tokens": 2507
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 22875,
+              "cache_read_input_tokens": 122666,
+              "cache_creation_input_tokens": 13735,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 2507,
+                "ephemeral_1h_input_tokens": 11228
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 43,
+        "reconcile": 49
+      },
+      "duration_ms": {
+        "code-audit": 531677,
+        "reconcile": 519174
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "status-never-a-pass",
+      "costs": {
+        "contract-audit": 2.0953131,
+        "intent-capture": 1.4407466,
+        "reconcile": 1.0459462
+      },
+      "usage": {
+        "contract-audit": {
+          "input_tokens": 98,
+          "cache_creation_input_tokens": 159359,
+          "cache_read_input_tokens": 4851553,
+          "output_tokens": 49108,
+          "output_tokens_details": {
+            "thinking_tokens": 30629
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 156886,
+            "ephemeral_5m_input_tokens": 2473
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 14796,
+              "cache_read_input_tokens": 150173,
+              "cache_creation_input_tokens": 6713,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 6713
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "intent-capture": {
+          "input_tokens": 14,
+          "cache_creation_input_tokens": 119313,
+          "cache_read_input_tokens": 326233,
+          "output_tokens": 89822,
+          "output_tokens_details": {
+            "thinking_tokens": 74294
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 119313,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 4,
+              "output_tokens": 23820,
+              "cache_read_input_tokens": 119250,
+              "cache_creation_input_tokens": 63,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 63
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 30,
+          "cache_creation_input_tokens": 116618,
+          "cache_read_input_tokens": 1130771,
+          "output_tokens": 35326,
+          "output_tokens_details": {
+            "thinking_tokens": 25528
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 116618,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 11555,
+              "cache_read_input_tokens": 130114,
+              "cache_creation_input_tokens": 974,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 974
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "contract-audit": 61,
+        "intent-capture": 16,
+        "reconcile": 39
+      },
+      "duration_ms": {
+        "contract-audit": 520023,
+        "intent-capture": 917753,
+        "reconcile": 366142
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "intent-capture": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "costs": {
+        "code-audit": 1.5217295999999996,
+        "reconcile": 1.0500492000000001
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 64,
+          "cache_creation_input_tokens": 128779,
+          "cache_read_input_tokens": 3167578,
+          "output_tokens": 37297,
+          "output_tokens_details": {
+            "thinking_tokens": 25622
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 128779,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 9007,
+              "cache_read_input_tokens": 142433,
+              "cache_creation_input_tokens": 2974,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2974
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 42,
+          "cache_creation_input_tokens": 98270,
+          "cache_read_input_tokens": 1439326,
+          "output_tokens": 36902,
+          "output_tokens_details": {
+            "thinking_tokens": 27051
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 98270,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 14345,
+              "cache_read_input_tokens": 111202,
+              "cache_creation_input_tokens": 1538,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1538
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 44,
+        "reconcile": 48
+      },
+      "duration_ms": {
+        "code-audit": 405016,
+        "reconcile": 370918
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    }
+  ],
+  "total_cost_usd": 25.03,
+  "scored_cost_usd": 25.03,
+  "unscored_cost_usd": 0,
+  "unscored_spend": [],
+  "total_usage": {
+    "input_tokens": 848,
+    "output_tokens": 707047,
+    "thinking_tokens": 516540,
+    "cache_creation_input_tokens": 2286009,
+    "cache_read_input_tokens": 44130442
+  }
+}

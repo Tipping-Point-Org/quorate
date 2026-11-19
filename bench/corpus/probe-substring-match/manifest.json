@@ -1,0 +1,19 @@
+{
+  "id": "probe-substring-match",
+  "title": "classifyPanelProbe matches any not_checked item containing the reviewer's name, so a reachable arm that reported an unpinned runtime is classified unavailable",
+  "source": "historical",
+  "found_by": "live probe, 2026-08-31 — both arms returned PASS and check-panel reported 2/2 unavailable",
+  "defect": {
+    "file": "scripts/lib/decisions.mjs",
+    "anchor": "n.item.includes(reviewer)",
+    "lenses": [
+      "code-audit"
+    ],
+    "severity_floor": "MEDIUM"
+  },
+  "scope": [
+    "scripts/lib"
+  ],
+  "removes_tests": true,
+  "notes": "Strips the two regression tests pinning the exact-item match; with them present the pre-flight barrier catches the seed and the benchmark measures the tests, not the lenses. The tell a reviewer can find: unavailable() writes item `external reviewer '<name>'`, while runtimeNotChecked() writes `<name> model` — a substring test cannot tell them apart."
+}

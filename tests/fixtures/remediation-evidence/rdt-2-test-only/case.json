@@ -1,0 +1,168 @@
+{
+  "source": "20261023-032501-rdt-remediation-2 (payload groups G-18, G-21, G-23, G-19, G-20, G-22, G-24); review 20261023-024719-rdt-remediation-b-review",
+  "groups": [
+    {
+      "group_id": "G-18",
+      "disposition": "fixed",
+      "cluster": "c3",
+      "files": [
+        "tests/regression-no-silent-test-return.test.mjs",
+        "tests/regression-archive-fold-remediation.test.mjs",
+        "tests/regression-cgg-r2-remediation.test.mjs",
+        "tests/regression-reviewer-preflight.test.mjs",
+        "tests/regression-arm-forbidden-intent-block.test.mjs",
+        "tests/regression-brief-path-shell-safe.test.mjs",
+        "tests/regression-framework-stamp.test.mjs",
+        "tests/regression-roster-node-overrides.test.mjs",
+        "tests/regression-inquorate-records-nothing.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/silent-return-red.log",
+      "green_evidence": "evidence/remediation/silent-return-green2.log; evidence/remediation/green-archive-fold.log"
+    },
+    {
+      "group_id": "G-21",
+      "disposition": "fixed",
+      "cluster": "c3",
+      "files": [
+        "tests/regression-no-silent-test-return.test.mjs",
+        "tests/regression-archive-fold-remediation.test.mjs",
+        "tests/regression-cgg-r2-remediation.test.mjs",
+        "tests/regression-reviewer-preflight.test.mjs",
+        "tests/regression-arm-forbidden-intent-block.test.mjs",
+        "tests/regression-brief-path-shell-safe.test.mjs",
+        "tests/regression-framework-stamp.test.mjs",
+        "tests/regression-roster-node-overrides.test.mjs",
+        "tests/regression-inquorate-records-nothing.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/silent-return-red.log",
+      "green_evidence": "evidence/remediation/silent-return-green2.log; evidence/remediation/green-cgg-r2.log"
+    },
+    {
+      "group_id": "G-23",
+      "disposition": "fixed",
+      "cluster": "c3",
+      "files": [
+        "tests/regression-no-silent-test-return.test.mjs",
+        "tests/regression-archive-fold-remediation.test.mjs",
+        "tests/regression-cgg-r2-remediation.test.mjs",
+        "tests/regression-reviewer-preflight.test.mjs",
+        "tests/regression-arm-forbidden-intent-block.test.mjs",
+        "tests/regression-brief-path-shell-safe.test.mjs",
+        "tests/regression-framework-stamp.test.mjs",
+        "tests/regression-roster-node-overrides.test.mjs",
+        "tests/regression-inquorate-records-nothing.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/silent-return-red.log",
+      "green_evidence": "evidence/remediation/silent-return-green2.log"
+    },
+    {
+      "group_id": "G-19",
+      "disposition": "fixed",
+      "cluster": "c3",
+      "files": [
+        "tests/regression-no-silent-test-return.test.mjs",
+        "tests/regression-archive-fold-remediation.test.mjs",
+        "tests/regression-cgg-r2-remediation.test.mjs",
+        "tests/regression-reviewer-preflight.test.mjs",
+        "tests/regression-arm-forbidden-intent-block.test.mjs",
+        "tests/regression-brief-path-shell-safe.test.mjs",
+        "tests/regression-framework-stamp.test.mjs",
+        "tests/regression-roster-node-overrides.test.mjs",
+        "tests/regression-inquorate-records-nothing.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/silent-return-red.log",
+      "green_evidence": "evidence/remediation/silent-return-green2.log; evidence/remediation/green-arm-forbidden.log"
+    },
+    {
+      "group_id": "G-20",
+      "disposition": "fixed",
+      "cluster": "c3",
+      "files": [
+        "tests/regression-no-silent-test-return.test.mjs",
+        "tests/regression-archive-fold-remediation.test.mjs",
+        "tests/regression-cgg-r2-remediation.test.mjs",
+        "tests/regression-reviewer-preflight.test.mjs",
+        "tests/regression-arm-forbidden-intent-block.test.mjs",
+        "tests/regression-brief-path-shell-safe.test.mjs",
+        "tests/regression-framework-stamp.test.mjs",
+        "tests/regression-roster-node-overrides.test.mjs",
+        "tests/regression-inquorate-records-nothing.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/silent-return-red.log",
+      "green_evidence": "evidence/remediation/silent-return-green2.log; evidence/remediation/green-brief-path.log"
+    },
+    {
+      "group_id": "G-22",
+      "disposition": "fixed",
+      "cluster": "c3",
+      "files": [
+        "tests/regression-no-silent-test-return.test.mjs",
+        "tests/regression-archive-fold-remediation.test.mjs",
+        "tests/regression-cgg-r2-remediation.test.mjs",
+        "tests/regression-reviewer-preflight.test.mjs",
+        "tests/regression-arm-forbidden-intent-block.test.mjs",
+        "tests/regression-brief-path-shell-safe.test.mjs",
+        "tests/regression-framework-stamp.test.mjs",
+        "tests/regression-roster-node-overrides.test.mjs",
+        "tests/regression-inquorate-records-nothing.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/silent-return-red.log",
+      "green_evidence": "evidence/remediation/silent-return-green2.log; evidence/remediation/green-framework-stamp.log"
+    },
+    {
+      "group_id": "G-24",
+      "disposition": "fixed",
+      "cluster": "c3",
+      "files": [
+        "tests/regression-no-silent-test-return.test.mjs",
+        "tests/regression-archive-fold-remediation.test.mjs",
+        "tests/regression-cgg-r2-remediation.test.mjs",
+        "tests/regression-reviewer-preflight.test.mjs",
+        "tests/regression-arm-forbidden-intent-block.test.mjs",
+        "tests/regression-brief-path-shell-safe.test.mjs",
+        "tests/regression-framework-stamp.test.mjs",
+        "tests/regression-roster-node-overrides.test.mjs",
+        "tests/regression-inquorate-records-nothing.test.mjs"
+      ],
+      "red_evidence": "evidence/remediation/silent-return-red.log",
+      "green_evidence": "evidence/remediation/silent-return-green2.log; evidence/remediation/green-roster.log; evidence/remediation/green-inquorate.log"
+    }
+  ],
+  "confirmed": [
+    "G-1",
+    "G-2",
+    "G-3",
+    "G-4",
+    "G-5",
+    "G-6",
+    "G-7",
+    "G-8",
+    "G-9",
+    "G-10",
+    "G-12",
+    "G-14",
+    "G-15",
+    "G-16",
+    "G-17",
+    "G-18",
+    "G-19",
+    "G-20",
+    "G-21",
+    "G-22",
+    "G-23",
+    "G-24"
+  ],
+  "symptoms": {
+    "G-11": "G-2",
+    "G-13": "G-2"
+  },
+  "reviewed_files": {
+    "G-18": "tests/regression-archive-fold-remediation.test.mjs",
+    "G-19": "tests/regression-arm-forbidden-intent-block.test.mjs",
+    "G-20": "tests/regression-brief-path-shell-safe.test.mjs",
+    "G-21": "tests/regression-cgg-r2-remediation.test.mjs",
+    "G-22": "tests/regression-framework-stamp.test.mjs",
+    "G-23": "tests/regression-reviewer-preflight.test.mjs",
+    "G-24": "tests/regression-roster-node-overrides.test.mjs"
+  }
+}

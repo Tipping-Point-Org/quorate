@@ -1,0 +1,212 @@
+{
+  "$comment": "Every site the degraded-cap census found stating a lens's cap without its §6 exception (design note code-index-d1-design-step.design.md, part 2; census at 34763e78, rule2.md in a session scratchpad, committed here by plan stage 4). Each row names its file, an anchor (exact text that survives at the site), and how it now complies: region (a rule:degraded-cap region within 3 lines), exception (the anchor's line carries the exception), or allowed (why it is not this rule). A row whose anchor is gone fails, so a later edit cannot drop a site silently.",
+  "rows": [
+    {
+      "file": "shared/claude-md-contract.md",
+      "anchor": "it reviews against observed conventions only, and `not_checked[]` names the",
+      "status": "pointer",
+      "why": "a pointer to shared/disk-first-protocol.md §7, the owner (operator, 2026-11-05: \"Pointers, all 6\")"
+    },
+    {
+      "file": "CLAUDE.md",
+      "anchor": "| `doc_roles.architecture` | `arch-review` degrades to convention-only",
+      "status": "pointer",
+      "why": "a pointer to shared/disk-first-protocol.md §7, the owner (operator, 2026-11-05: \"Pointers, all 6\")"
+    },
+    {
+      "file": "QUORATE.md",
+      "anchor": "declaration: it degrades the check and says so",
+      "status": "pointer",
+      "why": "a pointer to shared/disk-first-protocol.md §7, the owner (operator, 2026-11-05: \"Pointers, all 6\")"
+    },
+    {
+      "file": "README.md",
+      "anchor": "the conformance lens is capped as `shared/disk-first-protocol.md` §7 states",
+      "status": "pointer",
+      "why": "a pointer to shared/disk-first-protocol.md §7, the owner (operator, 2026-11-05: \"Pointers, all 6\")"
+    },
+    {
+      "file": "skills/request/SKILL.md",
+      "anchor": "and the conformance lens is capped, permanently, on every run",
+      "status": "pointer",
+      "why": "a pointer to shared/disk-first-protocol.md §7, the owner (operator, 2026-11-05: \"Pointers, all 6\")"
+    },
+    {
+      "file": "skills/full-review/SKILL.md",
+      "anchor": "`UNBENCHED` caps `perf-audit` (",
+      "status": "pointer",
+      "why": "a pointer to shared/disk-first-protocol.md §7, the owner (operator, 2026-11-05: \"Pointers, all 6\")"
+    },
+    {
+      "file": "shared/disk-first-protocol.md",
+      "anchor": "so a document restating the cap without it is wrong:",
+      "status": "region"
+    },
+    {
+      "file": "skills/version-gate/SKILL.md",
+      "anchor": "every perf item resting on it caps at RISK, unless a §6 invariant finding drives it",
+      "status": "exception"
+    },
+    {
+      "file": "CLAUDE.template.md",
+      "anchor": "# convention-only, its verdict capped at RISK except where a",
+      "status": "allowed",
+      "why": "the exception is the next line of the same YAML comment: \"§6 invariant finding drives it\""
+    },
+    {
+      "file": "CLAUDE.template.md",
+      "anchor": "inferred request and cap contract-audit at RISK (a §6",
+      "status": "exception"
+    },
+    {
+      "file": "CLAUDE.template.md",
+      "anchor": "static-risk-only (RISK, findings LOW; a §6 invariant is never capped)",
+      "status": "exception"
+    },
+    {
+      "file": "CLAUDE.md",
+      "anchor": "capped at RISK, a §6 invariant excepted. Change this line",
+      "status": "exception"
+    },
+    {
+      "file": "CLAUDE.md",
+      "anchor": "most structural lens ran toothless on the framework",
+      "status": "allowed",
+      "why": "history: the contract comment recording what declaring doc_roles.architecture changed"
+    },
+    {
+      "file": "shared/disk-first-protocol.md",
+      "anchor": "or the lens ran degraded, unless a §6 invariant finding drives",
+      "status": "exception"
+    },
+    {
+      "file": "shared/disk-first-protocol.md",
+      "anchor": "except where a §6 invariant finding drives the verdict,",
+      "status": "exception"
+    },
+    {
+      "file": "shared/disk-first-protocol.md",
+      "anchor": "waive them**. No ceiling caps them either",
+      "status": "allowed",
+      "why": "§6 states the exception across two lines; the anchor's next line carries it"
+    },
+    {
+      "file": "shared/disk-first-protocol.md",
+      "anchor": "its verdict capped at `RISK` and its findings at `MEDIUM`, a §6 invariant excepted",
+      "status": "exception"
+    },
+    {
+      "file": "shared/disk-first-protocol.md",
+      "anchor": "best achievable verdict; it never raises one.",
+      "status": "allowed",
+      "why": "a general truth about ceilings; it states no lens's cap"
+    },
+    {
+      "file": "shared/disk-first-protocol.md",
+      "anchor": "| A finding's shape, location, containment, basis, evidence path, severity ceiling |",
+      "status": "allowed",
+      "why": "which layer enforces a rule, not what the cap is"
+    },
+    {
+      "file": "shared/claude-md-contract.md",
+      "anchor": "had always promised an unbenchmarked finding is recorded AT LOW, which is a ceiling",
+      "status": "allowed",
+      "why": "history of the UNBENCHED row's staleness"
+    },
+    {
+      "file": "shared/claude-md-contract.md",
+      "anchor": "lifts the cap on the next run\" into every inferred request",
+      "status": "allowed",
+      "why": "a pointer to the cap, not a statement of it"
+    },
+    {
+      "file": "shared/claude-md-contract.md",
+      "anchor": "an inferred one (with `REQUEST-INFERRED` and its cap)",
+      "status": "allowed",
+      "why": "a pointer to the cap, not a statement of it"
+    },
+    {
+      "file": "skills/request/SKILL.md",
+      "anchor": "instead, and let the cap stand.",
+      "status": "allowed",
+      "why": "a pointer to the cap, not a statement of it"
+    },
+    {
+      "file": "skills/request/SKILL.md",
+      "anchor": "looking like it closed it — worse than the honest `REQUEST-INFERRED` cap",
+      "status": "allowed",
+      "why": "a pointer to the cap, not a statement of it"
+    },
+    {
+      "file": "prompts/_templates/recovery-brief.md",
+      "anchor": "capped at RISK, except a §6 invariant finding,",
+      "status": "exception"
+    },
+    {
+      "file": "prompts/request-capture/PROMPT.md",
+      "anchor": "capped at `RISK` and cannot block (a §6 invariant finding,",
+      "status": "exception"
+    },
+    {
+      "file": "prompts/request-capture/PROMPT.md",
+      "anchor": "caps conformance at RISK, except a §6 invariant",
+      "status": "exception"
+    },
+    {
+      "file": "prompts/request-capture/PROMPT.md",
+      "anchor": "the cap lifts on the next",
+      "status": "allowed",
+      "why": "a pointer to the cap, not a statement of it"
+    },
+    {
+      "file": "prompts/perf-audit/PROMPT.md",
+      "anchor": "A §6 invariant finding is the exception: it is never capped.",
+      "status": "exception"
+    },
+    {
+      "file": "prompts/perf-audit/PROMPT.md",
+      "anchor": "variant of `code-audit` with a severity ceiling",
+      "status": "allowed",
+      "why": "names the ceiling; the same prompt states its exception (\"A §6 invariant finding is the exception\")"
+    },
+    {
+      "file": "prompts/_templates/stamp-consequences.json",
+      "anchor": "contract-audit is capped for exactly this reason (a §6 invariant finding is never capped)",
+      "status": "exception"
+    },
+    {
+      "file": "prompts/_templates/stamp-consequences.json",
+      "anchor": "so contract-audit does not run (it is SKIPPED, its condition being a request)",
+      "status": "allowed",
+      "why": "UNREQUESTED: contract-audit is SKIPPED (roster condition run.request); the sentence said it was capped at RISK, corrected with this census"
+    },
+    {
+      "file": "scripts/run-graph.mjs",
+      "anchor": "Conformance findings judged against it are capped at RISK, except a §6 invariant finding,",
+      "status": "exception"
+    },
+    {
+      "file": "scripts/run-graph.mjs",
+      "anchor": "conformance findings are capped (a §6 invariant finding is not)",
+      "status": "exception"
+    },
+    {
+      "file": "scripts/spawn-node.mjs",
+      "anchor": "defend rather than what it first claimed, and BEFORE the ceiling, so a capped node (an",
+      "status": "allowed",
+      "why": "describes the order of the floor and the ceiling at the call that keeps invariants (capVerdictKeepingInvariants)"
+    },
+    {
+      "file": "scripts/lens-roster.json",
+      "anchor": "UNBENCHED caps still apply.",
+      "status": "allowed",
+      "why": "an external arm's note: an arm cannot cite invariant, so the exception is not its rule"
+    },
+    {
+      "file": "ARCHITECTURE.md",
+      "anchor": "severity ceiling and verdict ceiling",
+      "status": "allowed",
+      "why": "A-5: where the ceilings are computed, not what they are"
+    }
+  ]
+}

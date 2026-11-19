@@ -1,0 +1,8 @@
+$ node --test tests/regression-cgg-r2-remediation.test.mjs
+# admitted: test_one tests/regression-cgg-r2-remediation.test.mjs
+# cwd: C:\work\quorate
+# exit: 0
+# timeout: 15 minute(s)
+# elapsed: 6.3 of 30 minute(s)
+# captured: 2026-10-23T03:31:49.747Z
+------------------------------------------------------------------------

@@ -1,0 +1,23 @@
+{
+  "$comment": "Field descriptions that reach the model VERBATIM through --json-schema. They are prompt content by any honest definition — a model reads them to decide what to put in a field — and they lived as string literals inside spawn-node.mjs's schema builder. The base envelope's descriptions were already data (scripts/verdict.schema.json); these three belong to variants derived in memory, and were the last model-facing text left in the scripts. Keyed by field name because that is how the builder asks for them.",
+  "intent_intact": "False if intent.md no longer hashes to the value in your brief. A run whose criteria moved mid-flight measured nothing.",
+  "decision": "confirmed: real and corroborated. coincidence: lenses agreed by accident. symptom: real but downstream of another group. dropped: not defensible.",
+  "disputed": "True only when a lens and an external panel arm explicitly contradict each other about this group. Not for asymmetric coverage.",
+  "remediation_red_evidence": "The capture showing the check failing for the reason the finding names. When the fix is pinned in several test files, one capture per file, separated by \"; \". Empty for a symptom fixed in its root's cluster, which its root's red shows, and for a fix with no possible red. {{rule_no_red}}",
+  "remediation_green_evidence": "The capture showing the same test file passing after the fix, captured after the red. When the fix changed several test files, one capture per file, separated by \"; \", one of them of the red's file.",
+  "remediation_no_red": "Why your fix has no possible red, naming the before-state you changed; null otherwise, and always null with a red. {{rule_no_red}}",
+  "remediation_stop_reason": "For a group not fixed or partial: not-attempted (never reached), blocked (something stopped you; name it in stop_cause) or limit (a limit ended the work; name it in limit_kind). The runner checks a limit against your session record. null for a group fixed or declined.",
+  "remediation_limit_kind": "With stop_reason limit: session-time, turns or budget. Read your elapsed time from the # elapsed: line of any capture header before claiming session-time. null unless stop_reason is limit.",
+  "remediation_stop_cause": "With stop_reason blocked: what blocked the fix, for example a permission refusal or a file outside your globs. null unless stop_reason is blocked.",
+  "remediation_search_command": "The exact command that searched for other instances of this defect's class, named by its mechanism.",
+  "remediation_search_sites": "Every site the search_command matched, as file:line. Empty only when it matched nothing.",
+  "remediation_not_in_class": "Each matched site you judged NOT an instance of the rule, with why (for example: an absolute path that is a deliberate feature). Every other matched site is either fixed by this change or in deferred.",
+  "remediation_unmatched_spellings": "The spellings of the same rule the search's shape could not have matched (a search for .yaml cannot find the same defect with .png; a search for one helper's name cannot find the code that does the same thing inline). Empty only when you looked and found none, and then reason says so.",
+  "remediation_cluster": "An id you give every group fixed under one re-check; groups sharing it are one cluster, committed together by the runner after you exit. Your own choice of label, e.g. \"c1\".",
+  "remediation_files": "Every repository-relative path this group's fix and test changed, spelled as git status lists it. The runner commits exactly these, after checking each against git; a path you leave out is not committed.",
+  "repair_test_name": "Exactly the value of the test's test_name: line in your brief, with nothing added (not its file). Every test the brief lists is answered once.",
+  "repair_test_file": "The test's file, repository-relative with forward slashes, as your brief gives it; null when the brief gives none and you could not find it.",
+  "repair_cluster": "The cluster from your brief's list that this failure's cause belongs to. Every file in files joins it.",
+  "repair_files": "Every repository-relative path your fix for this test changed, spelled as git status lists it; [] when not fixed. A file you change and list nowhere ends the pass.",
+  "repair_green_evidence": "For a fixed test: the capture of the test_one command on the test's file, passing, under evidence/remediation/ with a name starting repair<n>-. Empty when not fixed."
+}

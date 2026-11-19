@@ -1,0 +1,66 @@
+{
+  "sample": [
+    "tests/regression-adjudication-brief-owner.test.mjs",
+    "tests/regression-admit-run.test.mjs",
+    "tests/regression-archive-cleanup-never-throws.test.mjs",
+    "tests/regression-argv.test.mjs",
+    "tests/regression-barrier-override-validated.test.mjs",
+    "tests/regression-bench-scores-second-opinion.test.mjs",
+    "tests/regression-ciss-d1-r4-degraded-fail-wording.test.mjs",
+    "tests/regression-ledger-review-r2-remediation.test.mjs",
+    "tests/regression-ledger-review-remediation.test.mjs",
+    "tests/regression-ledger-stale.test.mjs",
+    "tests/regression-ledger-trust-boundaries-review-r2.test.mjs",
+    "tests/regression-ledger-trust-boundaries.test.mjs",
+    "tests/regression-lib-takes-io.test.mjs",
+    "tests/regression-m0-gate-remediation.test.mjs",
+    "tests/regression-m0-gate-review-remediation.test.mjs",
+    "tests/regression-open-entries-close-on-evidence.test.mjs",
+    "tests/regression-roster-node-overrides.test.mjs",
+    "tests/regression-telemetry-report.test.mjs",
+    "tests/regression-telemetry-run-time.test.mjs",
+    "tests/regression-telemetry-usage-keys.test.mjs"
+  ],
+  "changes": [
+    {
+      "id": "C1",
+      "file": "scripts/lib/telemetry-report.mjs",
+      "kind": "imported directly"
+    },
+    {
+      "id": "C2",
+      "file": "scripts/lib/secret-shapes.mjs",
+      "kind": "imported two levels down"
+    },
+    {
+      "id": "C3",
+      "file": "scripts/findings-ledger.mjs",
+      "kind": "a script tests spawn"
+    },
+    {
+      "id": "C4",
+      "file": "scripts/lib/ledger.mjs",
+      "kind": "imported by a spawned script"
+    },
+    {
+      "id": "C5",
+      "file": "prompts/_templates/tie-break.md",
+      "kind": "a template a script reads"
+    },
+    {
+      "id": "C6",
+      "file": "scripts/lens-roster.json",
+      "kind": "engine data read with fs"
+    },
+    {
+      "id": "C7",
+      "file": "tests/fixtures/telemetry/review-timeline.json",
+      "kind": "a test's own input"
+    },
+    {
+      "id": "C8",
+      "file": "bench/RESULTS.md",
+      "kind": "negative control: no test uses it"
+    }
+  ]
+}

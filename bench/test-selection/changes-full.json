@@ -1,0 +1,19 @@
+{
+  "changes": [
+    { "id": "C1", "files": ["scripts/lib/telemetry-report.mjs"], "kind": "imported directly" },
+    { "id": "C2", "files": ["scripts/lib/secret-shapes.mjs"], "kind": "imported two levels down" },
+    { "id": "C3", "files": ["scripts/findings-ledger.mjs"], "kind": "a script tests spawn" },
+    { "id": "C4", "files": ["scripts/lib/ledger.mjs"], "kind": "imported by a spawned script" },
+    { "id": "C5", "files": ["prompts/_templates/tie-break.md"], "kind": "a template a script reads" },
+    { "id": "C6", "files": ["scripts/lens-roster.json"], "kind": "engine data read with fs" },
+    { "id": "C7", "files": ["tests/fixtures/telemetry/review-timeline.json"], "kind": "a test's own input" },
+    { "id": "C8", "files": ["bench/RESULTS.md"], "kind": "negative control: no test uses it" },
+    { "id": "F1", "files": ["scripts/lib/template.mjs", "prompts/_templates/aux-brief.md", "tests/fixtures/code-index/census/javascript.json"], "kind": "a few files at once" },
+    { "id": "F2", "files": ["scripts/archive-run.mjs", "scripts/check-install.mjs", "scripts/stop-guard.mjs"], "kind": "a few scripts at once" },
+    { "id": "F3", "files": ["scripts/lib/decisions.mjs"], "kind": "the module most test files name" },
+    { "id": "F4", "files": ["scripts/platform/index.mjs"], "kind": "the platform layer every io module loads" },
+    { "id": "F5", "files": ["scripts/run-graph.mjs"], "kind": "the main script" },
+    { "id": "F6", "files": ["CLAUDE.md"], "kind": "the contract file" },
+    { "id": "F7", "files": ["bench/test-selection/RESULTS.md"], "kind": "negative control: the harness's own notes" }
+  ]
+}

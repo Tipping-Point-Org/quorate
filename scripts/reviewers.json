@@ -1,0 +1,407 @@
+{
+  "$comment": "EXTERNAL REVIEWER ADAPTERS, AS DATA. The standing requirement is that models and efforts live in config and never in a script; the VENDOR is the same class of fact and was not. `reviewer` could only be one of three names hardcoded in lib/decisions.mjs, with six more branches in external-review.mjs and five in check-panel.mjs — so swapping agy for another CLI was an eight-file edit, which is a hardcoding wearing a configuration's clothes. Every field below is something the code already branched on; nothing here is speculative generality. Add a vendor by adding an entry, not by editing a script.",
+  "$capabilities": {
+    "cmd": "the executable, as it appears on PATH",
+    "base_argv": "argv that always precedes the rest",
+    "model_flag": "how a pinned model is passed; null when the CLI takes none",
+    "effort": "{ style: 'flag' | 'config-kv' | 'none', flag, key } — codex takes -c model_reasoning_effort=\"x\", agy takes --effort x. The vocabularies differ per vendor (agy: low|medium|high), which is why the VALUE stays in the roster beside the model rather than being normalised here",
+    "sandbox_argv": "flags that make the run read-only/ephemeral, applied when the caller asks for a sandbox",
+    "prompt": "{ via: 'stdin' | 'stdin-ndjson' | 'argv', argv_marker, placeholder, budget_bytes } — codex reads stdin ('-'); agy reads one NDJSON user line on stdin (stream-json); an argv reviewer takes it inline at its placeholder, and only such a reviewer has the inline budget, which Windows' command-line cap is why it exists at all",
+    "schema": "{ style: 'output-schema-file' | 'json-schema-inline-wrapper', flags... } — how a JSON Schema is handed over and where the answer comes back",
+    "response": "{ from: 'file' | 'stdout-wrapper' | 'ndjson-result', field } — codex writes its final message to --output-last-message; agy answers in NDJSON whose final result event's `structured_output` holds the object, and a result whose status is not SUCCESS is the reviewer's failure. `denied_step` (ndjson-result only; shared/adapter-contract.md) says what a tool step the reviewer was denied looks like in that stream. Reading the wrong field on agy would report the TRANSPORT status as the reviewer's verdict",
+    "usage": "{ from: 'json-events' | 'stdout-wrapper' | 'ndjson-result', event, field } — the only way this framework learns what an arm consumed, since the arm is billed to the vendor's own account",
+    "needs_shell_on_windows": "npm .ps1/.cmd shims cannot be executed by CreateProcess; a real .exe MUST be false, because a shell re-parses the command line and mangles a multi-line prompt",
+    "env_prefixes": "the ALLOW-LIST of environment prefixes this vendor's credentials use. An unrecognised reviewer gets none: an arm that cannot authenticate is a visible DEGRADED, a leaked key is not",
+    "timeout_flag": "an optional flag carrying the deadline to the CLI itself, in its own spelling",
+    "latest_version": "{ cmd, argv, needs_shell_on_windows } that prints the version PUBLISHED for this CLI, without installing it (autonomous-run.plan.md stage 7): compared once a day with version_argv's answer, and a CLI behind for 3 days or more is reported at a turn start, never updated. Absent: the CLI is reported not checked (stage 1 found no such query for agy)",
+    "quota_patterns": "case-insensitive regex sources a failure's text is matched against to tell a USAGE LIMIT from any other failure (autonomous-run.plan.md stage 7 part 2; operator, 2026-10-31: \"3 a\"); a match is recorded as kind quota, with the reset text the message gives, if any (lib/quota.mjs). UNVERIFIED: no stored run holds a real quota error from this CLI, so these are generic phrasings, corrected the first time one appears. Absent: no failure is recognised as a quota error",
+    "version_argv": "argv that prints the CLI's version — part of a probe record's key, so an upgraded CLI is probed again (reviewer-preflight). Absent: the key says 'undeclared'",
+    "probe_timeout_minutes": "how long a preflight probe of this reviewer may take; absent: probe_defaults. May be fractional",
+    "version_timeout_seconds": "how long the version command may take; absent: probe_defaults",
+    "check_margin_seconds": "the slack in every probe bound: the probe child's own (version + probe + margin), a lock wait, and a check's; absent: probe_defaults"
+  },
+  "schema_version": 1,
+  "$probe_defaults": "THE PROBE'S LIMITS FOR AN ADAPTER THAT DECLARES NONE (reviewer-preflight, operator 2026-10-09: D2 \"Egress point, probe on demand\"). Configuration, never literals in a script; a declared reviewer omitting a limit takes these, so existing declarations keep working.",
+  "probe_defaults": { "probe_timeout_minutes": 5, "version_timeout_seconds": 30, "check_margin_seconds": 60 },
+  "reviewers": {
+    "codex": {
+      "$label": "HOW THIS VENDOR IS NAMED TO A MODEL. It was a second registry inside lib/codex-prompts.mjs, keyed by these same ids (G-22) \u2014 a reviewer's model-facing name declared in a source file the adapter table could not reach, so adding an adapter needed an undeclared second edit or the model was told the raw key. `claude` was already in this table and absent from that map.",
+      "label": "Codex",
+      "$family": "THE FAMILY OF THIS ADAPTER'S MODELS, the one rule every family question asks (lib/reviewers.mjs familyOfCall; runtime-call-telemetry.design.md CR-D3 A, operator 2026-10-26: \"A A\"). A string, or a list matched by model-name prefix, first match wins, for a CLI that serves several families.",
+      "family": "openai",
+      "cmd": "codex",
+      "version_argv": ["--version"],
+      "quota_patterns": ["usage limit", "rate limit", "\\bquota\\b", "\\b429\\b"],
+      "latest_version": { "cmd": "npm", "argv": ["view", "@openai/codex", "version"], "needs_shell_on_windows": true },
+      "probe_timeout_minutes": 5,
+      "base_argv": [
+        "exec"
+      ],
+      "model_flag": "--model",
+      "effort": {
+        "style": "config-kv",
+        "flag": "-c",
+        "key": "model_reasoning_effort",
+        "$values_note": "No `values` enum declared, deliberately. This adapter passes effort as a config key and the accepted set is not known here — asserting one would risk rejecting a level codex actually takes, which is a preflight blocking a working configuration. Absent means 'not enum-checked'; the presence rules still apply."
+      },
+      "sandbox_argv": [
+        "--sandbox",
+        "read-only",
+        "--ephemeral"
+      ],
+      "always_argv": [
+        "--json"
+      ],
+      "schema": {
+        "style": "output-schema-file",
+        "schema_flag": "--output-schema",
+        "out_flag": "--output-last-message"
+      },
+      "prompt": {
+        "via": "stdin",
+        "argv_marker": "-"
+      },
+      "response": {
+        "from": "file"
+      },
+      "usage": {
+        "from": "json-events",
+        "event": "turn.completed",
+        "field": "usage"
+      },
+      "needs_shell_on_windows": true,
+      "env_prefixes": [
+        "CODEX_",
+        "OPENAI_"
+      ],
+      "note": "--json makes stdout a JSONL event stream carrying turn.completed.usage. The ANSWER is unaffected: it comes from --output-last-message, a file, and was verified still written with --json set.",
+      "capabilities": [
+        "structured_output",
+        "credential_scoping"
+      ],
+      "roles": [
+        "reviewer"
+      ]
+    },
+    "agy": {
+      "$label": "HOW THIS VENDOR IS NAMED TO A MODEL. It was a second registry inside lib/codex-prompts.mjs, keyed by these same ids (G-22) \u2014 a reviewer's model-facing name declared in a source file the adapter table could not reach, so adding an adapter needed an undeclared second edit or the model was told the raw key. `claude` was already in this table and absent from that map.",
+      "label": "agy",
+      "$family": "THE FAMILY OF THIS ADAPTER'S MODELS, the one rule every family question asks (lib/reviewers.mjs familyOfCall; runtime-call-telemetry.design.md CR-D3 A, operator 2026-10-26: \"A A\"). A string, or a list matched by model-name prefix, first match wins, for a CLI that serves several families.",
+      "family": [{ "model": "Gemini", "family": "gemini" }, { "model": "Claude", "family": "anthropic" }],
+      "cmd": "agy",
+      "version_argv": ["--version"],
+      "quota_patterns": ["usage limit", "rate limit", "\\bquota\\b", "\\b429\\b"],
+      "probe_timeout_minutes": 5,
+      "$base_argv": "STREAM-JSON BOTH WAYS (decision-panel-seats.plan.md stage 3; design DP-D2 A, operator 2026-11-09): with `--input-format stream-json` and an empty `--print=` agy reads one NDJSON message per line from stdin, and with `--output-format stream-json` it answers in NDJSON whose final `result` event carries the answer, the schema's output and the usage (measured with agy 1.5.3, the design's \"DP-D2, measured\"). Inline in argv the prompt was capped by the 30,000-byte budget below Windows' command-line limit.",
+      "base_argv": [
+        "--input-format",
+        "stream-json",
+        "--output-format",
+        "stream-json",
+        "--print=",
+        "--disable-slash-commands"
+      ],
+      "model_flag": "--model",
+      "effort": {
+        "style": "flag",
+        "flag": "--effort",
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "rejected_when_model_matches": "\\((?:High|Medium|Low)\\)\\s*$",
+        "$rejected_note": "agy takes --effort for most models, and REJECTS it for names that already encode the effort in the label — `Gemini 3.1 Pro (High)` is the pinned tie-breaker. Two documents disagreed about this: shared/external-reviewers.md says agy takes --effort low|medium|high, and the roster's tie_breaker note says '--effort is rejected for these names'. Both are true, and the difference is per-MODEL, which is exactly the shape that fails hours into a run on an infrequent node. Declared so preflight catches it at mint."
+      },
+      "sandbox_argv": [
+        "--sandbox"
+      ],
+      "always_argv": [],
+      "schema": {
+        "style": "json-schema-inline-wrapper",
+        "schema_flag": "--json-schema",
+        "extra_argv": []
+      },
+      "prompt": {
+        "via": "stdin-ndjson"
+      },
+      "response": {
+        "from": "ndjson-result",
+        "field": "structured_output",
+        "denied_step": {
+          "event": "step_update",
+          "body": "step_update",
+          "where": { "step_type": "tool", "state": "ERROR" },
+          "message": "tool_info.error.message",
+          "pattern": "permission",
+          "name": ["tool_name", "tool_info.name"]
+        }
+      },
+      "usage": {
+        "from": "ndjson-result",
+        "field": "usage"
+      },
+      "$listing_allow": "A BARE DIRECTORY LISTING, DECIDE MODE ONLY (decision-panel-seats.plan.md stage 6; operator 2026-11-11: \"A. Allow listing only (Recommended)\"). A decision seat's model began with a listing of its working directory, which holds the copies of the cited files, and headless agy denied it, so the seat answered nothing (decision 20261111-172326-aaa7f7). A decide-mode call passes --settings, a per-call settings object agy never saves, allowing exactly these lines: agy's command(<x>) rule admits the whole line x and nothing else (command(Get-ChildItem) does not admit Get-ChildItem -Force; * and :* are not wildcards; an admitted line chained with ;, | or & is refused; measured with agy 1.5.5 and 1.5.6). lib/reviewers.mjs listingAllowErrors holds each to a listing command and flags only, never a path. The operator's own agy settings are not touched.",
+      "listing_allow": {
+        "modes": [
+          "decide"
+        ],
+        "flag": "--settings",
+        "commands": [
+          "Get-ChildItem",
+          "Get-ChildItem -Force",
+          "Get-ChildItem -Recurse",
+          "Get-ChildItem -Recurse -Force",
+          "Get-ChildItem -Force -Recurse",
+          "Get-ChildItem -File",
+          "Get-ChildItem -Recurse -File",
+          "Get-ChildItem -Name",
+          "Get-ChildItem -Recurse -Name",
+          "gci",
+          "dir",
+          "dir /a",
+          "dir /s",
+          "dir /b",
+          "dir /s /b",
+          "ls",
+          "ls -a",
+          "ls -l",
+          "ls -la",
+          "ls -R",
+          "ls -lR",
+          "ls -laR"
+        ]
+      },
+      "needs_shell_on_windows": false,
+      "timeout_flag": "--print-timeout",
+      "env_prefixes": [
+        "AGY_"
+      ],
+      "note": "A real .exe: it MUST NOT get a shell. Its prompt is one NDJSON user line on stdin and its answer the final result event of an NDJSON stdout: the schema's object at result.structured_output, the text at result.response, the usage at result.usage; a result whose status is not SUCCESS is its own failure. --json-schema needs no --output-format of its own (a second one would override the stream). Headless, it denies every tool that needs a permission it cannot prompt for; a decide-mode call is allowed bare directory listings only (listing_allow). Some model names encode the effort in the label ('Gemini 3.1 Pro (High)'), and those reject --effort — declare such a model in the roster without an effort.",
+      "capabilities": [
+        "structured_output",
+        "credential_scoping"
+      ],
+      "roles": [
+        "reviewer"
+      ]
+    },
+    "codex-review": {
+      "$label": "HOW THIS VENDOR IS NAMED TO A MODEL. It was a second registry inside lib/codex-prompts.mjs, keyed by these same ids (G-22) \u2014 a reviewer's model-facing name declared in a source file the adapter table could not reach, so adding an adapter needed an undeclared second edit or the model was told the raw key. `claude` was already in this table and absent from that map.",
+      "label": "Codex",
+      "$family": "THE FAMILY OF THIS ADAPTER'S MODELS, the one rule every family question asks (lib/reviewers.mjs familyOfCall; runtime-call-telemetry.design.md CR-D3 A, operator 2026-10-26: \"A A\"). A string, or a list matched by model-name prefix, first match wins, for a CLI that serves several families.",
+      "family": "openai",
+      "cmd": "codex",
+      "version_argv": ["--version"],
+      "quota_patterns": ["usage limit", "rate limit", "\\bquota\\b", "\\b429\\b"],
+      "latest_version": { "cmd": "npm", "argv": ["view", "@openai/codex", "version"], "needs_shell_on_windows": true },
+      "probe_timeout_minutes": 5,
+      "base_argv": [
+        "exec",
+        "review"
+      ],
+      "model_flag": null,
+      "effort": {
+        "style": "none"
+      },
+      "sandbox_argv": [],
+      "always_argv": [],
+      "schema": {
+        "style": "none"
+      },
+      "prompt": {
+        "via": "stdin",
+        "required": false,
+        "$note": "This adapter reviews the DIFF it is pointed at and supplies its own subject, so no prompt file is sent. Declared here because it was three `reviewer === 'codex-review'` branches in external-review.mjs — the last vendor names left in a decision."
+      },
+      "response": {
+        "from": "file"
+      },
+      "usage": {
+        "from": "json-events",
+        "event": "turn.completed",
+        "field": "usage"
+      },
+      "needs_shell_on_windows": true,
+      "env_prefixes": [
+        "CODEX_",
+        "OPENAI_"
+      ],
+      "note": "DORMANT: no skill or panel arm calls it, and its output has never been mapped to the framework contract. Described here exactly as the code described it, so moving to data changes nothing about it — a dormant path cannot tell you a flag change is wrong.",
+      "modes": [
+        "review"
+      ],
+      "capabilities": [
+        "credential_scoping"
+      ],
+      "roles": [
+        "reviewer"
+      ]
+    },
+    "claude": {
+      "$label": "HOW THIS VENDOR IS NAMED TO A MODEL. It was a second registry inside lib/codex-prompts.mjs, keyed by these same ids (G-22) \u2014 a reviewer's model-facing name declared in a source file the adapter table could not reach, so adding an adapter needed an undeclared second edit or the model was told the raw key. `claude` was already in this table and absent from that map.",
+      "label": "Claude Code",
+      "$family": "THE FAMILY OF THIS ADAPTER'S MODELS, the one rule every family question asks (lib/reviewers.mjs familyOfCall; runtime-call-telemetry.design.md CR-D3 A, operator 2026-10-26: \"A A\"). A string, or a list matched by model-name prefix, first match wins, for a CLI that serves several families.",
+      "family": "anthropic",
+      "usage": { "from": "stdout-wrapper", "field": "usage" },
+      "$role": "NODE RUNTIME, not a panel reviewer. Listed in the same table because 'reviewer' and 'node' are two ROLES a runtime may serve, not two kinds of thing — and the orchestrator should look up a runtime for a role rather than know a CLI's name. See shared/adapter-contract.md.",
+      "cmd": "claude",
+      "latest_version": { "cmd": "npm", "argv": ["view", "@anthropic-ai/claude-code", "version"], "needs_shell_on_windows": true },
+      "capabilities": [
+        "structured_output",
+        "evidence_capture",
+        "path_scoped_read",
+        "content_tool_denial",
+        "no_write",
+        "budget_bound",
+        "credential_scoping"
+      ],
+      "$capabilities_note": "How THIS runtime meets each requirement is the node_runtime block below: path_scoped_read and content_tool_denial are the settings file plus --disallowedTools, no_write is the deny list, budget_bound is --max-budget-usd, structured_output is --json-schema. `wall_clock_bound` is NOT declared, and used to be (G-18): this CLI takes no deadline flag, so the claim was unbacked — nothing required it, nothing rendered it, and nothing could have caught it. quorate applies its own outer kill regardless; what changed is that the run no longer states the runtime bounds itself. Another runtime meets them differently; quorate asks for the property, not the flag.",
+      "env_prefixes": [
+        "ANTHROPIC_",
+        "CLAUDE_"
+      ],
+      "node_runtime": {
+        "prompt": {
+          "$via": "ON STDIN (decision-panel-seats.plan.md stage 2; design DP-D1 A, operator 2026-11-09): inline in argv the prompt hit Windows' command-line cap near 32,767 characters (decision 20261107-213602-4f3308: spawn ENAMETOOLONG). `claude -p` with no prompt argument reads it from stdin (probed with 2.1.318). The argv carries argv_marker alone; `flag` stays, for a contract that overrides this block back to argv.",
+          "via": "stdin",
+          "argv_marker": "-p",
+          "flag": "-p"
+        },
+        "model": {
+          "flag": "--model"
+        },
+        "output_format": {
+          "flag": "--output-format",
+          "value": "json"
+        },
+        "effort": {
+          "flag": "--effort",
+          "values": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "ascending": true,
+          "$ascending_note": "THE LIST IS ORDERED, AND SAYING SO IS A SEPARATE CLAIM FROM ITS MEMBERSHIP. AC2 of .claude/requests/model-and-effort-reevaluation.md bounds the bench's search space by what is LOWER than the setting in force, which needs an order; `values` declares itself as \"the closed set this CLI parses\", a set. Reading the order out of array position would have worked and would have been an assumption nobody wrote down — the shape this repository keeps paying for. Absent, lib/bench-settings.mjs refuses to rank two efforts rather than inventing a ladder in a script.",
+          "$values_note": "The closed set this CLI parses. spawn-node validated --effort against a hardcoded copy of this list, which is one runtime's vocabulary in the spawner; it reads this now. A closed set is safe to enforce because the CLI itself rejects anything outside it — unlike a MODEL list, which goes stale and would block a valid new model."
+        },
+        "schema": {
+          "flag": "--json-schema",
+          "style": "inline-json"
+        },
+        "settings": {
+          "flag": "--settings"
+        },
+        "setting_sources": {
+          "flag": "--setting-sources",
+          "value": "project"
+        },
+        "add_dir": {
+          "flag": "--add-dir",
+          "repeat": "varargs"
+        },
+        "deny_tools": {
+          "flag": "--disallowedTools",
+          "repeat": "varargs"
+        },
+        "permission_mode": {
+          "flag": "--permission-mode",
+          "sandboxed": "manual",
+          "unsandboxed": "bypassPermissions"
+        },
+        "budget": {
+          "flag": "--max-budget-usd"
+        },
+        "session": {
+          "flag": "--session-id"
+        },
+        "always": [
+          "--no-chrome"
+        ],
+        "grants": {
+          "$note": "HOW THIS RUNTIME IS GRANTED THE CAPABILITIES quorate asks for. A capability list is a CLAIM; this is the mechanism, and the orchestrator needs it to write a policy at all. `evidence_capture` means nothing to a spawner that does not know how to say 'this runtime may run capture.mjs' in the vocabulary that runtime enforces.",
+          "shell_tools": {
+            "win32": [
+              "Bash",
+              "PowerShell"
+            ],
+            "default": [
+              "Bash"
+            ]
+          },
+          "content_tools": [
+            "Grep"
+          ],
+          "command_rule": "{{tool}}({{command}}:*)",
+          "$command_rule_exact": "THE SAME RULE WITHOUT AN OPEN TAIL. A declared build or test command is granted AS WRITTEN — `{{tool}}({{command}}:*)` would grant its whole flag surface, and the contract declares a command, not a command family. Two templates because the difference is a security property, not a spelling: these were assembled as `${sh}(${c})` directly in the orchestrator (G-36), which is the vendor vocabulary the adapter table exists to remove.",
+          "command_rule_exact": "{{tool}}({{command}})",
+          "$path_rule": "A RULE THAT SCOPES A FILE TOOL TO A PATH, written RELATIVE to the node's working directory. MEASURED 2026-10-08 (Claude Code 2.1.290, Windows; evidence .claude/reviews/20261008-210000-remediate-rebuild-impl/evidence/stage3-edit-scope-probe): `Edit(src/**)` confined writes and edits to src/, resolved against the cwd even with the settings file elsewhere; the absolute spelling `Edit(/C:/.../src/**)` granted NOTHING, as the absolute Read rules did in contract-glob-grammar stage 2b.",
+          "path_rule": "{{tool}}({{path}})",
+          "$rules_note": "A permission rule is matched against the command STRING, so both the bare and the quoted spellings are granted — a path with a space is denied by the unquoted rule alone."
+        },
+        "tools": {
+          "$note": "THE RUNTIME'S OWN TOOL NAMES. These were frozen arrays in lib/decisions.mjs and literals in new-run.mjs — Claude Code's vocabulary, in the orchestrator. quorate asks for the PROPERTY (no_write, content_tool_denial); which tool names deliver it is the runtime's answer, and another runtime answers with different names.",
+          "deny_always": [
+            "Edit",
+            "Write",
+            "NotebookEdit",
+            "WebFetch",
+            "WebSearch",
+            "Task"
+          ],
+          "deny_intent": [
+            "Bash",
+            "PowerShell",
+            "Grep"
+          ],
+          "$lens_allow": "WHAT A LENS GETS BESIDES A SCOPED READ. It was called `intent_allow`, and the name was wrong in the direction that costs something: the key was read by the LENS policy alone, so a reader checking what the intent sandbox grants found this list — which then contained Grep, the one tool §5 says must never be in it. NO GREP since stop-owner-grep-state-roots.plan.md stage 3 (G-17 of 20261022-200543-ciss-d1-review-2; operator, 2026-10-22, B): a content tool no policy rule can confine to the repository, so the lens deny list carries content_tools (denyToolsFor('node'); G-7 of 20261105-212751-sogsr-delivery: leaving it out of this list is not a refusal); a lens searches content with `git grep` through capture.mjs.",
+          "lens_allow": [
+            "Glob"
+          ],
+          "$edit_tools": "THE TOOLS THAT WRITE FILES, granted to a REMEDIATE node only and only through path rules (remediate-rebuild stage 3): every other mode keeps them in deny_always. A remediator must fix source and tests without bypassPermissions.",
+          "edit_tools": [
+            "Edit",
+            "Write"
+          ],
+          "$name_tools": "TOOLS THAT RETURN NAMES AND NO CONTENT. This is what the intent node may have: it must enumerate the declared documents, and a name is not content. `Glob` was hardcoded in the orchestrator's intent-policy builder (G-54) while adapter-contract.md says a runtime declaring no vocabulary gets NO rules, not guessed ones — so a second runtime got a rule for a tool it does not have, and its own name-lister was never granted. Kept separate from lens_allow BECAUSE the difference is the sandbox: put a content tool in here and Rule 2 is void.",
+          "name_tools": [
+            "Glob"
+          ]
+        },
+        "version_argv": [
+          "--version"
+        ],
+        "$resume_argv": "HOW A PERSON REOPENS THE SESSION A NODE RAN IN. Every node report printed the literal `claude --resume <id>` (G-53) while shared/adapter-contract.md forbids the orchestrator naming a CLI at all — so a node spawned on any other runtime rendered a resume instruction naming a binary it never used, in a durable artifact. `{{session}}` is the session id. An adapter that cannot reopen a session omits this key, and the report says the session id is recorded with no resume path rather than inventing one.",
+        "resume_argv": [
+          "--resume",
+          "{{session}}"
+        ],
+        "$session_env": "WHAT THIS RUNTIME'S CHILD MUST NOT INHERIT, OR MUST BE GIVEN, from the parent's environment (lib/decisions.mjs runtimeSessionEnv reads it; G-11 of 20261103-022403-rbr-remediation-8-review, ARCHITECTURE.md A-9: the names were hardcoded in that generic owner). `drop`: the parent session's marks, never crossing. `drop_when_subscription`: credentials that take precedence over the subscription login (one left in the operator's shell failed a subagent 401); CLAUDE_CODE_OAUTH_TOKEN is not here because it IS subscription auth. `set`: a Bash `cd` into an added directory became the child's working directory without it, and its write rules then refused every edit (remediation 20261020-115946-ciss-remediation-4). Names match in any case. A runtime declaring none gets nothing stripped and nothing set.",
+        "$answer": "HOW THIS RUNTIME'S ENVELOPE SAYS IT ANSWERED (lib/call-entry.mjs runtimeAnswered reads it; G-7 of 20261103-022403-rbr-remediation-8-review, ARCHITECTURE.md A-9: the fields were read at the shared boundary). An envelope whose `error_field` is true is no answer; one whose `subtype_field` is present and not in `success_subtypes` (error_max_turns, error_during_execution) is none either.",
+        "answer": { "error_field": "is_error", "subtype_field": "subtype", "success_subtypes": ["success"] },
+        "$exit": "HOW THIS RUNTIME NAMES A BOUND IT STOPPED A NODE AT (lib/decisions.mjs nodeExitMapping reads it; G-9 of 20261103-040939-rbr-remediation-9-review, ARCHITECTURE.md A-9: the spellings were hardcoded in describeNodeExit). `reason_field` holds the terminal reason; `budget` and `turns` list the subtypes (read through `answer.subtype_field`) and reasons of the dollar ceiling and the turn limit.",
+        "exit": {
+          "reason_field": "terminal_reason",
+          "budget": { "subtypes": ["error_max_budget_usd"], "reasons": ["budget_exhausted"] },
+          "turns": { "subtypes": ["error_max_turns"], "reasons": ["max_turns_exhausted"] }
+        },
+        "session_env": {
+          "$keep_auth": "The credentials this runtime's child keeps although their names are secret-shaped (lib/decisions.mjs scrubChildEnv reads it; G-10 of 20261103-040939-rbr-remediation-9-review): every form of auth the CLI accepts. A runtime declaring none keeps none.",
+          "keep_auth": ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN"],
+          "drop": ["CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT"],
+          "drop_when_subscription": ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"],
+          "set": { "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1" }
+        }
+      },
+      "roles": [
+        "node"
+      ]
+    }
+  },
+  "$capabilities_note": "What each adapter's RUNTIME can provide, per shared/adapter-contract.md. quorate states the requirement and what meeting it achieves; an adapter declares what it meets; what a node may claim is DERIVED (lib/capabilities.mjs). None of these can execute capture.mjs inside the run directory, so none declares evidence_capture — which is the whole reason their findings rest on `convention` and are capped at MEDIUM/RISK. That cap is a consequence with a stated reason, not a judgement about third parties: an adapter that gains the capability stops being capped without anyone editing this file or the roster.",
+  "$default_node_runtime": "WHICH RUNTIME SPAWNS A NODE when nothing says otherwise. Declared here rather than defaulted in the orchestrator: `args.runtime ?? 'claude'` put a vendor name in the spawner, which is the thing the adapter table exists to end. The orchestrator reads this key; it never names a CLI.",
+  "default_node_runtime": "claude"
+}

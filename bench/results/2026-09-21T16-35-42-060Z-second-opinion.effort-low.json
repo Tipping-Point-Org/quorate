@@ -1,0 +1,694 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-23T17:38:26.989Z",
+  "finished_at": "2026-09-23T17:46:28.509Z",
+  "measured_at": "2026-09-23",
+  "mutated_from": "2026-09-21T16-35-42-060Z.json",
+  "mutation": "misanchor",
+  "injection_rule": "rewrite",
+  "tolerance": 15,
+  "candidate": {
+    "effort": "low"
+  },
+  "framework": {
+    "name": "quorate",
+    "version": "0.2.0",
+    "commit": "81387fa28e96fecdb2b55bc9d7188af2f17e172e",
+    "dirty": false,
+    "layout": null
+  },
+  "judge": {
+    "id": "adj-codex",
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "effort": "high"
+  },
+  "caveats": [
+    "One mutation shape (misanchor). This measures detection of errors of that shape, not of the distribution of mistakes a real reconciler makes.",
+    "THREE MODELS: one forged the error by rewriting the reconciler's rationale to match a moved anchor, one audited it, one judged the audit. The forger is pinned to the model and effort the reconciler ran at, given no tools, and its output is checked mechanically for the tell (no line within tolerance of the true anchor; the injected line present). The forge is shown the real source at the destination, because without it the paragraph invents the line's contents and becomes checkably false about the FILE — a second and louder error than the misanchor, which would inflate recall. That bounds it; it does not make the injected error indistinguishable from a real one.",
+    "The ruling is a model grading a model. The verbatim-quote requirement and the control bound how wrong it can be silently; they do not make it a mechanical measurement.",
+    "false_alarms is the instrument's own error rate and is never subtracted from recall.",
+    "Seeds are few enough that one seed is a large fraction of the result; no aggregate threshold is honest here, per AC 8 of the parent request."
+  ],
+  "summary": {
+    "seeds": 6,
+    "scoreable": 6,
+    "caught": 6,
+    "recall": 1,
+    "mutated": {
+      "identified": 6
+    },
+    "control": {
+      "not-identified": 6
+    },
+    "false_alarms": 0,
+    "clean_control": {
+      "seeds": 6,
+      "caught": 6,
+      "recall": 1,
+      "excluded": 0
+    }
+  },
+  "spent": {
+    "second_opinion_usd": 2.4432,
+    "forge_usd": 1.3102,
+    "total_usd": 3.7534,
+    "$note": "Anthropic only. The judge runs on the adjudicator's own vendor and is not billed here."
+  },
+  "not_run": [
+    {
+      "seed": "clamp-silent-noop",
+      "reason": "no admissible anchor to move G-2 to: no other group header is an admissible destination for G-2: the other 1 are all in scripts/lib/decisions.mjs within 15 lines of it, which a reviewer could defensibly have cited"
+    }
+  ],
+  "seeds": [
+    {
+      "seed": "doc-stale-panel-contract",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "misanchor",
+        "group_id": "G-1",
+        "from": "shared/external-reviewers.md:101",
+        "to": "shared/external-reviewers.md:312",
+        "statement": "Group G-1 is anchored at shared/external-reviewers.md:312. That is the wrong location: the defect this group describes is at shared/external-reviewers.md:101, which is where a fix has to go. A remediation working from this reconciliation would patch the wrong place."
+      },
+      "target_group": "G-1",
+      "borrowed_from": "prose citation",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.21727159999999998,
+        "rationale_bytes": 1309,
+        "reused_from": null,
+        "tell_bounded": true
+      },
+      "defect_line": 101,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "setting": {
+        "model": "opus",
+        "effort": "low",
+        "source": "frozen-contract",
+        "is_candidate": true,
+        "in_force": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "mutated": {
+        "state": "identified",
+        "quote": "The anchor should be :101, and 312 should be listed as corroborating context.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.4634682,
+        "forge_usd": 0.21727159999999998,
+        "total_usd": 0.6807,
+        "duration_ms": 35351,
+        "usage": {
+          "input_tokens": 10,
+          "cache_creation_input_tokens": 45432,
+          "cache_read_input_tokens": 161861,
+          "output_tokens": 3380,
+          "output_tokens_details": {
+            "thinking_tokens": 344
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 45432,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2297,
+              "cache_read_input_tokens": 44053,
+              "cache_creation_input_tokens": 1379,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1379
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "low"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "doc-consistency-review": 1.698022,
+          "reconcile": 1.1149594999999999
+        },
+        "duration_ms": {
+          "doc-consistency-review": 178702,
+          "reconcile": 135781
+        }
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "misanchor",
+        "group_id": "G-2",
+        "from": "scripts/lib/forbidden-tail.mjs:92",
+        "to": "scripts/capture.mjs:423",
+        "statement": "Group G-2 is anchored at scripts/capture.mjs:423. That is the wrong location: the defect this group describes is at scripts/lib/forbidden-tail.mjs:92, which is where a fix has to go. A remediation working from this reconciliation would patch the wrong place."
+      },
+      "target_group": "G-2",
+      "borrowed_from": "G-1",
+      "cross_file": true,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2208356,
+        "rationale_bytes": 1213,
+        "reused_from": null,
+        "tell_bounded": true
+      },
+      "defect_line": 92,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "setting": {
+        "model": "opus",
+        "effort": "low",
+        "source": "frozen-contract",
+        "is_candidate": true,
+        "in_force": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "mutated": {
+        "state": "identified",
+        "quote": "The defect all three G-2 sources describe is at `scripts/lib/forbidden-tail.mjs:92`. I checked it: that line reads `if (!/^-[A-Za-z]/.test(t)) return false;`. But the reconciler anchored G-2 at `scripts/capture.mjs:423`, the `{ ...process.env }` copy, and its verification prose is about that line, not the regex.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.338619,
+        "forge_usd": 0.2208356,
+        "total_usd": 0.5595,
+        "duration_ms": 30377,
+        "usage": {
+          "input_tokens": 8,
+          "cache_creation_input_tokens": 31900,
+          "cache_read_input_tokens": 136335,
+          "output_tokens": 2806,
+          "output_tokens_details": {
+            "thinking_tokens": 304
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 31900,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1968,
+              "cache_read_input_tokens": 46613,
+              "cache_creation_input_tokens": 476,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 476
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "low"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.0104285000000002,
+          "reconcile": 1.2487255,
+          "security-audit": 1.451795
+        },
+        "duration_ms": {
+          "code-audit": 94156,
+          "reconcile": 196767,
+          "security-audit": 126348
+        }
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "misanchor",
+        "group_id": "G-2",
+        "from": "scripts/lib/decisions.mjs:703",
+        "to": "scripts/lib/decisions.mjs:374",
+        "statement": "Group G-2 is anchored at scripts/lib/decisions.mjs:374. That is the wrong location: the defect this group describes is at scripts/lib/decisions.mjs:703, which is where a fix has to go. A remediation working from this reconciliation would patch the wrong place."
+      },
+      "target_group": "G-2",
+      "borrowed_from": "G-1",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.21483560000000002,
+        "rationale_bytes": 1289,
+        "reused_from": null,
+        "tell_bounded": true
+      },
+      "defect_line": 703,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "setting": {
+        "model": "opus",
+        "effort": "low",
+        "source": "frozen-contract",
+        "is_candidate": true,
+        "in_force": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "mutated": {
+        "state": "identified",
+        "quote": "Anyone fixing by the header lands on the constant, not the faulty line. The anchor should be 703, with 374 named in the text as where the fix connects.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.43019120000000005,
+        "forge_usd": 0.21483560000000002,
+        "total_usd": 0.645,
+        "duration_ms": 41989,
+        "usage": {
+          "input_tokens": 14,
+          "cache_creation_input_tokens": 37002,
+          "cache_read_input_tokens": 295596,
+          "output_tokens": 3750,
+          "output_tokens_details": {
+            "thinking_tokens": 681
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 37002,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1756,
+              "cache_read_input_tokens": 51910,
+              "cache_creation_input_tokens": 281,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 281
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "low"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.791815,
+          "reconcile": 1.0697195
+        },
+        "duration_ms": {
+          "code-audit": 351073,
+          "reconcile": 158107
+        }
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "misanchor",
+        "group_id": "G-2",
+        "from": "scripts/lib/decisions.mjs:85",
+        "to": "scripts/lib/capabilities.mjs:261",
+        "statement": "Group G-2 is anchored at scripts/lib/capabilities.mjs:261. That is the wrong location: the defect this group describes is at scripts/lib/decisions.mjs:85, which is where a fix has to go. A remediation working from this reconciliation would patch the wrong place."
+      },
+      "target_group": "G-2",
+      "borrowed_from": "G-1",
+      "cross_file": true,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2217996,
+        "rationale_bytes": 1408,
+        "reused_from": null,
+        "tell_bounded": true
+      },
+      "defect_line": 87,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "setting": {
+        "model": "opus",
+        "effort": "low",
+        "source": "frozen-contract",
+        "is_candidate": true,
+        "in_force": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "mutated": {
+        "state": "identified",
+        "quote": "The practical harm is that the confirmed HIGH points fixers at `capabilities.mjs:261`, which is the wrong file. The group should be re-anchored to `decisions.mjs:85`.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.4581788,
+        "forge_usd": 0.2217996,
+        "total_usd": 0.68,
+        "duration_ms": 39530,
+        "usage": {
+          "input_tokens": 12,
+          "cache_creation_input_tokens": 42288,
+          "cache_read_input_tokens": 232034,
+          "output_tokens": 3671,
+          "output_tokens_details": {
+            "thinking_tokens": 555
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 42288,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2443,
+              "cache_read_input_tokens": 53601,
+              "cache_creation_input_tokens": 3876,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3876
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "low"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.3754925000000002,
+          "reconcile": 1.8327535000000001
+        },
+        "duration_ms": {
+          "code-audit": 256924,
+          "reconcile": 266161
+        }
+      }
+    },
+    {
+      "seed": "status-never-a-pass",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "misanchor",
+        "group_id": "G-3",
+        "from": "scripts/external-review.mjs:1014",
+        "to": "scripts/external-review.mjs:711",
+        "statement": "Group G-3 is anchored at scripts/external-review.mjs:711. That is the wrong location: the defect this group describes is at scripts/external-review.mjs:1014, which is where a fix has to go. A remediation working from this reconciliation would patch the wrong place."
+      },
+      "target_group": "G-3",
+      "borrowed_from": "G-1",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2145276,
+        "rationale_bytes": 1476,
+        "reused_from": null,
+        "tell_bounded": true
+      },
+      "defect_line": 1010,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "setting": {
+        "model": "opus",
+        "effort": "low",
+        "source": "frozen-contract",
+        "is_candidate": true,
+        "in_force": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "mutated": {
+        "state": "identified",
+        "quote": "Line 1135 is correct given a valid `ok` payload, and the fix belongs where the guard was deleted (around line 1014).",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.43002340000000006,
+        "forge_usd": 0.2145276,
+        "total_usd": 0.6446,
+        "duration_ms": 40435,
+        "usage": {
+          "input_tokens": 14,
+          "cache_creation_input_tokens": 37649,
+          "cache_read_input_tokens": 284877,
+          "output_tokens": 3590,
+          "output_tokens_details": {
+            "thinking_tokens": 478
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 37649,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2013,
+              "cache_read_input_tokens": 52498,
+              "cache_creation_input_tokens": 340,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 340
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "low"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "contract-audit": 3.0017560000000003,
+          "intent-capture": 1.4805925,
+          "reconcile": 1.9221729999999997
+        },
+        "duration_ms": {
+          "contract-audit": 404236,
+          "intent-capture": 175771,
+          "reconcile": 227556
+        }
+      }
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "misanchor",
+        "group_id": "G-3",
+        "from": "scripts/spawn-node.mjs:1818",
+        "to": "scripts/run-graph.mjs:2514",
+        "statement": "Group G-3 is anchored at scripts/run-graph.mjs:2514. That is the wrong location: the defect this group describes is at scripts/spawn-node.mjs:1818, which is where a fix has to go. A remediation working from this reconciliation would patch the wrong place."
+      },
+      "target_group": "G-3",
+      "borrowed_from": "G-2",
+      "cross_file": true,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2209076,
+        "rationale_bytes": 1314,
+        "reused_from": null,
+        "tell_bounded": true
+      },
+      "defect_line": 1815,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "setting": {
+        "model": "opus",
+        "effort": "low",
+        "source": "frozen-contract",
+        "is_candidate": true,
+        "in_force": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "mutated": {
+        "state": "identified",
+        "quote": "**The most serious adjudication error: G-3 points at the wrong file.** … The fix is to re-anchor G-3 to `scripts/spawn-node.mjs:1817–1819`.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.3227158,
+        "forge_usd": 0.2209076,
+        "total_usd": 0.5436,
+        "duration_ms": 28054,
+        "usage": {
+          "input_tokens": 8,
+          "cache_creation_input_tokens": 30619,
+          "cache_read_input_tokens": 138759,
+          "output_tokens": 2499,
+          "output_tokens_details": {
+            "thinking_tokens": 198
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 30619,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1771,
+              "cache_read_input_tokens": 45227,
+              "cache_creation_input_tokens": 581,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 581
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "low"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.4002725,
+          "reconcile": 1.2848155
+        },
+        "duration_ms": {
+          "code-audit": 168932,
+          "reconcile": 179413
+        }
+      }
+    }
+  ]
+}

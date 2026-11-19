@@ -1,0 +1,81 @@
+diff --git a/scripts/lib/forbidden-tail.mjs b/scripts/lib/forbidden-tail.mjs
+index d951843..e53e16a 100644
+--- a/scripts/lib/forbidden-tail.mjs
++++ b/scripts/lib/forbidden-tail.mjs
+@@ -89,20 +89,7 @@ export function forbiddenTailToken(token) {
+   }
+ 
+   // Not a short-flag bundle: `--long`, a bare `-`, or an ordinary argument.
+-  //
+-  // ANY single-dash token is scanned, whatever it opens with. The first version of this guard
+-  // required a LETTER (`/^-[A-Za-z]/`), which meant a cluster opening with a DIGIT was returned
+-  // non-forbidden without its characters ever being examined — and git grep declares
+-  // OPT_NUMBER_CALLBACK, so `-<num>` is shorthand for `-C NUM` and parse_short_opt keeps parsing
+-  // the SAME token afterwards. `-2Ocat` is therefore `-2 -O cat`, reaching --open-files-in-pager,
+-  // which run_pager launches through a shell. Demonstrated live: `-nOecho` was refused while
+-  // `-2Oecho PWNED` exited 0 and printed, and a second capture wrote a file from outside the
+-  // repository into the run's own evidence directory.
+-  //
+-  // The lesson is about SHAPE, not about adding digits to a character class. Deciding whether to
+-  // scan from the first character makes every unanticipated opener a bypass, and this module was
+-  // itself extracted to close exactly this defect one layer up. Scan first, decide after.
+-  if (!/^-[^-]/.test(t)) return false;
++  if (!/^-[A-Za-z]/.test(t)) return false;
+ 
+   // Scan the cluster. A value-taking flag swallows the rest of the token, so stopping at the first
+   // forbidden character is enough — and scanning past it cannot produce a false NEGATIVE.
+diff --git a/tests/regression-bundled-short-flag.test.mjs b/tests/regression-bundled-short-flag.test.mjs
+index 12eb9a5..8a3f2a5 100644
+--- a/tests/regression-bundled-short-flag.test.mjs
++++ b/tests/regression-bundled-short-flag.test.mjs
+@@ -20,50 +20,6 @@ import { test } from 'node:test';
+ import assert from 'node:assert/strict';
+ import { forbiddenTailToken } from '../scripts/lib/forbidden-tail.mjs';
+ 
+-test('regression: a dangerous short flag BUNDLED with others is refused', () => {
+-  // The exact shape that got through.
+-  assert.ok(forbiddenTailToken('-nOcat'), '-nOcat bundles -O and must be refused');
+-  assert.ok(forbiddenTailToken('-inO/bin/sh'), 'position within the bundle must not matter');
+-  assert.ok(forbiddenTailToken('-O'), 'the bare flag stays refused');
+-  assert.ok(forbiddenTailToken('-Ocat'), 'the unbundled form stays refused');
+-});
+-
+-// THE SAME DEFECT, ONE LAYER DOWN, in the module extracted to close it. The first fix decided
+-// what counted as a bundle with /^-[A-Za-z]/ — a LETTER after the dash — so a cluster opening with
+-// a DIGIT was returned non-forbidden with its characters never scanned. git grep declares
+-// OPT_NUMBER_CALLBACK (-<num> is shorthand for -C NUM) and parse_short_opt keeps parsing the SAME
+-// token after consuming the digits, so `-2Ocat` is `-2 -O cat` and reaches --open-files-in-pager,
+-// which run_pager launches with child.use_shell = 1.
+-//
+-// Demonstrated live by the lens, twice: `-nOecho` was correctly refused while
+-// `-2Oecho PWNED_BY_NUMERIC_BUNDLE` exited 0 and printed the string, and a second capture wrote
+-// C:/Windows/win.ini — outside the repository — into that run's own evidence directory at exit 0.
+-//
+-// The lesson is about the shape of the guard, not the character class: deciding WHETHER to scan
+-// from the first character means every unanticipated opener is a bypass. Scan any single-dash
+-// token.
+-test('regression: a digit-opening bundle is scanned too (git -<num> is a real flag)', () => {
+-  assert.ok(forbiddenTailToken('-2Ocat'), '-2Ocat is -2 -O cat and must be refused');
+-  assert.ok(forbiddenTailToken('-12Oecho'), 'multi-digit counts bundle the same way');
+-  assert.ok(forbiddenTailToken('-2Oecho PWNED'), 'the exact demonstrated payload');
+-  assert.ok(forbiddenTailToken('-5nOcat'), 'digits and letters mixed in one cluster');
+-});
+-
+-test('a single-dash token is scanned whatever it opens with', () => {
+-  // Written as a PROPERTY: the previous fix enumerated openers and missed one. Anything after a
+-  // single dash is a short-flag cluster as far as this guard is concerned.
+-  for (const t of ['-O', '-2O', '-_O', '-.O']) {
+-    assert.ok(forbiddenTailToken(t), `${t} contains a bundled -O and must be refused`);
+-  }
+-});
+-
+-test('digit-only and ordinary short flags still pass', () => {
+-  // git grep -2 is a legitimate context shortcut; over-refusing it would break real captures.
+-  for (const t of ['-2', '-12', '-n', '-in', '-5n']) {
+-    assert.equal(forbiddenTailToken(t), false, `${t} is legitimate and must pass`);
+-  }
+-});
+-
+ test('the long-form escapes stay refused', () => {
+   for (const t of ['--open-files-in-pager', '--output=/tmp/x', '--ext-diff', '--textconv',
+                    '--no-index', '--contents=/etc/passwd', '--upload-pack=x']) {

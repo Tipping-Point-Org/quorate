@@ -1,0 +1,19 @@
+{
+  "id": "prose-before-payload",
+  "title": "classifyResult checks for a payload before recognising a prose node, so a schemaVariant 'none' node (second-opinion) can never report OK",
+  "source": "historical",
+  "found_by": "self-review; the graph's only prose node had never once reported OK",
+  "defect": {
+    "file": "scripts/lib/decisions.mjs",
+    "anchor": "branch: 'no-payload'",
+    "lenses": [
+      "code-audit"
+    ],
+    "severity_floor": "HIGH"
+  },
+  "scope": [
+    "scripts/lib"
+  ],
+  "removes_tests": true,
+  "notes": "Order is the contract: a prose node has no structured output BY DEFINITION, so testing hasPayload first routes every prose node into DEGRADED before reaching the branch written to handle it. The tell: the 'none' branch is unreachable for any input that would take it, since schemaVariant 'none' implies hasPayload false. v2 (2026-09-01): the patch now also strips the module-header and docstring prose narrating the historical fix ('ORDER IS THE CONTRACT'). The v1 catches (18-11 and 19-15 runs) cited that docstring directly — ASSISTED catches. Recall under the tell-free v2 seed is unmeasured."
+}

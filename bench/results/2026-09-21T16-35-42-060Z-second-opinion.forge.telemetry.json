@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "kind": "bench",
+  "run_id": "2026-09-21T16-35-42-060Z-second-opinion.forge",
+  "development_data": true,
+  "started_at": null,
+  "ended_at": null,
+  "tasks": [
+    {
+      "id": "clamp-silent-noop:second-opinion",
+      "task_kind": "bench-node",
+      "family": null,
+      "model": null,
+      "effort": null,
+      "duration_ms": null,
+      "num_turns": null,
+      "usage": null,
+      "cost_usd": null
+    },
+    {
+      "id": "numeric-bundle-pager:second-opinion",
+      "task_kind": "bench-node",
+      "family": null,
+      "model": null,
+      "effort": null,
+      "duration_ms": null,
+      "num_turns": null,
+      "usage": null,
+      "cost_usd": null
+    },
+    {
+      "id": "probe-substring-match:second-opinion",
+      "task_kind": "bench-node",
+      "family": null,
+      "model": null,
+      "effort": null,
+      "duration_ms": null,
+      "num_turns": null,
+      "usage": null,
+      "cost_usd": null
+    },
+    {
+      "id": "status-never-a-pass:second-opinion",
+      "task_kind": "bench-node",
+      "family": null,
+      "model": null,
+      "effort": null,
+      "duration_ms": null,
+      "num_turns": null,
+      "usage": null,
+      "cost_usd": null
+    },
+    {
+      "id": "verdict-floor-absent:second-opinion",
+      "task_kind": "bench-node",
+      "family": null,
+      "model": null,
+      "effort": null,
+      "duration_ms": null,
+      "num_turns": null,
+      "usage": null,
+      "cost_usd": null
+    }
+  ],
+  "recall": {
+    "seeds": null,
+    "caught": null,
+    "overall": null,
+    "lenses": {}
+  },
+  "cost_usd": null
+}

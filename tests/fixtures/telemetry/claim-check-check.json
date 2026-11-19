@@ -1,0 +1,9 @@
+{
+  "family": "cross",
+  "arm": {
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "effort": "high",
+    "record": "arm.json"
+  }
+}

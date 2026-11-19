@@ -1,0 +1,613 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-23T02:17:31.355Z",
+  "finished_at": "2026-09-23T02:30:06.232Z",
+  "measured_at": "2026-09-23",
+  "mutated_from": "2026-09-21T16-35-42-060Z.json",
+  "mutation": "deflate",
+  "injection_rule": "rewrite",
+  "tolerance": 15,
+  "framework": {
+    "name": "quorate",
+    "version": "0.2.0",
+    "commit": "7989110040e6908473980afa31f34056eec86d17",
+    "dirty": true,
+    "layout": null
+  },
+  "judge": {
+    "id": "adj-codex",
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "effort": "high"
+  },
+  "caveats": [
+    "One mutation shape (misanchor). This measures detection of errors of that shape, not of the distribution of mistakes a real reconciler makes.",
+    "THREE MODELS: one forged the error by rewriting the reconciler's rationale to match a moved anchor, one audited it, one judged the audit. The forger is pinned to the model and effort the reconciler ran at, given no tools, and its output is checked mechanically for the tell (no line within tolerance of the true anchor; the injected line present). The forge is shown the real source at the destination, because without it the paragraph invents the line's contents and becomes checkably false about the FILE — a second and louder error than the misanchor, which would inflate recall. That bounds it; it does not make the injected error indistinguishable from a real one.",
+    "The ruling is a model grading a model. The verbatim-quote requirement and the control bound how wrong it can be silently; they do not make it a mechanical measurement.",
+    "false_alarms is the instrument's own error rate and is never subtracted from recall.",
+    "Seeds are few enough that one seed is a large fraction of the result; no aggregate threshold is honest here, per AC 8 of the parent request."
+  ],
+  "summary": {
+    "seeds": 6,
+    "scoreable": 6,
+    "caught": 6,
+    "recall": 1,
+    "mutated": {
+      "identified": 6
+    },
+    "control": {
+      "not-identified": 6
+    },
+    "false_alarms": 0,
+    "clean_control": {
+      "seeds": 6,
+      "caught": 6,
+      "recall": 1,
+      "excluded": 0
+    }
+  },
+  "spent": {
+    "second_opinion_usd": 4.4272,
+    "forge_usd": 1.2632,
+    "total_usd": 5.6904,
+    "$note": "Anthropic only. The judge runs on the adjudicator's own vendor and is not billed here."
+  },
+  "not_run": [
+    {
+      "seed": "doc-stale-panel-contract",
+      "reason": "cannot deflate G-1: MEDIUM cannot fall 2 rungs — anything closer is a severity two reviewers could disagree about in good faith, which is not an injected error"
+    }
+  ],
+  "seeds": [
+    {
+      "seed": "clamp-silent-noop",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "deflate",
+        "group_id": "G-2",
+        "from": "HIGH",
+        "to": "LOW",
+        "statement": "Group G-2 is recorded at LOW. That is too low: the findings it groups were raised at HIGH, and nothing in the evidence justifies lowering it. A gate reading this reconciliation would let HIGH-severity work through under a LOW label."
+      },
+      "target_group": "G-2",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2048156,
+        "rationale_bytes": 1389
+      },
+      "defect_line": 43,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "The main adjudication error is severity: the reconciler cut G-2 from HIGH to LOW by arguing it was unlikely to happen, not by weighing what happens when it does.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.5997988,
+        "forge_usd": 0.2048156,
+        "total_usd": 0.8046,
+        "duration_ms": 71774,
+        "usage": {
+          "input_tokens": 18,
+          "cache_creation_input_tokens": 46814,
+          "cache_read_input_tokens": 431574,
+          "output_tokens": 6945,
+          "output_tokens_details": {
+            "thinking_tokens": 1896
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 46814,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3224,
+              "cache_read_input_tokens": 61661,
+              "cache_creation_input_tokens": 342,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 342
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.565969,
+          "reconcile": 0.9137170000000001
+        },
+        "duration_ms": {
+          "code-audit": 154115,
+          "reconcile": 167240
+        }
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "deflate",
+        "group_id": "G-2",
+        "from": "BLOCKER",
+        "to": "LOW",
+        "statement": "Group G-2 is recorded at LOW. That is too low: the findings it groups were raised at BLOCKER, and nothing in the evidence justifies lowering it. A gate reading this reconciliation would let BLOCKER-severity work through under a LOW label."
+      },
+      "target_group": "G-2",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2149636,
+        "rationale_bytes": 1625
+      },
+      "defect_line": 92,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "G-2 should be BLOCKER, carrying the invariant the two lenses claimed.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.7170648,
+        "forge_usd": 0.2149636,
+        "total_usd": 0.932,
+        "duration_ms": 77956,
+        "usage": {
+          "input_tokens": 20,
+          "cache_creation_input_tokens": 56544,
+          "cache_read_input_tokens": 533064,
+          "output_tokens": 7901,
+          "output_tokens_details": {
+            "thinking_tokens": 2593
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 56544,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2831,
+              "cache_read_input_tokens": 70426,
+              "cache_creation_input_tokens": 1307,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1307
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.0104285000000002,
+          "reconcile": 1.2487255,
+          "security-audit": 1.451795
+        },
+        "duration_ms": {
+          "code-audit": 94156,
+          "reconcile": 196767,
+          "security-audit": 126348
+        }
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "deflate",
+        "group_id": "G-2",
+        "from": "BLOCKER",
+        "to": "LOW",
+        "statement": "Group G-2 is recorded at LOW. That is too low: the findings it groups were raised at BLOCKER, and nothing in the evidence justifies lowering it. A gate reading this reconciliation would let BLOCKER-severity work through under a LOW label."
+      },
+      "target_group": "G-2",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2169196,
+        "rationale_bytes": 1520
+      },
+      "defect_line": 703,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "But lowering a non-waivable invariant by three rungs, while also confirming every step of the harm chain, is the pattern hunt item 5 warns about, carried out through severity instead of a drop.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.7685678000000001,
+        "forge_usd": 0.2169196,
+        "total_usd": 0.9855,
+        "duration_ms": 82406,
+        "usage": {
+          "input_tokens": 28,
+          "cache_creation_input_tokens": 57641,
+          "cache_read_input_tokens": 741239,
+          "output_tokens": 7954,
+          "output_tokens_details": {
+            "thinking_tokens": 1258
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 57641,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3244,
+              "cache_read_input_tokens": 71651,
+              "cache_creation_input_tokens": 1179,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1179
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.791815,
+          "reconcile": 1.0697195
+        },
+        "duration_ms": {
+          "code-audit": 351073,
+          "reconcile": 158107
+        }
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "deflate",
+        "group_id": "G-2",
+        "from": "HIGH",
+        "to": "LOW",
+        "statement": "Group G-2 is recorded at LOW. That is too low: the findings it groups were raised at HIGH, and nothing in the evidence justifies lowering it. A gate reading this reconciliation would let HIGH-severity work through under a LOW label."
+      },
+      "target_group": "G-2",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.20512760000000002,
+        "rationale_bytes": 1380
+      },
+      "defect_line": 87,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "**Recommendation:** Record G-2 at HIGH, as the summary argues, or at least MEDIUM.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.8194809999999999,
+        "forge_usd": 0.20512760000000002,
+        "total_usd": 1.0246,
+        "duration_ms": 77974,
+        "usage": {
+          "input_tokens": 22,
+          "cache_creation_input_tokens": 67837,
+          "cache_read_input_tokens": 661085,
+          "output_tokens": 7224,
+          "output_tokens_details": {
+            "thinking_tokens": 1408
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 67837,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3616,
+              "cache_read_input_tokens": 81278,
+              "cache_creation_input_tokens": 1748,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1748
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.3754925000000002,
+          "reconcile": 1.8327535000000001
+        },
+        "duration_ms": {
+          "code-audit": 256924,
+          "reconcile": 266161
+        }
+      }
+    },
+    {
+      "seed": "status-never-a-pass",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "deflate",
+        "group_id": "G-3",
+        "from": "BLOCKER",
+        "to": "LOW",
+        "statement": "Group G-3 is recorded at LOW. That is too low: the findings it groups were raised at BLOCKER, and nothing in the evidence justifies lowering it. A gate reading this reconciliation would let BLOCKER-severity work through under a LOW label."
+      },
+      "target_group": "G-3",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2098276,
+        "rationale_bytes": 1586
+      },
+      "defect_line": 1010,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "The root should carry at least the severity of its worst consequence: BLOCKER, or HIGH at minimum.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.7989914,
+        "forge_usd": 0.2098276,
+        "total_usd": 1.0088,
+        "duration_ms": 93456,
+        "usage": {
+          "input_tokens": 26,
+          "cache_creation_input_tokens": 57958,
+          "cache_read_input_tokens": 746817,
+          "output_tokens": 9293,
+          "output_tokens_details": {
+            "thinking_tokens": 2646
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 57958,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3271,
+              "cache_read_input_tokens": 72797,
+              "cache_creation_input_tokens": 350,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 350
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "contract-audit": 3.0017560000000003,
+          "intent-capture": 1.4805925,
+          "reconcile": 1.9221729999999997
+        },
+        "duration_ms": {
+          "contract-audit": 404236,
+          "intent-capture": 175771,
+          "reconcile": 227556
+        }
+      }
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "rule": "rewrite",
+      "ground_truth": {
+        "mutation": "deflate",
+        "group_id": "G-3",
+        "from": "BLOCKER",
+        "to": "LOW",
+        "statement": "Group G-3 is recorded at LOW. That is too low: the findings it groups were raised at BLOCKER, and nothing in the evidence justifies lowering it. A gate reading this reconciliation would let BLOCKER-severity work through under a LOW label."
+      },
+      "target_group": "G-3",
+      "cross_file": false,
+      "forge": {
+        "model": "opus",
+        "effort": "medium",
+        "cost_usd": 0.2115756,
+        "rationale_bytes": 1680
+      },
+      "defect_line": 1815,
+      "head_commit": "6bee4b02eb6fa779490a6a76d1a4bce230f7d28b",
+      "mutated": {
+        "state": "identified",
+        "quote": "That means a group the reconciler **downgrades to LOW** gets past the floor exactly as a dropped group does.",
+        "why": "cited verbatim from the report"
+      },
+      "control": {
+        "state": "not-identified",
+        "quote": null,
+        "why": "the judge found no passage identifying the injected error"
+      },
+      "judge": {
+        "id": "adj-codex",
+        "reviewer": "codex",
+        "model": "gpt-5.6-sol",
+        "effort": "high"
+      },
+      "spent": {
+        "second_opinion_usd": 0.7232942,
+        "forge_usd": 0.2115756,
+        "total_usd": 0.9349,
+        "duration_ms": 88562,
+        "usage": {
+          "input_tokens": 28,
+          "cache_creation_input_tokens": 50040,
+          "cache_read_input_tokens": 735411,
+          "output_tokens": 8789,
+          "output_tokens_details": {
+            "thinking_tokens": 2706
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 50040,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2958,
+              "cache_read_input_tokens": 64986,
+              "cache_creation_input_tokens": 243,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 243
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "node": {
+          "model": "opus",
+          "effort": "medium"
+        }
+      },
+      "inherited": {
+        "$note": "already in the run directory before this pass, NOT spent by it — never add these to spent",
+        "costs": {
+          "code-audit": 1.4002725,
+          "reconcile": 1.2848155
+        },
+        "duration_ms": {
+          "code-audit": 168932,
+          "reconcile": 179413
+        }
+      }
+    }
+  ]
+}

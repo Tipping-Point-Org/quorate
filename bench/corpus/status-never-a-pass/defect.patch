@@ -1,0 +1,146 @@
+diff --git a/docs/requests/reviewer-failure-status.md b/docs/requests/reviewer-failure-status.md
+new file mode 100644
+--- /dev/null
++++ b/docs/requests/reviewer-failure-status.md
+@@ -0,0 +1,18 @@
++---
++status: approved
++
++# Give external reviewers a legal way to report failure
++
++The external-review adapter appends a mandatory `status` / `reason` field to every reviewer's
++output contract, so a reviewer that cannot complete its task can say so inside the schema instead
++of choosing between violating it and inventing a pass.
++
++Acceptance criteria:
++
++1. Every reviewer prompt requires `status` (`ok` | `refused` | `incomplete`) and a `reason`
++   whenever status is not `ok`.
++2. A response whose status is not `ok` is reported as a failure of that arm: in review mode it
++   must never surface as a `PASS` verdict, and its own verdict field must not survive.
++3. In proposal mode, a non-`ok` status empties the candidate pool visibly rather than returning a
++   partial pool as if complete.
++4. The reviewer's own stated reason is carried into `not_checked[]`, not paraphrased away.
+diff --git a/scripts/external-review.mjs b/scripts/external-review.mjs
+--- a/scripts/external-review.mjs
++++ b/scripts/external-review.mjs
+@@ -1639,52 +1639,6 @@ if (!p) {
+   );
+ }
+ 
+-// SOFT failure: the reviewer answered and told us it could not do the job. Distinct from the hard
+-// failure above (no output at all), and distinct from a real result — reporting it as either would
+-// lose the one thing the reviewer actually told us. It is never a PASS in review mode and never an
+-// empty-but-fine pool in propose mode; both carry the reviewer's own words into not_checked[].
+-const status = typeof p.status === 'string' ? p.status.trim().toLowerCase() : '';
+-// A CLAIM CHECK WITH NO STATUS IS NOT A COMPLETED ONE (G-5 of 20261019-014448-ccf-delivery; operator: "G-5 for
+-// claim-check only (Recommended)"): its claims are graded and acted on, so a response that omits the status it must
+-// carry is refused rather than read as `ok`.
+-if (args.mode === 'claim-check' && !status) {
+-  unavailable('returned a claim-check result with no status — the reviewer did not say it completed the check');
+-}
+-// A SEAT WITH NO STATUS HAS NOT VOTED, by the same rule: a vote is acted on, so it must say it completed.
+-if (args.mode === 'decide' && !status) {
+-  unavailable('returned a seat answer with no status — the reviewer did not say it completed the answer');
+-}
+-if (status && status !== 'ok') {
+-  const why = typeof p.reason === 'string' && p.reason.trim()
+-    ? p.reason.trim()
+-    : '(no reason given, though the contract requires one)';
+-  if (args.mode === 'propose') {
+-    // KEPT, OUTSIDE `candidates` (story-pipeline, 2026-10-08): the pool stays empty, so a partial batch never reads
+-    // as complete, and what the proposer did return survives in `incomplete_candidates` with its count named.
+-    // The same accounting as a complete batch (G-8 of 20261008-175234-cpool-and-design-step): an empty candidate is
+-    // dropped AND counted, and the proposer's own not_checked[] and the schema notes are kept, not replaced.
+-    const raw = Array.isArray(p.candidates) ? p.candidates : [];
+-    const partial = raw.filter((c) => c && typeof c === 'object' && !Array.isArray(c) && Object.keys(c).length);
+-    const dropped = raw.length - partial.length;
+-    emitProposal({
+-      incomplete_candidates: partial,
+-      not_checked: [
+-        ...schemaNotes,
+-        { item: `external proposer '${args.reviewer}'`, reason: `reported status '${status}': ${why}` },
+-        ...(partial.length ? [{
+-          item: `${partial.length} candidate(s) from '${args.reviewer}'`,
+-          reason: `returned with status '${status}', so they are kept in incomplete_candidates and not counted as the pool`,
+-        }] : []),
+-        ...(dropped ? [{
+-          item: `${dropped} candidate(s) from '${args.reviewer}'`,
+-          reason: 'returned with no fields; an empty candidate cannot be filtered against the stated constraints and is not counted as an option',
+-        }] : []),
+-        ...(Array.isArray(p.not_checked) ? p.not_checked.filter((n) => n && n.item && n.reason) : []),
+-      ],
+-    });
+-  }
+-  unavailable(`reported status '${status}': ${why}`);
+-}
+ if (args.mode === 'claim-check') {
+   // THE SHAPE claim-check.mjs WILL APPLY ITS RULES TO, checked here too: the vendor was ASKED to honour the schema, which
+   // is not the same as having honoured it (contract-audit, I-8). The adapter's own status and reason stay out of it.
+diff --git a/tests/regression-panel-runtime.test.mjs b/tests/regression-panel-runtime.test.mjs
+--- a/tests/regression-panel-runtime.test.mjs
++++ b/tests/regression-panel-runtime.test.mjs
+@@ -183,63 +183,6 @@ test('the prompt gives the reviewer a legal way to say it could not do the job',
+   assert.match(adapter, /still reply with exactly one object/);
+ });
+ 
+-test('regression: a SOFT failure is reported as a failure, not as a verdict', () => {
+-  withTempDir((dir) => {
+-    // The reviewer answered, in the right shape, and said it could not do the job.
+-    const binDir = fakeCodex(dir, JSON.stringify({
+-      status: 'refused', reason: 'the declared scope was not readable', verdict: 'PASS', findings: [],
+-    }));
+-    const promptPath = writePrompt(dir);
+-    const pathKey = Object.keys(process.env).find((k) => k.toLowerCase() === 'path') ?? 'PATH';
+-    const r = runScript('external-review.mjs', [
+-      '--reviewer', 'codex',
+-      '--prompt-file', promptPath,
+-      '--schema', '{"verdict":"PASS|RISK|FAIL"}',
+-    ], { env: { [pathKey]: `${binDir}${path.delimiter}${process.env[pathKey] ?? ''}`, ...probed(binDir) } });
+-
+-    const env = JSON.parse(r.stdout);
+-    // Its own `verdict: PASS` must NOT survive: it told us in the same breath that it refused.
+-    assert.equal(env.verdict, 'RISK');
+-    const reasons = env.not_checked.map((n) => n.reason).join(' ');
+-    assert.match(reasons, /status 'refused'/);
+-    assert.match(reasons, /scope was not readable/, 'the reviewer own words must survive');
+-  });
+-});
+-
+-test('regression: a soft failure in propose mode empties the pool visibly', () => {
+-  withTempDir((dir) => {
+-    const binDir = fakeCodex(dir, JSON.stringify({
+-      status: 'incomplete', reason: 'cut short before finishing', candidates: [{ name: 'partial' }],
+-    }));
+-    const response = JSON.parse(propose(binDir, writePrompt(dir)).stdout);
+-
+-    // A partial pool presented as complete is the proposal-mode form of a false PASS.
+-    assert.deepEqual(response.candidates, []);
+-    assert.match(response.not_checked.map((n) => n.reason).join(' '), /cut short before finishing/);
+-  });
+-});
+-
+-// THE PARTIAL POOL IS KEPT, OUTSIDE `candidates` (ledger scripts/external-review.mjs:1050; operator, 2026-10-08: "fix
+-// them now"). story-pipeline's codex proposer ran 514 s, said 'incomplete', and whatever it had proposed was discarded
+-// with no raw log kept, so nobody could tell whether it proposed anything. `candidates` stays empty (a partial pool
+-// must not read as complete); what the proposer returned goes in `incomplete_candidates`, counted in not_checked[].
+-test('regression: an incomplete proposer keeps what it proposed, outside the candidates a caller counts', () => {
+-  withTempDir((dir) => {
+-    const binDir = fakeCodex(dir, JSON.stringify({
+-      status: 'incomplete', reason: 'cut short before finishing', candidates: [{ name: 'partial' }, {}],
+-      not_checked: [{ item: 'licence of partial', reason: 'primary source not reached' }],
+-    }));
+-    const response = JSON.parse(propose(binDir, writePrompt(dir)).stdout);
+-    assert.deepEqual(response.candidates, [], 'still not presented as a complete pool');
+-    assert.deepEqual(response.incomplete_candidates, [{ name: 'partial' }], 'kept, and an empty one still dropped');
+-    const notes = response.not_checked.map((n) => `${n.item}: ${n.reason}`).join(' | ');
+-    assert.match(notes, /1 candidate\(s\) [^|]*incomplete_candidates/);
+-    // G-8 of 20261008-175234-cpool-and-design-step: the empty one is counted, and the proposer's own caveats survive.
+-    assert.match(notes, /1 candidate\(s\) [^|]*returned with no fields/);
+-    assert.match(notes, /licence of partial: primary source not reached/);
+-  });
+-});
+-
+ // --out WITH EXCLUSIVE CREATE (same ledger entry): two proposer runs redirected to one file interleaved undetected
+ // (story-pipeline, 2026-10-08). --out refuses a path that exists BEFORE the vendor is called, and writes the response
+ // there.

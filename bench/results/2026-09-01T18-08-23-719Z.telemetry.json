@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "bench",
+  "run_id": "2026-09-01T18-08-23-719Z",
+  "development_data": true,
+  "started_at": "2026-09-01T18:08:23.719Z",
+  "ended_at": "2026-09-01T18:09:02.370Z",
+  "tasks": [],
+  "recall": {
+    "seeds": 0,
+    "caught": 0,
+    "overall": null,
+    "lenses": {}
+  },
+  "cost_usd": 0
+}

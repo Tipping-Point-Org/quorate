@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-01T18:08:23.719Z",
+  "finished_at": "2026-09-01T18:09:02.370Z",
+  "tolerance": 15,
+  "not_run": [
+    {
+      "seed": "prose-before-payload",
+      "reason": "run-graph exited 1; lens(es) that never reported OK: code-audit — this seed is NOT RUN, never a miss. A lens that was not asked cannot have missed. See bench\\results\\2026-09-01T18-08-23-719Z-prose-before-payload.log"
+    }
+  ],
+  "scores": [],
+  "summary": {
+    "seeds": 0,
+    "caught": 0,
+    "overall_recall": null,
+    "lenses": {}
+  },
+  "total_cost_usd": 0
+}

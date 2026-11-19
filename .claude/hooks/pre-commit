@@ -1,0 +1,23 @@
+#!/bin/sh
+# Committed copy — install with `node .claude/hooks/install.mjs`.
+#
+# TWO CHECKS, AND ONLY ONE OF THEM BLOCKS. The difference is deliberate and is the whole lesson of
+# this file: a reminder that can block becomes a reminder people disable, and a rule that only
+# reminds becomes a receipt nobody acts on. So each check is whichever it can afford to be.
+#
+# Probes both layouts, same as pre-push: the framework's own repo, then a consumer submodule.
+root="$(git rev-parse --show-toplevel)"
+
+# BLOCKING: are you on the branch you meant? Not a quality question — pre-push answers those — and
+# not one any test can ask. It blocks because the reminder version was measured to fail: the rule
+# was stated, agreed, and then broken about twenty times in a day, each commit looking too small to
+# be the one that needed a branch. `git commit --no-verify` bypasses.
+for p in "$root/.claude/hooks/branch-guard.mjs" "$root/.claude/skills/quorate/.claude/hooks/branch-guard.mjs"; do
+  if [ -f "$p" ]; then node "$p" || exit 1; break; fi
+done
+
+# NON-BLOCKING: cross-references staged source against the contract's doc_paths.
+for p in "$root/.claude/hooks/doc-sync-check.mjs" "$root/.claude/skills/quorate/.claude/hooks/doc-sync-check.mjs"; do
+  if [ -f "$p" ]; then node "$p"; break; fi
+done
+exit 0

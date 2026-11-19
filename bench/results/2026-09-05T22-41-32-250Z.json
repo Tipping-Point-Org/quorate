@@ -1,0 +1,557 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-05T22:41:32.250Z",
+  "finished_at": "2026-09-06T00:25:43.981Z",
+  "tolerance": 15,
+  "not_run": [
+    {
+      "seed": "verdict-floor-absent",
+      "reason": "run-graph exited 0; lens(es) that never reported OK: contract-audit — this seed is NOT RUN, never a miss. A lens that was not asked cannot have missed. See bench\\results\\2026-09-05T22-41-32-250Z-verdict-floor-absent.log"
+    }
+  ],
+  "scores": [
+    {
+      "seed": "clamp-silent-noop",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 25,
+          "severity": "HIGH",
+          "claim": "`clampSeverity` no longer validates its floor/ceiling: both throw guards were deleted and the body reverted to `if (ceiling !== null && SEVERITY_RUNGS.includes(ceiling)) i = Math.min(...)`, so a bound it does not recognise — the historically-actual mistake of passing the VERDICT 'RISK' into the SEVERITY slot — is silently discarded and the clamp returns the model's severity unchanged. That is wron"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1
+      }
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "doc-consistency-review"
+      ],
+      "hits": [
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 58,
+          "severity": "MEDIUM",
+          "claim": "The section states \"An external reviewer has no session context, no brief, and no memory of the run\" and then lists a four-item prompt (project context, scope, checklist, output contract) that contains no brief — but the shipped builder sends the shadowed lens's run brief verbatim under a `# Run brief` heading (scripts/lib/codex-prompts.mjs:93-94, fed by scripts/run-graph.mjs:1401), and run-graph "
+        },
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 63,
+          "severity": "MEDIUM",
+          "claim": "Item 3 says the arm is given \"the checklist verbatim from whatever is being reviewed\", and the list has no item for the external-arm constraints at all — but `buildCodexShadowPrompt` sends the shadowed lens's SKILL.md with its frontmatter stripped by `skillInstructions()` (scripts/lib/codex-prompts.mjs:60-66, called at :73), which is not verbatim, and prefixes it with `EXTERNAL_ARM_CONSTRAINTS` (:"
+        }
+      ],
+      "expected_hit": [
+        "doc-consistency-review"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {}
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit",
+        "security-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 53,
+          "severity": "BLOCKER",
+          "claim": "The bundle test was reverted from `/^-[^-]/` to `/^-[A-Za-z]/`, so a single-dash token not opening with a letter returns false without any character being scanned against FORBIDDEN_SHORT. That is wrong because git grep declares OPT_NUMBER_CALLBACK (`-<num>` = `-C NUM`) and parse_short_opt keeps parsing the SAME token after the digits, so `-2Ocat` is `-2 -O cat` and reaches --open-files-in-pager, w"
+        },
+        {
+          "node": "security-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 53,
+          "severity": "BLOCKER",
+          "claim": "The test `/^-[A-Za-z]/` decides WHETHER to scan a cluster by its first character, so any single-dash token opening with a digit returns false at line 53 with its characters never examined. git grep declares OPT_NUMBER_CALLBACK, so `-<num>` means `-C NUM` and parse_short_opt keeps parsing the SAME token after it — captured: `git grep -2n` passed as one token and git applied both `-2` (context) and "
+        }
+      ],
+      "expected_hit": [
+        "code-audit",
+        "security-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "security-audit": 1
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "tolerance": 15,
+      "caught": false,
+      "caught_by": [],
+      "hits": [],
+      "expected_hit": [],
+      "expected_missed": [
+        "code-audit"
+      ],
+      "fp_candidates": {
+        "code-audit": 1
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 67,
+          "severity": "MEDIUM",
+          "claim": "classifyResult tests `!hasPayload` (line 67) BEFORE `schemaVariant === 'none'` (line 75), so a prose node — which has no structured_output by definition — classifies as {branch:'no-payload', state:'DEGRADED'}; the prose branch below is reachable only if the prose text happens to parse as JSON. This inverts the ordering the docblock called \"the contract\" (that docblock and the classifyResult entry "
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1
+      }
+    },
+    {
+      "seed": "status-never-a-pass",
+      "tolerance": 40,
+      "caught": true,
+      "caught_by": [
+        "contract-audit"
+      ],
+      "hits": [
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 433,
+          "severity": "HIGH",
+          "claim": "I-12 requires that a declared reviewer failure is either acted on and reported or that ignoring it is itself visible in the envelope, but a census of every `status` token in the adapter shows the parsed payload's `status` is read by no branch at all: the eight remaining occurrences are the prompt text (219-237), the child process exit code `r.status` (383, 384, 454), and a comment about agy's tran"
+        },
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 470,
+          "severity": "HIGH",
+          "claim": "I-5 requires that in proposal mode a non-ok status empties the candidate pool visibly, with the emptying named in not_checked[], but the propose branch entered at line 460 takes `p.candidates` verbatim at line 470 and filters only for structurally empty objects, with no reference to `p.status`; a proposer answering {status:'incomplete', candidates:[{...one partial...}]} therefore returns that part"
+        },
+        {
+          "node": "contract-audit",
+          "file": "scripts/external-review.mjs",
+          "line": 448,
+          "severity": "HIGH",
+          "claim": "I-7 requires the hard and soft failure classes to stay distinct and both to land in not_checked[], with the soft one carrying the reviewer's own reason, but only the hard class survives: line 448's `if (!p)` handles no output, unparseable output and wrong shape through `unavailable()`, and the soft class has no counterpart at all since its branch was deleted. The outcome is worse than the named fa"
+        }
+      ],
+      "expected_hit": [
+        "contract-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "contract-audit": 4
+      }
+    }
+  ],
+  "summary": {
+    "seeds": 6,
+    "caught": 5,
+    "overall_recall": 0.833,
+    "lenses": {
+      "code-audit": {
+        "expected": 4,
+        "caught": 3,
+        "recall": 0.75,
+        "cost_usd": 6.6112765
+      },
+      "doc-consistency-review": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 2.3866680000000002
+      },
+      "security-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 2.7386480000000004
+      },
+      "contract-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 2.6118250000000005
+      }
+    }
+  },
+  "config": {
+    "corpus_commit": "94e98a7f3402b66258e990cd4a58f7c702abbdf3",
+    "framework": {
+      "name": "quorate",
+      "version": "0.1.0",
+      "commit": "94e98a7f3402b66258e990cd4a58f7c702abbdf3",
+      "dirty": true,
+      "layout": "bench"
+    },
+    "declared_models": {
+      "judgment": "opus",
+      "mechanical": "sonnet"
+    },
+    "declared_effort": {
+      "judgment": "xhigh"
+    },
+    "claude_version": "2.1.259 (Claude Code)",
+    "node_version": "v24.13.1",
+    "measured_at": "2026-09-05T22:41:32.250Z",
+    "alias_caveat": "Model aliases float: the provider may replace the model behind \"opus\"/\"sonnet\" at any time. A result is only comparable to another with the same claude_version and a nearby measured_at. Re-measure before trusting an older number, and never carry a recall figure forward across a model change in either direction."
+  },
+  "runs": [
+    {
+      "seed": "clamp-silent-noop",
+      "costs": {
+        "code-audit": 2.2408225,
+        "reconcile": 1.4035730000000002
+      },
+      "turns": {
+        "code-audit": 34,
+        "reconcile": 29
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "costs": {
+        "doc-consistency-review": 2.3866680000000002,
+        "reconcile": 1.7355494999999999
+      },
+      "turns": {
+        "doc-consistency-review": 27,
+        "reconcile": 36
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "costs": {
+        "code-audit": 0.8974044999999999,
+        "reconcile": 1.0726040000000001,
+        "security-audit": 2.7386480000000004
+      },
+      "turns": {
+        "code-audit": 16,
+        "reconcile": 20,
+        "security-audit": 29
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "costs": {
+        "code-audit": 2.0048919999999995,
+        "reconcile": 1.9613810000000003
+      },
+      "turns": {
+        "code-audit": 30,
+        "reconcile": 39
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "costs": {
+        "code-audit": 1.4681575000000002,
+        "reconcile": 1.3084889999999998
+      },
+      "turns": {
+        "code-audit": 19,
+        "reconcile": 30
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "status-never-a-pass",
+      "costs": {
+        "contract-audit": 2.6118250000000005,
+        "intent-capture": 1.588463,
+        "reconcile": 2.0206615
+      },
+      "turns": {
+        "contract-audit": 25,
+        "intent-capture": 20,
+        "reconcile": 35
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "intent-capture": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    }
+  ],
+  "total_cost_usd": 25.44
+}

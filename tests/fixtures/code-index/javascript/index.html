@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<body>
+<div id="app"></div>
+<script>
+function render(state) {
+  try {
+    return fetchModel(state, { mode: "auto" });
+  } catch (e) {
+    return null;
+  }
+}
+function fetchModel(state, opts) {
+  if (opts.mode === "auto") {
+    return state;
+  }
+  return undefined;
+}
+render({});
+missingHelper();
+</script>
+</body>
+</html>

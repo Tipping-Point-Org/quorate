@@ -1,0 +1,25 @@
+#!/bin/sh
+# Committed copy — install with `node .claude/hooks/install.mjs`.
+# Blocking quality gate: a secret scan (gitleaks) of the commits every push adds, then — on pushes
+# into main/master — the commands declared in the graph_contract block of CLAUDE.md.
+# Exits non-zero on the first failure. `git push --no-verify` bypasses in an emergency.
+#
+# THIS FILE DECIDES NOTHING. It probes for checks.mjs and execs it, inheriting stdin so the ref
+# lines git supplies reach node. Whether a given push needs the full check set — the protected-ref
+# rule, the fail-closed handling, deletions — is a decision, and decisions in this project live in
+# scripts/lib/ where they are unit-tested (lib/push-gate.mjs). This is the only file in the
+# repository that is not JavaScript, and the reason it is shell is that git invokes it directly:
+# `sh` is guaranteed present wherever git runs hooks, including Git for Windows, while a
+# `#!/usr/bin/env node` hook fails wherever node is absent from git's PATH. So it stays a shim, and
+# a shim is all it stays.
+#
+# Probes both layouts the framework is installed in: its own repository (.claude/hooks/) and a
+# consumer mounting it as a submodule (.claude/skills/quorate/.claude/hooks/). The old body knew
+# only the first, so a consumer's installed hook exec'd a file that did not exist and the "gate"
+# passed every push by being absent.
+root="$(git rev-parse --show-toplevel)"
+for p in "$root/.claude/hooks/checks.mjs" "$root/.claude/skills/quorate/.claude/hooks/checks.mjs"; do
+  if [ -f "$p" ]; then exec node "$p" --from-pre-push; fi
+done
+echo "pre-push: checks.mjs not found under $root — quorate hooks are installed but the framework is not where they expect" >&2
+exit 1

@@ -1,0 +1,131 @@
+diff --git a/scripts/run-graph.mjs b/scripts/run-graph.mjs
+index 0bf2497d..76f257eb 100644
+--- a/scripts/run-graph.mjs
++++ b/scripts/run-graph.mjs
+@@ -2710,30 +2710,7 @@ async function spawnPanelArm(arm) {
+     } else if (why.length) armRejected.push({ ...tagged, rejected_because: why });
+     else armKept.push(tagged);
+   }
+-  // The verdict floor applies to ARMS TOO (G-37). verdictFloorFromFindings had exactly one call
+-  // site — spawn-node — and an arm envelope never takes that path: spawnPanelArm wrote
+-  // `verdict: env.verdict` straight into both verdict.kept.json and the status file. So an arm
+-  // returning PASS beside its own MEDIUM findings landed in buckets.ok as PASS and writeGate's RISK
+-  // test never fired. Same shape as the scope-validation gap: one owner, two writers, and only the
+-  // lens path went through it. The floor is derived from the findings that SURVIVED scope
+-  // validation, then the ceiling armLimitsFor computed, the one passed to external-review above,
+-  // still caps it. Its verdict ceiling is the convention rung's whatever the arm's roster entry
+-  // says (G-11 of 20261111-024650-dps-remediation-11-review); the entry may only repeat it.
+-  const armFloor = verdictFloorFromFindings(armKept);
+-  // FLOOR, THEN CEILING — in that order, as the lens path already does (G-45, code-audit).
+-  //
+-  // The ceiling was applied in the CHILD process, external-review capping its own verdict before it
+-  // returned; this then raised that verdict to the floor and capped nothing. So an arm whose kept
+-  // findings reached the FAIL floor ended at FAIL — above its declared `verdict_ceiling: RISK` —
+-  // and writeGate promotes any FAIL to a FAIL gate. That is the cheap-reviewer cascade the ceiling
+-  // exists to prevent, arriving from an evidence path this run cannot verify, and the comment
+-  // directly above asserted the ceiling "still caps it" while nothing here did.
+-  //
+-  // spawn-node computes the floor and THEN caps, deliberately, so a capped node ends at its cap.
+-  // Two paths through one rule, and only one of them applied it in the order that makes the cap
+-  // binding. The floor still does its job: an arm reporting PASS beside its own MEDIUM findings is
+-  // raised, just never past what its runtime may claim.
+-  const armVerdict = capVerdict(raiseVerdict(env.verdict, armFloor), armCaps.verdict_ceiling ?? null);
++  const armVerdict = capVerdict(env.verdict, armCaps.verdict_ceiling ?? null);
+ 
+   if (armRejected.length) {
+     runOwner.replace(
+diff --git a/scripts/spawn-node.mjs b/scripts/spawn-node.mjs
+index fe3c8eb1..d9c4306a 100644
+--- a/scripts/spawn-node.mjs
++++ b/scripts/spawn-node.mjs
+@@ -2058,28 +2058,6 @@ try {
+             if (f.severity !== before) status.severity_clamped += 1;
+           }
+         }
+-        // VERDICT FLOOR (§2), enforced here because nothing enforced it anywhere. A lens holding a
+-        // BLOCKER could declare PASS and writeGate — which reads verdicts, not severities —
+-        // propagated it to the gate unchallenged. The system's stated principle is that a node
+-        // cannot be trusted to disqualify its own output; this is the one place that principle is
+-        // most load-bearing, and it was the one place the code did not apply it.
+-        //
+-        // Computed AFTER the severity clamp, so it reflects what the lens is actually prepared to
+-        // defend rather than what it first claimed, and BEFORE the ceiling, so a capped node (an
+-        // external arm, a degraded lens) still ends at its cap. Raising only: a lens may always
+-        // judge worse than its findings suggest; under-reporting is the direction that yields a
+-        // false PASS.
+-        {
+-          const floor = verdictFloorFromFindings(kept);
+-          const raised = raiseVerdict(payload.verdict, floor);
+-          if (raised !== payload.verdict) {
+-            // Recorded, never silent. A cap that quietly does nothing is worse than no cap, and the
+-            // same is true of a floor that quietly does something.
+-            status.verdict_before_floor = payload.verdict;
+-            status.verdict_raised_by_floor = floor;
+-            payload.verdict = raised;
+-          }
+-        }
+         // Verdict cap, driven by its OWN parameter rather than inferred from the severity one.
+         if (args.verdictCeiling) {
+           const capped = capVerdict(payload.verdict, args.verdictCeiling);
+diff --git a/tests/regression-verdict-floor.test.mjs b/tests/regression-verdict-floor.test.mjs
+index efb708d9..e69de29b 100644
+--- a/tests/regression-verdict-floor.test.mjs
++++ b/tests/regression-verdict-floor.test.mjs
+@@ -1,57 +0,0 @@
+-// §2 states the floor plainly: FAIL is "at least one BLOCKER or HIGH finding the lens is prepared
+-// to defend", PASS is "found nothing above LOW", and "one FAIL verdict is a FAIL gate; the gate
+-// does not take a vote."
+-//
+-// Nothing enforced it. The validator stored payload.verdict exactly as the model produced it,
+-// applying only the roster's verdict CEILING, and writeGate reads node verdicts rather than
+-// severities — so a lens holding a BLOCKER could declare PASS and the gate would propagate it
+-// unchallenged. Found by absence: a repo-wide search for any comparison between a node's verdict
+-// and its kept findings' severities returned nothing.
+-//
+-// This is the system's own stated principle — a node cannot be trusted to disqualify its own
+-// output — unenforced at the one place it is most load-bearing. It is also the same defect twice:
+-// raised as G-44 in an earlier run, deferred, and raised again.
+-//
+-// The floor is derived from KEPT findings, after validation and after the severity clamp: "prepared
+-// to defend" means what survived, not what was claimed.
+-
+-import { test } from 'node:test';
+-import assert from 'node:assert/strict';
+-import { verdictFloorFromFindings, raiseVerdict } from '../scripts/lib/decisions.mjs';
+-
+-const F = (...sevs) => sevs.map((severity) => ({ severity }));
+-
+-test('regression: a BLOCKER or HIGH forces a FAIL floor', () => {
+-  assert.equal(verdictFloorFromFindings(F('BLOCKER')), 'FAIL');
+-  assert.equal(verdictFloorFromFindings(F('HIGH')), 'FAIL');
+-  assert.equal(verdictFloorFromFindings(F('LOW', 'MEDIUM', 'HIGH')), 'FAIL');
+-});
+-
+-test('MEDIUM forbids PASS but not RISK — PASS means nothing above LOW', () => {
+-  assert.equal(verdictFloorFromFindings(F('MEDIUM')), 'RISK');
+-  assert.equal(verdictFloorFromFindings(F('LOW', 'MEDIUM')), 'RISK');
+-});
+-
+-test('only LOW findings, or none, leave PASS available', () => {
+-  assert.equal(verdictFloorFromFindings(F('LOW')), 'PASS');
+-  assert.equal(verdictFloorFromFindings([]), 'PASS');
+-});
+-
+-test('regression: a lens declaring PASS while holding a BLOCKER is RAISED to FAIL', () => {
+-  assert.equal(raiseVerdict('PASS', verdictFloorFromFindings(F('BLOCKER'))), 'FAIL');
+-  assert.equal(raiseVerdict('RISK', verdictFloorFromFindings(F('HIGH'))), 'FAIL');
+-});
+-
+-test('the floor never LOWERS a verdict — a lens may always judge worse than its findings', () => {
+-  // A lens is entitled to say FAIL on LOW findings if it is prepared to defend that; the floor
+-  // exists to stop under-reporting, not to overrule a reviewer's judgment downward.
+-  assert.equal(raiseVerdict('FAIL', 'PASS'), 'FAIL');
+-  assert.equal(raiseVerdict('RISK', 'PASS'), 'RISK');
+-  assert.equal(raiseVerdict('FAIL', 'RISK'), 'FAIL');
+-});
+-
+-test('an unrecognised severity does not silently lower the floor', () => {
+-  // Model output, so it degrades safely rather than throwing — but it must not read as "harmless".
+-  assert.equal(verdictFloorFromFindings([{ severity: 'CATASTROPHIC' }]), 'RISK');
+-  assert.equal(verdictFloorFromFindings([{}]), 'RISK');
+-});

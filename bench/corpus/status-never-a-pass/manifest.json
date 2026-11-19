@@ -1,0 +1,21 @@
+{
+  "id": "status-never-a-pass",
+  "title": "The adapter demands a status field from every reviewer and then ignores it: a response reporting status refused alongside verdict PASS sails through as a PASS",
+  "source": "historical",
+  "found_by": "the status contract was built 2026-08-31 precisely so a reviewer-reported failure could never read as success; this seed removes the enforcement while the prompt still demands the field",
+  "defect": {
+    "file": "scripts/external-review.mjs",
+    "anchor": "chars of output",
+    "lenses": [
+      "contract-audit"
+    ],
+    "severity_floor": "HIGH"
+  },
+  "scope": [
+    "scripts"
+  ],
+  "tolerance": 40,
+  "request": "docs/requests/reviewer-failure-status.md",
+  "removes_tests": true,
+  "notes": "The patch carries its own approved request (docs/requests/reviewer-failure-status.md) into the worktree, whose criterion 2 states that a non-ok status must never surface as PASS — the criterion the seeded code violates, which is what makes this a contract-audit seed. Tolerance is widened to 40: the violation is the ABSENCE of a guard between the parse site and the emit site, and a reviewer may defensibly cite either end of that span. Strips the two tests pinning soft-failure handling; the prompt-side STATUS_CONTRACT stays, so the seeded adapter demands the field it then ignores."
+}

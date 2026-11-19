@@ -1,0 +1,21 @@
+{
+  "id": "numeric-bundle-pager",
+  "title": "The tail guard decides WHETHER to scan a short-flag cluster from its first character, so a cluster opening with a digit is never examined and -2Ocat reaches git grep --open-files-in-pager, which runs the pager through a shell",
+  "source": "historical",
+  "found_by": "self-review 20260905-202502-verify; security-audit, demonstrated live rather than argued",
+  "defect": {
+    "file": "scripts/lib/forbidden-tail.mjs",
+    "anchor": "if (!/^-[A-Za-z]/.test(t)) return false;",
+    "lenses": [
+      "security-audit",
+      "code-audit"
+    ],
+    "severity_floor": "HIGH"
+  },
+  "scope": [
+    "scripts/lib",
+    "scripts/capture.mjs"
+  ],
+  "removes_tests": true,
+  "notes": "The hardest seed in the corpus, and the most instructive. capture.mjs is the node-containment boundary -- git diff and log were removed from the direct Bash grant so they would pass through it -- and this guard is what capture consults. The seeded form requires a LETTER after the dash (/^-[A-Za-z]/), which looks correct: it reads as 'is this a short-flag bundle?'. It is wrong because git grep declares OPT_NUMBER_CALLBACK, making -<num> a shortcut for -C NUM, and parse_short_opt keeps parsing the SAME token after the digits. So -2Ocat is -2 -O cat, reaching --open-files-in-pager, which run_pager launches with child.use_shell = 1: arbitrary command execution, not merely launching a named program. Demonstrated twice in the finding run -- -nOecho was correctly REFUSED while -2Oecho PWNED exited 0 and printed, and a second capture wrote C:/Windows/win.ini into that run's own evidence directory. Detecting it needs external knowledge of git's parse-options plus the instinct to TRY it; reading the regex is not enough, which is why eleven prior reviews with capture.mjs in scope missed the sibling defect one layer up. The patch also strips the comment narrating the fix, per the clamp-silent-noop v2 lesson: prose describing the correct behaviour turns a pre-discovery detection into a doc-vs-code contradiction, which measures something else."
+}

@@ -1,0 +1,1 @@
+This is batch {{batch}} of {{of}}: {{total}} groups were split by file, at most {{max}} to a batch. The other batches are judged in other contexts. Set root_cause_group only to a group in your file; if a root cause looks to lie elsewhere, say so in the rationale instead.

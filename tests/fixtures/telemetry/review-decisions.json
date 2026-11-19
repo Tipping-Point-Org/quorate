@@ -1,0 +1,128 @@
+[
+  {
+    "group_id": "G-2",
+    "decision": "confirmed",
+    "severity": "MEDIUM",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-1",
+    "decision": "symptom",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-13",
+    "decision": "confirmed",
+    "severity": "MEDIUM",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-12",
+    "decision": "confirmed",
+    "severity": "MEDIUM",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-14",
+    "decision": "confirmed",
+    "severity": "MEDIUM",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-10",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-20",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-19",
+    "decision": "confirmed",
+    "severity": "MEDIUM",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-21",
+    "decision": "symptom",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-4",
+    "decision": "confirmed",
+    "severity": "MEDIUM",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-5",
+    "decision": "symptom",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-8",
+    "decision": "confirmed",
+    "severity": "MEDIUM",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-3",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-17",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-15",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-16",
+    "decision": "dropped",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-6",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-18",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-7",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-9",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  },
+  {
+    "group_id": "G-11",
+    "decision": "confirmed",
+    "severity": "LOW",
+    "rationale": "MODEL TEXT"
+  }
+]

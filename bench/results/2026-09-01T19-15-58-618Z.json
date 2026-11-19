@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-01T19:15:58.618Z",
+  "finished_at": "2026-09-01T19:56:57.564Z",
+  "tolerance": 15,
+  "not_run": [],
+  "scores": [
+    {
+      "seed": "clamp-silent-noop",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 32,
+          "severity": "HIGH",
+          "claim": "Lines 32-33 guard floor/ceiling with `SEVERITY_RUNGS.includes(...)` and fall through when it fails, so an unrecognised cap value silently skips the clamp and returns the finding's original severity. That contradicts this function's own docstring on lines 22-27, which states such values THROW because 'a cap that quietly does nothing when misconfigured is worse than no cap'. The consequence is the e"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 3
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 174,
+          "severity": "MEDIUM",
+          "claim": "`classifyPanelProbe` decides an arm never ran by testing `n.item.includes(reviewer)` — a bare substring match — but `external-review.mjs`'s `runtimeNotChecked()` (scripts/external-review.mjs:160-178) unconditionally appends `{item: \"<reviewer> model\"}` and `{item: \"<reviewer> reasoning effort\"}` to the envelope of every arm that actually launched with an unpinned model/effort, and `check-panel.mjs"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 74,
+          "severity": "MEDIUM",
+          "claim": "classifyResult tests `!hasPayload` before `schemaVariant === 'none'`, so a prose node — which has no structured_output BY DEFINITION — is classified as branch 'no-payload' / state DEGRADED, the exact inversion the function's own docstring at lines 65-69 declares forbidden ('ORDER IS THE CONTRACT') and that spawn-node.mjs's inline chain still gets right (schemaVariant === 'none' at :1169 precedes !"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 5
+      }
+    }
+  ],
+  "summary": {
+    "seeds": 3,
+    "caught": 3,
+    "overall_recall": 1,
+    "lenses": {
+      "code-audit": {
+        "expected": 3,
+        "caught": 3,
+        "recall": 1,
+        "cost_usd": null
+      }
+    }
+  },
+  "total_cost_usd": 13.77
+}

@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-02T02:03:12.575Z",
+  "finished_at": "2026-09-02T02:22:56.202Z",
+  "tolerance": 15,
+  "not_run": [],
+  "scores": [
+    {
+      "seed": "clamp-silent-noop",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 24,
+          "severity": "MEDIUM",
+          "claim": "`clampSeverity` re-guards floor/ceiling with `SEVERITY_RUNGS.includes(...)` inside the `if`, so an unrecognised cap value (the historical case: a VERDICT such as 'RISK' handed to the SEVERITY parameter) is silently skipped and the finding is returned at its original, unclamped severity instead of throwing; the function reports success and every downstream artifact — expected.json's `severity_ceili"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {}
+    },
+    {
+      "seed": "probe-substring-match",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 174,
+          "severity": "MEDIUM",
+          "claim": "`classifyPanelProbe` decides an arm was `unavailable` from a bare substring test (`n.item.includes(reviewer)`) over every `not_checked[]` item, but that entry is written by the arm for reasons other than not running: `external-review.mjs:165` and `:173` emit `{item: \"codex model\"}` and `{item: \"codex reasoning effort\"}` on a REACHABLE arm whose model/effort were not pinned. Because the item is onl"
+        },
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 174,
+          "severity": "MEDIUM",
+          "claim": "The colliding item strings are not hypothetical: git grep over the only producer of these envelopes shows `${args.reviewer} model`, `${args.reviewer} reasoning effort`, `proposal batch from '${args.reviewer}'` and `${dropped} candidate(s) from '${args.reviewer}'` all emitted on paths where the arm DID launch, alongside the two `external reviewer|proposer '<name>'` items that mean it did not. A pre"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 67,
+          "severity": "HIGH",
+          "claim": "`classifyResult` now tests `!hasPayload` before the `schemaVariant === 'none'` branch, so a prose node — which by definition returns no `structured_output` and no JSON-parseable result — is classified `{branch:'no-payload', state:'DEGRADED'}` and can never reach the `prose`/OK branch below it; this is the exact ordering the function's own deleted header comment and the deleted regression tests exi"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1
+      }
+    }
+  ],
+  "summary": {
+    "seeds": 3,
+    "caught": 3,
+    "overall_recall": 1,
+    "lenses": {
+      "code-audit": {
+        "expected": 3,
+        "caught": 3,
+        "recall": 1,
+        "cost_usd": null
+      }
+    }
+  },
+  "total_cost_usd": 7.11
+}

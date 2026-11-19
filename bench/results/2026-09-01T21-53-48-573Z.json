@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-01T21:53:48.573Z",
+  "finished_at": "2026-09-01T22:33:58.675Z",
+  "tolerance": 15,
+  "not_run": [],
+  "scores": [
+    {
+      "seed": "clamp-silent-noop",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 25,
+          "severity": "HIGH",
+          "claim": "`clampSeverity` now folds `SEVERITY_RUNGS.includes(...)` into the `if` and falls through when it fails, so an unrecognised cap (the historical case: the verdict 'RISK' in the severity slot) is silently discarded and the original severity returned. This is wrong because the enforcement point is declared to be this function — spawn-node.mjs:1220-1224 says \"Both THROW on a value that is not a rung/ve"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 3
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 174,
+          "severity": "MEDIUM",
+          "claim": "classifyPanelProbe treats ANY not_checked entry whose `item` merely CONTAINS the reviewer's name as proof the arm never ran, rather than matching the exact item unavailable() writes (`external reviewer '<name>'`, external-review.mjs:204). That is wrong because the SUCCESS path emits reviewer-named entries too: external-review.mjs:542 folds runtimeNotChecked() into the returned envelope, and that e"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 67,
+          "severity": "MEDIUM",
+          "claim": "`classifyResult` tests `!hasPayload` (line 67) before `schemaVariant === 'none'` (line 75), but a prose node has no structured output BY DEFINITION — that is what variant `none` means — so `classifyResult({schemaVariant:'none', hasPayload:false, resultText:'<real analysis>'})` now returns `{branch:'no-payload', state:'DEGRADED'}` instead of `{branch:'prose', state:'OK'}`, and per disk-first-protoc"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      }
+    }
+  ],
+  "summary": {
+    "seeds": 3,
+    "caught": 3,
+    "overall_recall": 1,
+    "lenses": {
+      "code-audit": {
+        "expected": 3,
+        "caught": 3,
+        "recall": 1,
+        "cost_usd": null
+      }
+    }
+  },
+  "total_cost_usd": 12.91
+}

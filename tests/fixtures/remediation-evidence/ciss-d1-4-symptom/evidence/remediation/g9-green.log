@@ -1,0 +1,8 @@
+$ node --test tests/regression-ciss-d1-4-default-literal.test.mjs
+# admitted: test_one tests/regression-ciss-d1-4-default-literal.test.mjs
+# cwd: C:\work\quorate
+# exit: 0
+# timeout: 15 minute(s)
+# elapsed: 1.4 of 30 minute(s)
+# captured: 2026-10-22T22:15:38.729Z
+------------------------------------------------------------------------

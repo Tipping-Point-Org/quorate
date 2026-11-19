@@ -1,0 +1,607 @@
+{
+ "language": "python",
+ "calls": [
+  {
+   "file": "p01_functiondef.py",
+   "line": 4,
+   "col": 4,
+   "text": "g",
+   "expected": "p01_functiondef.g",
+   "why": "S01: module def g seen from f"
+  },
+  {
+   "file": "p02_asyncfunctiondef.py",
+   "line": 4,
+   "col": 10,
+   "text": "g",
+   "expected": "p02_asyncfunctiondef.g",
+   "why": "AsyncFunctionDef row: module g"
+  },
+  {
+   "file": "p03_lambda.py",
+   "line": 3,
+   "col": 14,
+   "text": "g",
+   "expected": "unresolved",
+   "why": "Lambda row: g is the lambda's parameter"
+  },
+  {
+   "file": "p03_lambda.py",
+   "line": 4,
+   "col": 12,
+   "text": "g",
+   "expected": "p03_lambda.g",
+   "why": "Lambda row: no parameter, module g"
+  },
+  {
+   "file": "p04_classdef_body.py",
+   "line": 4,
+   "col": 4,
+   "text": "g",
+   "expected": "p04_classdef_body.g",
+   "why": "ClassDef body row: class body sees module g"
+  },
+  {
+   "file": "p04_classdef_body.py",
+   "line": 6,
+   "col": 8,
+   "text": "self.m",
+   "expected": "p04_classdef_body.C.m",
+   "why": "S08: self.m() -> the class's method"
+  },
+  {
+   "file": "p05_listcomp_module.py",
+   "line": 4,
+   "col": 5,
+   "text": "g",
+   "expected": "unresolved",
+   "why": "comprehension row: g is the comprehension target"
+  },
+  {
+   "file": "p06_setcomp_dictcomp_genexp_module.py",
+   "line": 4,
+   "col": 5,
+   "text": "g",
+   "expected": "unresolved",
+   "why": "comprehension row: setcomp target g"
+  },
+  {
+   "file": "p06_setcomp_dictcomp_genexp_module.py",
+   "line": 5,
+   "col": 5,
+   "text": "g",
+   "expected": "unresolved",
+   "why": "comprehension row: dictcomp target g"
+  },
+  {
+   "file": "p06_setcomp_dictcomp_genexp_module.py",
+   "line": 6,
+   "col": 5,
+   "text": "g",
+   "expected": "unresolved",
+   "why": "comprehension row: genexp target g"
+  },
+  {
+   "file": "p07_listcomp_in_function.py",
+   "line": 4,
+   "col": 12,
+   "text": "g",
+   "expected": "unresolved",
+   "why": "comprehension in function: target g"
+  },
+  {
+   "file": "p08_comp_in_class_body.py",
+   "line": 6,
+   "col": 9,
+   "text": "g2",
+   "expected": "unresolved",
+   "why": "comprehension in class body: class-body name g2 is not visible in the comprehension scope (no module g2 -> NameError)"
+  },
+  {
+   "file": "p08_comp_in_class_body.py",
+   "line": 7,
+   "col": 20,
+   "text": "g2",
+   "expected": "os.path",
+   "why": "comprehension first iterator is evaluated in the class scope: g2 = from os import path"
+  },
+  {
+   "file": "p09_comp_target_shadows_builtin_module.py",
+   "line": 4,
+   "col": 5,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "comprehension target len shadows the builtin"
+  },
+  {
+   "file": "p10_typeparams_def_312.py",
+   "line": 3,
+   "col": 9,
+   "text": "g",
+   "expected": "p10_typeparams_def_312.g",
+   "why": "type-param bound: annotation scope sees module g"
+  },
+  {
+   "file": "p10_typeparams_def_312.py",
+   "line": 4,
+   "col": 4,
+   "text": "g",
+   "expected": "p10_typeparams_def_312.g",
+   "why": "body of f: module g"
+  },
+  {
+   "file": "p11_typeparams_class_312.py",
+   "line": 3,
+   "col": 11,
+   "text": "g",
+   "expected": "p11_typeparams_class_312.g",
+   "why": "class type-param bound: annotation scope sees module g"
+  },
+  {
+   "file": "p12_typealias_312.py",
+   "line": 3,
+   "col": 9,
+   "text": "g",
+   "expected": "p12_typealias_312.g",
+   "why": "TypeAlias value: lazy annotation scope sees module g"
+  },
+  {
+   "file": "p12_typealias_312.py",
+   "line": 4,
+   "col": 10,
+   "text": "g",
+   "expected": "p12_typealias_312.g",
+   "why": "TypeAlias type-param bound: module g"
+  },
+  {
+   "file": "p13_typevar_default_313.py",
+   "line": 3,
+   "col": 10,
+   "text": "g",
+   "expected": "p13_typevar_default_313.g",
+   "why": "TypeVar default (3.13): annotation scope sees module g"
+  },
+  {
+   "file": "p14_assign_function.py",
+   "line": 5,
+   "col": 4,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "Assign row: local len = 1"
+  },
+  {
+   "file": "p14_assign_function.py",
+   "line": 7,
+   "col": 4,
+   "text": "g",
+   "expected": "unresolved",
+   "why": "Assign row: local g = 2"
+  },
+  {
+   "file": "p15_assign_module.py",
+   "line": 4,
+   "col": 0,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "Assign row, module level: len = os.getcwd (an assignment)"
+  },
+  {
+   "file": "p15_assign_module.py",
+   "line": 6,
+   "col": 0,
+   "text": "g",
+   "expected": "unresolved",
+   "why": "Assign row, module level: g rebound to os.getcwd after def g"
+  },
+  {
+   "file": "p16_annassign_augassign.py",
+   "line": 5,
+   "col": 4,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "AnnAssign row: local len"
+  },
+  {
+   "file": "p16_annassign_augassign.py",
+   "line": 7,
+   "col": 4,
+   "text": "abs",
+   "expected": "unresolved",
+   "why": "AugAssign row: abs is local (UnboundLocalError)"
+  },
+  {
+   "file": "p17_namedexpr.py",
+   "line": 5,
+   "col": 4,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "NamedExpr row: local len"
+  },
+  {
+   "file": "p17_namedexpr.py",
+   "line": 7,
+   "col": 0,
+   "text": "abs",
+   "expected": "unresolved",
+   "why": "NamedExpr in a module-level comprehension binds module abs (assignment)"
+  },
+  {
+   "file": "p18_for_target.py",
+   "line": 5,
+   "col": 8,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "For target row: local len"
+  },
+  {
+   "file": "p18_for_target.py",
+   "line": 7,
+   "col": 4,
+   "text": "abs",
+   "expected": "unresolved",
+   "why": "For target row, module level: abs is the loop target"
+  },
+  {
+   "file": "p19_with_as.py",
+   "line": 4,
+   "col": 9,
+   "text": "open",
+   "expected": "builtins.open",
+   "why": "no binding of open: builtin"
+  },
+  {
+   "file": "p19_with_as.py",
+   "line": 5,
+   "col": 8,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "With-as row: local len"
+  },
+  {
+   "file": "p19_with_as.py",
+   "line": 6,
+   "col": 5,
+   "text": "open",
+   "expected": "builtins.open",
+   "why": "no binding of open: builtin"
+  },
+  {
+   "file": "p19_with_as.py",
+   "line": 7,
+   "col": 4,
+   "text": "abs",
+   "expected": "unresolved",
+   "why": "With-as row, module level: abs bound by as"
+  },
+  {
+   "file": "p20_except_as.py",
+   "line": 7,
+   "col": 8,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "ExceptHandler row: local len"
+  },
+  {
+   "file": "p20_except_as.py",
+   "line": 11,
+   "col": 4,
+   "text": "abs",
+   "expected": "unresolved",
+   "why": "ExceptHandler row, module level: abs bound by as"
+  },
+  {
+   "file": "p21_trystar_311.py",
+   "line": 7,
+   "col": 8,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "TryStar row: local len"
+  },
+  {
+   "file": "p22_import_in_function_and_block.py",
+   "line": 6,
+   "col": 4,
+   "text": "p.join",
+   "expected": "os.path.join",
+   "why": "Import in a block of f: p = os.path"
+  },
+  {
+   "file": "p22_import_in_function_and_block.py",
+   "line": 11,
+   "col": 0,
+   "text": "j.dumps",
+   "expected": "unresolved",
+   "why": "j bound twice at module level: import json AND j = None (an assignment)"
+  },
+  {
+   "file": "p23_import_star.py",
+   "line": 2,
+   "col": 0,
+   "text": "join",
+   "expected": "unresolved",
+   "why": "from m import * row: dynamic"
+  },
+  {
+   "file": "p24_global.py",
+   "line": 5,
+   "col": 4,
+   "text": "g",
+   "expected": "p24_global.g",
+   "why": "Global row: `global g` with no rebinding anywhere; g is the module def",
+   "unsure": true
+  },
+  {
+   "file": "p25_nonlocal.py",
+   "line": 7,
+   "col": 8,
+   "text": "h",
+   "expected": "p25_nonlocal.f.h",
+   "why": "Nonlocal row: `nonlocal h` with no rebinding; h is f's def (a closure: S10 doctrine leaves it unresolved, which is not wrong)",
+   "unsure": true
+  },
+  {
+   "file": "p25_nonlocal.py",
+   "line": 8,
+   "col": 4,
+   "text": "h",
+   "expected": "p25_nonlocal.f.h",
+   "why": "f's own def h"
+  },
+  {
+   "file": "p26_delete.py",
+   "line": 5,
+   "col": 4,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "Delete row: del makes len local"
+  },
+  {
+   "file": "p27_match_310.py",
+   "line": 4,
+   "col": 10,
+   "text": "g",
+   "expected": "p27_match_310.g",
+   "why": "match subject: module g"
+  },
+  {
+   "file": "p27_match_310.py",
+   "line": 6,
+   "col": 12,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "MatchStar row: local len"
+  },
+  {
+   "file": "p27_match_310.py",
+   "line": 8,
+   "col": 12,
+   "text": "abs",
+   "expected": "unresolved",
+   "why": "MatchMapping rest row: local abs"
+  },
+  {
+   "file": "p27_match_310.py",
+   "line": 10,
+   "col": 12,
+   "text": "min",
+   "expected": "unresolved",
+   "why": "MatchAs row: local min"
+  },
+  {
+   "file": "p27_match_310.py",
+   "line": 12,
+   "col": 12,
+   "text": "g",
+   "expected": "p27_match_310.g",
+   "why": "case body: module g"
+  },
+  {
+   "file": "p27_match_310.py",
+   "line": 13,
+   "col": 18,
+   "text": "g",
+   "expected": "p27_match_310.g",
+   "why": "guard: module g"
+  },
+  {
+   "file": "p28_match_module_310.py",
+   "line": 3,
+   "col": 6,
+   "text": "g",
+   "expected": "p28_match_module_310.g",
+   "why": "match subject: module g"
+  },
+  {
+   "file": "p28_match_module_310.py",
+   "line": 5,
+   "col": 8,
+   "text": "len",
+   "expected": "unresolved",
+   "why": "MatchStar row, module level: len bound by the pattern"
+  },
+  {
+   "file": "p29_nested_scope_binding_leaks.py",
+   "line": 6,
+   "col": 4,
+   "text": "len",
+   "expected": "builtins.len",
+   "why": "nested-function binding row: inner's len is inner's; f's len is the builtin"
+  },
+  {
+   "file": "p30_func_decorator.py",
+   "line": 5,
+   "col": 1,
+   "text": "g",
+   "expected": "p30_func_decorator.g",
+   "why": "decorator evaluated in the enclosing (module) scope"
+  },
+  {
+   "file": "p31_class_decorator.py",
+   "line": 3,
+   "col": 1,
+   "text": "g",
+   "expected": "p31_class_decorator.g",
+   "why": "class decorator evaluated in the module scope"
+  },
+  {
+   "file": "p32_class_bases_keywords.py",
+   "line": 3,
+   "col": 8,
+   "text": "g",
+   "expected": "p32_class_bases_keywords.g",
+   "why": "class base evaluated in the module scope"
+  },
+  {
+   "file": "p32_class_bases_keywords.py",
+   "line": 3,
+   "col": 23,
+   "text": "g",
+   "expected": "p32_class_bases_keywords.g",
+   "why": "metaclass= keyword evaluated in the module scope"
+  },
+  {
+   "file": "p33_defaults_kwdefaults.py",
+   "line": 3,
+   "col": 8,
+   "text": "g",
+   "expected": "p33_defaults_kwdefaults.g",
+   "why": "default evaluated in the enclosing scope; body's def g not visible"
+  },
+  {
+   "file": "p33_defaults_kwdefaults.py",
+   "line": 3,
+   "col": 18,
+   "text": "g",
+   "expected": "p33_defaults_kwdefaults.g",
+   "why": "kw default evaluated in the enclosing scope"
+  },
+  {
+   "file": "p34_arg_annotations_returns.py",
+   "line": 3,
+   "col": 9,
+   "text": "g",
+   "expected": "p34_arg_annotations_returns.g",
+   "why": "arg annotation evaluated in the module scope"
+  },
+  {
+   "file": "p34_arg_annotations_returns.py",
+   "line": 3,
+   "col": 21,
+   "text": "g",
+   "expected": "p34_arg_annotations_returns.g",
+   "why": "*args annotation: module scope"
+  },
+  {
+   "file": "p34_arg_annotations_returns.py",
+   "line": 3,
+   "col": 32,
+   "text": "g",
+   "expected": "p34_arg_annotations_returns.g",
+   "why": "**kw annotation: module scope"
+  },
+  {
+   "file": "p34_arg_annotations_returns.py",
+   "line": 3,
+   "col": 40,
+   "text": "g",
+   "expected": "p34_arg_annotations_returns.g",
+   "why": "return annotation: module scope"
+  },
+  {
+   "file": "p35_annassign_annotation_in_body.py",
+   "line": 4,
+   "col": 7,
+   "text": "g",
+   "expected": "p35_annassign_annotation_in_body.g",
+   "why": "resolution is lexical: the name reaches the module def whether or not the annotation is evaluated"
+  },
+  {
+   "file": "p35_annassign_annotation_in_body.py",
+   "line": 6,
+   "col": 7,
+   "text": "g",
+   "expected": "p35_annassign_annotation_in_body.g",
+   "why": "a class-body annotation is evaluated (3.13) and reaches the module def"
+  },
+  {
+   "file": "p36_comp_first_iterator.py",
+   "line": 5,
+   "col": 23,
+   "text": "g",
+   "expected": "p36_comp_first_iterator.f.g",
+   "why": "first iterator evaluated in f's scope: f's def g"
+  },
+  {
+   "file": "p36_comp_first_iterator.py",
+   "line": 5,
+   "col": 36,
+   "text": "g",
+   "expected": "p36_comp_first_iterator.f.g",
+   "why": "later iterator: f's def g (inlined comprehension 3.12+; a closure before, S10 doctrine would leave it unresolved)"
+  },
+  {
+   "file": "p37_lambda_defaults.py",
+   "line": 5,
+   "col": 20,
+   "text": "g",
+   "expected": "p37_lambda_defaults.f.g",
+   "why": "lambda default evaluated in f's scope: f's def g"
+  },
+  {
+   "file": "p38_method_decorators_defaults_in_class.py",
+   "line": 5,
+   "col": 18,
+   "text": "deco",
+   "expected": "p38_method_decorators_defaults_in_class.C.deco",
+   "why": "method default evaluated in the class scope: C.deco"
+  },
+  {
+   "file": "p39_staticmethod_self.py",
+   "line": 4,
+   "col": 8,
+   "text": "x.s",
+   "expected": "unresolved",
+   "why": "staticmethod: x is a plain parameter, receiver of unknown type"
+  },
+  {
+   "file": "p39_staticmethod_self.py",
+   "line": 6,
+   "col": 8,
+   "text": "self.m",
+   "expected": "p39_staticmethod_self.C.m",
+   "why": "S08: self.m()"
+  },
+  {
+   "file": "p50_member_rebound.py",
+   "line": 3,
+   "col": 26,
+   "text": "self.xxx",
+   "expected": "unresolved",
+   "why": "class A: the later `xxx = 1` in the class body wins, so self.xxx is an int"
+  },
+  {
+   "file": "p50_member_rebound.py",
+   "line": 7,
+   "col": 26,
+   "text": "self.xxx",
+   "expected": "p50_member_rebound.B.xxx",
+   "why": "class B: def xxx is the last binding"
+  },
+  {
+   "file": "p50_member_rebound.py",
+   "line": 9,
+   "col": 26,
+   "text": "self.xxx",
+   "expected": "p50_member_rebound.C.xxx",
+   "why": "S08: C.xxx"
+  },
+  {
+   "file": "p50_member_rebound.py",
+   "line": 10,
+   "col": 26,
+   "text": "xxx",
+   "expected": "p50_member_rebound.xxx",
+   "why": "class-body names are not visible from a method: bare xxx is the module def"
+  }
+ ]
+}

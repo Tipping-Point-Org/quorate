@@ -1,0 +1,20 @@
+{
+  "id": "doc-stale-panel-contract",
+  "title": "external-reviewers.md describes the panel arm as receiving only project context and scope, while run-graph builds its prompt from the shadowed lens's own SKILL.md criteria plus the brief",
+  "source": "historical",
+  "found_by": "doc drift found 2026-08-31: three files still described the pre-codex-prompts mechanism after the code changed",
+  "defect": {
+    "file": "shared/external-reviewers.md",
+    "anchor": "An external reviewer has no session context, no brief, and no memory of the run",
+    "lenses": [
+      "doc-consistency-review"
+    ],
+    "severity_floor": "MEDIUM"
+  },
+  "scope": [
+    "shared",
+    "scripts"
+  ],
+  "removes_tests": false,
+  "notes": "The doc's numbered list omits the lens criteria entirely and says 'no brief' — while buildCodexShadowPrompt() in scripts/lib/codex-prompts.mjs assembles role, lens SKILL.md, constraints and brief, and run-graph's spawnPanelArm cites the criteria-plus-brief rule as the mechanism. The tell a reviewer can find is the disagreement itself: prose promising a behaviour the code does not have is this lens's highest-value finding class. No tests pin this prose, so removes_tests is false."
+}

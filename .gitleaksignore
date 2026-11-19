@@ -1,0 +1,123 @@
+# Findings of quorate's key-value rule (.claude/hooks/gitleaks.toml) in this repository's HISTORY, allowed one by
+# one (operator, 2026-09-28: "fingerprint the 11"). Every one was read before it was listed: none is a
+# credential. A fingerprint is commit:file:rule:line, so the same text written again anywhere is still caught.
+# New fixtures build their credential names at runtime instead ('pass' + 'word'), so fixtures add nothing here.
+# A review that QUOTES an example credential can; each such entry is an operator's decision, recorded with it.
+
+# Codex's r5 G-11 finding, quoting an example password, and the reconciler repeating it.
+cdc855d12f49c7ab2c5737f5b6190da4e91ec937:.claude/reviews/20260928-171758-ltr-review-r5/nodes/panel-codex-security-report.md:quorate-key-value:17
+cdc855d12f49c7ab2c5737f5b6190da4e91ec937:.claude/reviews/20260928-171758-ltr-review-r5/reconciled.md:quorate-key-value:41
+# The design note's description of the gitleaks probe, quoting its made-up fixture value.
+d915e8c0b3eb751012c775ed3584fef172be46cd:.claude/requests/ledger-trust-boundaries.design.md:quorate-key-value:48
+# Test markers for content outside the repository (the OUTSIDE-CONTENT constants).
+7635e9ad7035aa0aa5492f40f3ca43a1f9f849e7:tests/regression-arms-surface-ars-r5.test.mjs:quorate-key-value:12
+1426ac07d5de7016c54b01faf06e2c63240d729f:tests/regression-arms-surface-ars-r3.test.mjs:quorate-key-value:11
+2f87d204cf8d5edcf879ba23681a51badf9d8524:tests/regression-arms-surface-link-classes.test.mjs:quorate-key-value:21
+# Fake vendor stderr ("sk-ant-not-a-real-key-…"), kept off the tracked side by the test.
+c61551c100ccce18a46bf98f7e4ec17b9c6fb4b9:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-key-value:32
+# Fake environments for the reviewer env filter: 'sk-vendor', 'ghp_secret', 'sk-openai', 'agy-secret'.
+edd61d4af3d6f57a7a06d15c1d00228bfd74521c:tests/regression-panel-runtime.test.mjs:quorate-key-value:417
+edd61d4af3d6f57a7a06d15c1d00228bfd74521c:tests/regression-panel-runtime.test.mjs:quorate-key-value:418
+a43a3f2b8e86e79a471ae9e71895d18984baf7c8:tests/regression-panel-runtime.test.mjs:quorate-key-value:396
+a43a3f2b8e86e79a471ae9e71895d18984baf7c8:tests/regression-panel-runtime.test.mjs:quorate-key-value:397
+
+# The ltb-review run (20260928-221454) quoting its own G-11 example, a single-quoted key the redaction then missed
+# (operator, 2026-09-28: "Fingerprint the 5"). The review's files stay exactly as written.
+a0692988ed2a3d9ff61e9a0cd52bbe3893f353a8:.claude/reviews/20260928-221454-ltb-review/nodes/panel-codex-security-report.md:quorate-key-value:29
+a0692988ed2a3d9ff61e9a0cd52bbe3893f353a8:.claude/reviews/20260928-221454-ltb-review/finding-groups.json:quorate-key-value:262
+a0692988ed2a3d9ff61e9a0cd52bbe3893f353a8:.claude/reviews/20260928-221454-ltb-review/reconciled.md:quorate-key-value:5
+a0692988ed2a3d9ff61e9a0cd52bbe3893f353a8:.claude/reviews/20260928-221454-ltb-review/reconciled.md:quorate-key-value:23
+a0692988ed2a3d9ff61e9a0cd52bbe3893f353a8:.claude/reviews/20260928-221454-ltb-review/reconciled.md:quorate-key-value:25
+
+# ltb-review-r2 (20260928-232013) quoting an example value in an unquoted api_key line, flagged by gitleaks' default
+# generic-api-key rule (operator, 2026-09-28: "5 fingerprint"). The review's files stay exactly as written.
+ca1294e9c870eb5ea49ebf6ae5f585e6fde8a289:.claude/reviews/20260928-232013-ltb-review-r2/reconciled.md:generic-api-key:34
+ca1294e9c870eb5ea49ebf6ae5f585e6fde8a289:.claude/reviews/20260928-232013-ltb-review-r2/nodes/security-audit-report.md:generic-api-key:18
+
+# Flagged when the key-value rules widened (quoted values from 4 characters; unquoted generated values), per
+# the operator's "2 A"; allowed one by one (operator, 2026-09-28: "Fingerprint the 9 (Recommended)"). Test fixtures
+# (short placeholder tokens and a planted value in the ltr3 redaction test) and ltb-review-r2 quoting G-12/G-13's
+# examples. None is a credential.
+ca1294e9c870eb5ea49ebf6ae5f585e6fde8a289:.claude/reviews/20260928-232013-ltb-review-r2/finding-groups.json:quorate-key-value:297
+ca1294e9c870eb5ea49ebf6ae5f585e6fde8a289:.claude/reviews/20260928-232013-ltb-review-r2/reconciled.md:quorate-key-value-unquoted:3
+ca1294e9c870eb5ea49ebf6ae5f585e6fde8a289:.claude/reviews/20260928-232013-ltb-review-r2/reconciled.md:quorate-key-value-unquoted:32
+5b381a2cf1c828547dfcfdca196e77fa8c1f3926:tests/regression-ledger-review-ltr3-remediation.test.mjs:quorate-key-value-unquoted:76
+c61551c100ccce18a46bf98f7e4ec17b9c6fb4b9:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-key-value-unquoted:32
+43345bba927342ccc0a97f9345454a4db4ed8ca7:tests/regression-canary-env-scrub.test.mjs:quorate-key-value:24
+43345bba927342ccc0a97f9345454a4db4ed8ca7:tests/regression-canary-env-scrub.test.mjs:quorate-key-value:27
+a43a3f2b8e86e79a471ae9e71895d18984baf7c8:tests/regression-panel-runtime.test.mjs:quorate-key-value:398
+
+# ltb-review-r2 quoting G-12's example with an escaped quote, flagged once the quoted rule read through escaped quotes
+# (G-1 of ltb-review-r3; operator, 2026-09-29: "Fingerprint the 3 (Recommended)"). The review's files stay as written.
+ca1294e9c870eb5ea49ebf6ae5f585e6fde8a289:.claude/reviews/20260928-232013-ltb-review-r2/nodes/panel-codex-security-report.md:quorate-key-value:17
+ca1294e9c870eb5ea49ebf6ae5f585e6fde8a289:.claude/reviews/20260928-232013-ltb-review-r2/reconciled.md:quorate-key-value:23
+ca1294e9c870eb5ea49ebf6ae5f585e6fde8a289:.claude/reviews/20260928-232013-ltb-review-r2/reconciled.md:quorate-key-value:26
+
+# The fake vendor stderr above, flagged again once the push config gained a rule per token shape redaction knows
+# (secret-shapes-and-refusals 1a: gitleaks' defaults miss sk- keys; operator, 2026-09-29: "Fingerprint the 1 (Recommended)").
+c61551c100ccce18a46bf98f7e4ec17b9c6fb4b9:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-sk-api-key:32
+
+# The reviewer preflight's probe-record keys in a review run's run.json (reviewer_preflight[].key): 32-hex hashes of a
+# reviewer combination, read before listing, not credentials. Matched by gitleaks' generic-api-key on the field name
+# (operator, 2026-10-09: "Fingerprint the 3"). The run's files stay exactly as written; the field is renamed for later runs.
+6eb6d0292e0d4cc0a5380b1e5f1e74b14903ae8c:.claude/reviews/20261009-222911-reviewer-preflight-review/run.json:generic-api-key:82
+6eb6d0292e0d4cc0a5380b1e5f1e74b14903ae8c:.claude/reviews/20261009-222911-reviewer-preflight-review/run.json:generic-api-key:92
+6eb6d0292e0d4cc0a5380b1e5f1e74b14903ae8c:.claude/reviews/20261009-222911-reviewer-preflight-review/run.json:generic-api-key:102
+# The same, in the follow-up review r1 (operator, 2026-10-09: "Fingerprint r1's 3").
+2a88748a978f70ac9d58da1820850364e3f23fe9:.claude/reviews/20261009-232840-reviewer-preflight-r1/run.json:generic-api-key:87
+2a88748a978f70ac9d58da1820850364e3f23fe9:.claude/reviews/20261009-232840-reviewer-preflight-r1/run.json:generic-api-key:97
+2a88748a978f70ac9d58da1820850364e3f23fe9:.claude/reviews/20261009-232840-reviewer-preflight-r1/run.json:generic-api-key:107
+# A test fixture naming QUORATE_TEST_SECRET beside a literal value (G-4 of r1's test); the name is built at runtime since
+# (operator, 2026-10-09: "Fingerprint the 1").
+abf0fce91e611293969dfdda400a08f9899038d6:tests/regression-reviewer-preflight.test.mjs:quorate-key-value:756
+
+# A test fixture's made-up token, written as a literal key-value pair in the commit-env test (operator, 2026-10-11: "New
+# commit + fingerprint"). The test now builds the name at runtime; this entry covers only the commit that wrote it.
+746261efe5931757df8f5eb00271ba10ca912f2e:tests/regression-remediate-runner.test.mjs:quorate-key-value:726
+
+# A git blob hash in a remediation run's full_checks, keyed by a file name containing "auth" — not a credential
+# (operator, 2026-10-15: "Fingerprint now, fix shape (Recommended)"). Archived runs keep the hash map out of run.json since.
+99b024ce17f869ba4fbc0a22ea6a39bf9927594c:.claude/reviews/20261014-003406-rv-delivery-remediation-3/run.json:generic-api-key:673
+# A git blob hash in a remediation run's full_checks, keyed by a file name containing "key" (regression-probe-key-docs),
+# written by the dev install's old pin 068fcff4, before the hash map left run.json; not a credential (operator,
+# 2026-10-18: "Fingerprint it (Recommended)").
+e68c6945a4a4c9692b13269b96986db15cd7d90e:.claude/reviews/20261016-201608-sp-bugs-remediation/run.json:generic-api-key:341
+# A fake ANTHROPIC_API_KEY value in spawn-subagent's test fixture (stage 0a of claim-check-cross-family), proving the
+# variable is stripped before the subagent runs; not a credential, and the fixture now uses 'x'. Matched by gitleaks' generic-api-key and by
+# the shipped quorate-key-value rule, so one fingerprint each (operator, 2026-10-19:
+# "Fingerprint it, and blunt the fixture (Recommended)").
+d2b5aaf00c648a496b540d626cddb2f03a914685:tests/regression-spawn-subagent.test.mjs:generic-api-key:86
+d2b5aaf00c648a496b540d626cddb2f03a914685:tests/regression-spawn-subagent.test.mjs:quorate-key-value:86
+
+# Thirteen findings in the 1,231 commits deploy-test had not pushed by 2026-11-09, each read before it was listed; none
+# is a credential (operator, 2026-11-09: "Fingerprint 13, fix fixtures (Recommended)"). The fixtures still in the tree
+# now build their credential-shaped strings at runtime.
+# Made-up fixture values that test redaction and the scrubbed environments:
+afea27e29bfdfe4d1178bab39be6d4647d5249b7:tests/remediation-commit-recovery-fixture.mjs:quorate-key-value:148
+8e0a9f5ed29f550a6e530ccafa916d71ae0d8d3d:tests/regression-session-start-freshness.test.mjs:quorate-key-value:43
+832cd08a02652efd3e81d7ecdd0ba6d9be9ca7bb:tests/regression-command-log.test.mjs:curl-auth-user:71
+832cd08a02652efd3e81d7ecdd0ba6d9be9ca7bb:tests/regression-command-log.test.mjs:curl-auth-user:72
+e2971cf163492de53b1ffb470b1993761eb38d2a:tests/regression-command-log.test.mjs:curl-auth-user:37
+e2971cf163492de53b1ffb470b1993761eb38d2a:tests/regression-command-log.test.mjs:curl-auth-user:38
+e2971cf163492de53b1ffb470b1993761eb38d2a:tests/regression-command-log.test.mjs:quorate-key-value:42
+2db65c2ad2c3f1aa92d7b41ce361f719db7b9067:tests/regression-canary-env-scrub.test.mjs:quorate-key-value:42
+68bb3667ba1b56ef70edeab2307d4e4955af8442:tests/regression-engine-git-env.test.mjs:quorate-key-value:62
+4e650d62ff789d7ebb2a475254fc7c851b8896e3:tests/regression-remediation-commit-recovery.test.mjs:quorate-key-value:136
+# SHA-256 hashes of evidence logs, in an archived run record, keyed by file names containing "proto-keys":
+94eb248abe0dc817e4bd2b0e1996380abcbfc3ae:.claude/reviews/20261106-045137-stoplog-g8-remediation-5/run.json:generic-api-key:239
+94eb248abe0dc817e4bd2b0e1996380abcbfc3ae:.claude/reviews/20261106-045137-stoplog-g8-remediation-5/run.json:generic-api-key:241
+# A held remediation patch carrying one of the fixtures above:
+212e43485e414c9331ee1634e4042a3f57014355:.claude/reviews/20261023-063804-rer-remediation-2/held/rer2-all.patch:quorate-key-value:288
+
+# Three fixtures remediation nodes wrote on 2026-11-15/16, each read, none a credential: OPENAI_API_KEY and ANTHROPIC_API_KEY
+# set to a made-up 'sk-test-…' value, and QUORATE_PROBE_API_TOKEN to a made-up 'probe-…' value, in the env of tests that
+# check those names do not reach a child. The fixtures now build the value at runtime (operator, 2026-11-16:
+# "Fingerprint the 3, fix fixtures (Recommended)").
+79d6ddf261b017e0c9d2a54b6a4ffe6eb3d836c7:tests/regression-ci-remediation-4.test.mjs:quorate-key-value:34
+0577e142f5511522f40903a32c2be8896250ecaa:tests/regression-capture-interactive-bounds.test.mjs:quorate-key-value:76
+712af6dc767f55922b6eb10842a382993a407d4a:tests/regression-capture-readonly-git-env.test.mjs:quorate-key-value:25
+# Remediation 20261116-225510-m2-9a2-remediation's test of publish's check environment sets ANTHROPIC_API_KEY and
+# FIXTURE_SECRET_TOKEN to made-up 'fixture-…' values, to check neither reaches the snapshot's checks; read, not a
+# credential. The fixture builds them at runtime after the follow-up review (operator, 2026-11-16: "Fingerprint both, fix
+# the fixture (Recommended)").
+810ae9df6c037eba07640492e95c6210d4ee5e9d:tests/regression-publish.test.mjs:quorate-key-value:166

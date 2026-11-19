@@ -1,0 +1,1 @@
+{{skill_command}} — read your brief at {{brief_path}} first; follow it exactly.

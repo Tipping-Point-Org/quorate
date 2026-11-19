@@ -1,0 +1,8 @@
+$ node --test tests/regression-ciss-d1-4-reads-rule.test.mjs
+# admitted: test_one tests/regression-ciss-d1-4-reads-rule.test.mjs
+# cwd: C:\work\quorate
+# exit: 0
+# timeout: 15 minute(s)
+# elapsed: 4.1 of 30 minute(s)
+# captured: 2026-10-22T22:18:21.305Z
+------------------------------------------------------------------------

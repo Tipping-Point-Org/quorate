@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-21T00:14:09.693Z",
+  "finished_at": "2026-09-21T00:14:17.025Z",
+  "tolerance": 15,
+  "not_run": [
+    {
+      "seed": "clamp-silent-noop",
+      "reason": "--effort: no `effort: { judgment: ... }` line in the seeded contract"
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "reason": "--effort: no `effort: { judgment: ... }` line in the seeded contract"
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "reason": "--effort: no `effort: { judgment: ... }` line in the seeded contract"
+    },
+    {
+      "seed": "probe-substring-match",
+      "reason": "--effort: no `effort: { judgment: ... }` line in the seeded contract"
+    },
+    {
+      "seed": "prose-before-payload",
+      "reason": "--effort: no `effort: { judgment: ... }` line in the seeded contract"
+    },
+    {
+      "seed": "status-never-a-pass",
+      "reason": "--effort: no `effort: { judgment: ... }` line in the seeded contract"
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "reason": "--effort: no `effort: { judgment: ... }` line in the seeded contract"
+    }
+  ],
+  "scores": [],
+  "summary": {
+    "seeds": 0,
+    "caught": 0,
+    "overall_recall": null,
+    "lenses": {}
+  },
+  "config": {
+    "corpus_commit": "07db3f6b1a8059fa1706f245b54378343360fdd6",
+    "framework": {
+      "name": "quorate",
+      "version": "0.2.0",
+      "commit": "07db3f6b1a8059fa1706f245b54378343360fdd6",
+      "dirty": true,
+      "layout": "bench"
+    },
+    "declared_models": {
+      "judgment": "opus",
+      "mechanical": "sonnet"
+    },
+    "declared_effort": {
+      "judgment": "xhigh"
+    },
+    "runtime": "claude",
+    "runtime_version": "2.1.278 (Claude Code)",
+    "node_version": "v24.13.1",
+    "measured_at": "2026-09-21T00:14:09.693Z",
+    "alias_caveat": "Model aliases float: the provider may replace the model behind \"opus\"/\"sonnet\" at any time. A result is only comparable to another with the same runtime_version and a nearby measured_at. Re-measure before trusting an older number, and never carry a recall figure forward across a model change in either direction."
+  },
+  "runs": [],
+  "total_cost_usd": 0,
+  "scored_cost_usd": 0,
+  "unscored_cost_usd": 0,
+  "unscored_spend": [],
+  "total_usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "thinking_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+  }
+}

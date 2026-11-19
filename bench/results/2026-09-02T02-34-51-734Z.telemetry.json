@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "kind": "bench",
+  "run_id": "2026-09-02T02-34-51-734Z",
+  "development_data": true,
+  "started_at": "2026-09-02T02:34:51.734Z",
+  "ended_at": "2026-09-02T02:48:09.924Z",
+  "tasks": [],
+  "recall": {
+    "seeds": 1,
+    "caught": 1,
+    "overall": 1,
+    "lenses": {
+      "contract-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1
+      }
+    }
+  },
+  "cost_usd": 4.5
+}

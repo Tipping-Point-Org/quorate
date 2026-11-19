@@ -1,0 +1,482 @@
+{
+  "$comment": "The declared lens roster. run-graph.mjs derives the graph from this file plus the contract \u2014 deterministically, never by asking a model how to decompose the work. A model-authored decomposition is the weakest node in a fan-out graph, because nothing downstream can tell a bad split from a good one. Entries with status 'deferred' are recorded as SKIPPED with a skip_reason; dropping the real SKILL.md into place is the only change needed to activate one.",
+  "$per_lens_overrides": "Any entry may carry an optional 'model' and/or 'effort' that overrides review.models.judgment / review.effort.judgment from CLAUDE.md for that lens alone. Resolution is narrowest-first: call site, then this file, then the contract. Recorded on each node's status file, and on nodes/expected.json for the lenses and arms that file covers -- so a finding is reproducible without re-deriving them from a contract that may since have moved. BARRIER NODES ARE NOT IN expected.json: it is built from roster.lenses plus the selected arms, so reconcile, intent-capture, request-capture, reconcile-b and second-opinion appear only on their own status files. This sentence used to claim both locations for every node, which was the third false claim in this one comment -- the other two were that any entry's override is READ (barrier_nodes was read for `.id` alone) and that resolution has three rungs (spawnNode had two). The mechanism is real now; the recording is still one location for these five, and saying so beats implying a reproducibility that only half the graph has. Use sparingly and with a reason in 'note' \u2014 the contract is the place to move the needle for everything, and a per-lens override is a claim that THIS lens differs. Measured basis for wanting them: on this repo Sonnet-5 at xhigh produced one purpose-named capture per finding where Opus reused a single whole-project log, while Opus at max had the best recall \u2014 so an evidence-heavy lens and a recall-heavy lens can justifiably differ.",
+  "schema_version": 1,
+  "lenses": [
+    {
+      "id": "contract-audit",
+      "skill_command": "/contract-audit",
+      "schema_variant": "contract",
+      "allowed_basis": [
+        "intent",
+        "invariant"
+      ],
+      "condition": {
+        "type": "nonempty",
+        "key": "run.request"
+      },
+      "$condition_note": "Selected only when the run has an approved request. 'Did this do what was asked' is unanswerable without a statement of what was asked, and answering it from the product spec instead reports every unbuilt feature as a violation. new-run.mjs refuses to mint an unrequested run at all unless --no-request is passed deliberately; this condition is the second line of defence, so the lens is SKIPPED and named rather than silently judging against a substitute.",
+      "required": true,
+      "status": "installed",
+      "intent": "required",
+      "note": "The only lens that may cite I-n. Findings without an intent_ref are dropped by the validator. Its cost scales with the REQUEST AND INTENT DOCUMENTS it must read in full, not with diff size \u2014 the same argument intent-capture and the barrier already won, and the same one feature-verify won below. Measured across 12 archived self-review runs it took 6,8,8,6,7,8,12,3,9,14,10,13 minutes against a 15-minute cap: chronically at 87-93% of its ceiling and climbing as the tree grows. It finally crossed on the 2026-09-06 bench, was killed mid-verdict, and the seed scored NOT RUN. 30 is ~2x the observed maximum: wide enough not to fire on normal work, narrow enough to still catch a hang.",
+      "timeout_minutes": 30,
+      "invokable": true,
+      "invokable_why": "judges the change against the approved request, which is a complete question on its own. It is the one lens with intent: required, so invoking it also spawns intent-capture \u2014 that is the whole path for this lens, not a subset of a different one."
+    },
+    {
+      "id": "code-audit",
+      "skill_command": "/code-audit",
+      "schema_variant": "code",
+      "$effort_note": "NO LONGER PINNED HERE. This lens carried effort: medium from 2026-09-02, measured on 3 seeds. On 2026-09-20 the whole roster was swept at uniform settings over 7 seeds and medium won on every axis, so medium became the CONTRACT default (review.effort.judgment) and a per-lens override repeating it would be a second owner of one fact. The original n=3 result: medium matched xhigh 3/3 at $7.11 vs $12.91, 20min vs 41min, 2 vs 7 false-positive candidates. The n=7 sweep replicated it across four lenses. See bench/RESULTS.md.",
+      "allowed_basis": [
+        "invariant",
+        "convention"
+      ],
+      "condition": {
+        "type": "always"
+      },
+      "required": true,
+      "status": "installed",
+      "intent": "forbidden",
+      "note": "Not given the intent path; intent_ref is deleted from its schema, so emission is impossible.",
+      "invokable": true,
+      "invokable_why": "reads the changed source for defects. Nothing about the question needs another lens to have run."
+    },
+    {
+      "id": "security-audit",
+      "skill_command": "/security-audit",
+      "schema_variant": "code",
+      "allowed_basis": [
+        "invariant",
+        "convention"
+      ],
+      "condition": {
+        "type": "always"
+      },
+      "required": true,
+      "status": "installed",
+      "intent": "forbidden",
+      "note": "Scoped by threat_model. The non-waivable invariants are outside any threat model's power to waive. Declares its own clock for the same reason contract-audit does: its cost scales with the SOURCE SURFACE it must audit against the threat model, not with diff size, and that surface grows with the tree. Measured across 14 archived runs it went 7.2, 7.9, 5.3, 6.0, 8.3, 6.9, 9.9, 10.9, 10.4, 14.1, 10.2, 10.3, 9.4 minutes and then hit the 15-minute cap and was killed mid-verdict, blocking the gate. 30 is ~2x the highest completed run, matching contract-audit.",
+      "timeout_minutes": 30,
+      "invokable": true,
+      "invokable_why": "reads the change against the declared threat_model. Self-contained, and the lens a person is most likely to want on one adapter without paying for a sweep."
+    },
+    {
+      "id": "arch-review",
+      "skill_command": "/arch-review",
+      "schema_variant": "code",
+      "allowed_basis": [
+        "architecture_doc",
+        "invariant",
+        "convention"
+      ],
+      "condition": {
+        "type": "always"
+      },
+      "required": true,
+      "status": "installed",
+      "intent": "forbidden",
+      "degrade_when": {
+        "type": "empty",
+        "key": "doc_roles.architecture"
+      },
+      "degraded_basis": [
+        "convention",
+        "invariant"
+      ],
+      "degraded_ceiling": "RISK",
+      "degraded_not_checked": {
+        "item": "doc_roles.architecture",
+        "reason": "not declared in graph_contract; reviewed against observed conventions only"
+      },
+      "invokable": true,
+      "invokable_why": "reads the change against doc_roles.architecture. Self-contained, and the case that prompted this: checking one adapter's boundaries after scaffolding it."
+    },
+    {
+      "id": "doc-consistency-review",
+      "skill_command": "/doc-consistency-review",
+      "schema_variant": "code",
+      "allowed_basis": [
+        "convention",
+        "invariant"
+      ],
+      "condition": {
+        "type": "nonempty",
+        "key": "doc_paths"
+      },
+      "required": false,
+      "status": "installed",
+      "intent": "forbidden",
+      "invokable": true,
+      "invokable_why": "reads changed docs against their owners and runs find-inert-features. Self-contained, and the lens a docs commit actually wants \u2014 story-pipeline's pre-commit hook asks for it by name."
+    },
+    {
+      "id": "perf-audit",
+      "skill_command": "/perf-audit",
+      "schema_variant": "code",
+      "allowed_basis": [
+        "measurement",
+        "invariant",
+        "convention"
+      ],
+      "condition": {
+        "type": "always"
+      },
+      "required": false,
+      "status": "installed",
+      "intent": "forbidden",
+      "degrade_when": {
+        "type": "empty",
+        "key": "commands.bench"
+      },
+      "degraded_basis": [
+        "convention",
+        "invariant"
+      ],
+      "degraded_ceiling": "RISK",
+      "degraded_not_checked": {
+        "item": "commands.bench",
+        "reason": "empty in graph_contract; no measurement is possible, so every finding is static risk only"
+      },
+      "note": "With no bench harness this is a prompt variant of code-audit, not an independent lens. Stated plainly rather than implied. allowed_basis includes `invariant` because \u00a76 says ANY lens may raise the six non-waivable invariants regardless of scope, and this lens could not: with commands.bench empty it is static-risk-only, so its only remaining basis was `convention`, which is waivable and capped. It is also the lens best placed to notice unbounded_resource_growth. feature-verify is left measurement-only on purpose -- it never reads source, and a crash on legal input is something it MEASURED, reportable as such without citing an invariant. DEGRADED basis now includes it too (G-45): the note above argued for the capability while degrade_when replaced the enum with `convention` alone, so the guarantee held only when a bench command existed \u2014 that is, only when the lens did not need it. And the cap is a CEILING now, not a floor (G-40): `degraded_severity_floor: LOW` was a no-op, since LOW is the bottom rung, while both documents promise an unbenchmarked finding is recorded AT LOW. Invariants are exempt from the ceiling in spawn-node, because non-waivable means non-cappable.",
+      "degraded_severity_ceiling": "LOW",
+      "invokable": true,
+      "invokable_why": "reads the change for performance risk. Self-contained; static-risk-only without commands.bench, which is a degradation it already declares and not a reason to withhold it."
+    },
+    {
+      "id": "ui-audit",
+      "skill_command": "/ui-audit",
+      "schema_variant": "code",
+      "allowed_basis": [
+        "convention",
+        "invariant"
+      ],
+      "condition": {
+        "type": "not_equal",
+        "key": "ui.surface",
+        "value": "none"
+      },
+      "required": false,
+      "status": "installed",
+      "intent": "forbidden",
+      "standing_not_checked": {
+        "item": "shipped-webview fidelity",
+        "reason": "a Tauri app renders in the platform webview, not Chrome; static review verifies the bundle, never the shipped app"
+      },
+      "note": "Never launches a process. That is the mechanical separator from feature-verify.",
+      "invokable": true,
+      "invokable_why": "reads the declared UI surface. Self-contained, and conditional on ui.surface, so a project without one gets the ordinary SKIPPED row rather than a refusal."
+    },
+    {
+      "id": "feature-verify",
+      "skill_command": "/feature-verify",
+      "schema_variant": "code",
+      "unshadowed_why": "THE ONE LENS NO PANEL ARM SHADOWS, and this says why so the absence is a decision rather than an oversight — every other lens has one, so a blank here reads as a gap somebody forgot. An arm cannot do this lens's job, for three reasons that each hold alone. (1) It cannot launch the product: capture.mjs gates commands.run on run.json's runner_nodes, built in run-graph from roster.lenses carrying may_launch_run, and that list is read from the roster alone precisely so the capability cannot be acquired by declaring oneself — an arm is not a lens and never appears in it. (2) Its findings would be at a basis this lens forbids: arms are held to CONSERVATIVE_BASIS, whose only rung is `convention`, while allowed_basis here is measurement-only and enforced in schema. Every finding such an arm could legally make would be one this lens rejects. (3) The only thing it could actually do is the thing this lens must never do — read source. An arm that cannot exercise the artifact can only inspect the tree, which is answering a different question, and $panel already records what that is worth: agreement then means only that both were asked something easy. Adding an arm regardless would produce an accurate report that it could not do the job, recorded at the gate as the ARM being unavailable — cross-family coverage present in the roster and absent in reality, which is worse than a declared gap. Reconsider if arms ever gain a sanctioned way to launch commands.run AND a measurement basis; until both, the honest state is no arm and this paragraph.",
+      "allowed_basis": [
+        "measurement"
+      ],
+      "condition": {
+        "type": "nonempty",
+        "key": "commands.run"
+      },
+      "required": false,
+      "status": "installed",
+      "intent": "forbidden",
+      "note": "Never reads source. Only exercises a built artifact and cites captured evidence. basis is measurement-only, enforced in schema. Its cost scales with PRODUCT STARTUP plus exercise time, not with review scope, so it declares its own clock: killed at the 15-minute node cap after 14 real evidence captures on the first consumer run that exercised it. may_launch_run declares the one property capture.mjs enforces: WHO may launch commands.run. That identity was the bare literal 'feature-verify' in two modules that never communicate \u2014 capture's enforcement and run-graph's brief-granting \u2014 while every other per-lens property was declared here (G-5). Renaming the lens in this file used to leave both literals pointing at a node that no longer exists, silently granting the run command to nobody and offering it to no one.",
+      "timeout_minutes": 40,
+      "may_launch_run": true,
+      "invokable": true,
+      "invokable_why": "launches the product through commands.run and checks the feature is there. Self-contained, and conditional on commands.run being declared."
+    }
+  ],
+  "barrier_nodes": [
+    {
+      "id": "request-capture",
+      "skill_command": "/request-capture",
+      "mode": "intent",
+      "schema_variant": "request",
+      "status": "installed",
+      "phase": "recovery",
+      "note": "Phase 0.5. Spawned ONLY when a run has no approved request and --no-request was not passed \u2014 it is a recovery producer, not a step. Sandboxed away from the source for the same reason as intent-capture, and more sharply: a request written from the diff describes what was built, so contract-audit would judge the code against a description of itself and pass every time. Emits a payload; run-graph renders .claude/requests/<slug>.inferred.md with status: inferred. Listed here rather than in not_graph_nodes because run-graph DOES spawn it \u2014 it was in neither list until a doc-consistency run said so."
+    },
+    {
+      "id": "intent-capture",
+      "skill_command": "/intent-capture",
+      "mode": "intent",
+      "schema_variant": "intent",
+      "status": "installed",
+      "phase": "pre-fanout",
+      "note": "Rule 2. Sandboxed away from the source tree by cwd plus a narrowed --add-dir, enforced by the spawner."
+    },
+    {
+      "id": "reconcile",
+      "skill_command": "/reconcile",
+      "mode": "reconcile",
+      "schema_variant": "reconcile",
+      "status": "installed",
+      "phase": "barrier",
+      "note": "Own clean subprocess. Enumerates status files, never reports. Receives findings pre-grouped by script. schema_variant said 'none' while run-graph spawned it as 'reconcile' (G-13) \u2014 the two are not interchangeable: 'none' omits --json-schema and skips payload validation, so a graph wired from this declared value would have launched the barrier unvalidated. The declared value now tells the truth."
+    },
+    {
+      "id": "reconcile-b",
+      "skill_command": "/reconcile",
+      "mode": "reconcile",
+      "schema_variant": "reconcile",
+      "status": "installed",
+      "phase": "barrier",
+      "condition": {
+        "type": "flag",
+        "flag": "--reconcile-twice"
+      },
+      "note": "Calibration re-run of reconcile on the same finding-groups, spawned only under --reconcile-twice. Registered here because it writes a status file, an evidence directory and spends budget \u2014 a spawned node absent from this registry is invisible to every reader of it, a defect this file records having corrected once before for request-capture (G-24). Its output never reaches the gate; the diff of the two adjudications lands in reconcile-divergence.json."
+    },
+    {
+      "id": "reconcile-reask",
+      "skill_command": "/reconcile",
+      "mode": "reconcile",
+      "schema_variant": "reconcile",
+      "status": "installed",
+      "phase": "barrier",
+      "note": "Spawned only when an OK reconcile reply left groups out: the re-ask of those groups, once per run, as its own node (reconcile-reask-record.plan.md, RR-D1 A). Registered for the reason reconcile-b is: it writes a brief, a status and an evidence directory and spends budget, and was spawned while in no list (G-6 of 20261024-064941-rrr-delivery). Like reconcile and reconcile-b it is not in nodes/expected.json, which holds the lenses and the arms; its record is the attempt on reconcile.status.json and gate.json's reconcile_reask."
+    },
+    {
+      "id": "second-opinion",
+      "skill_command": "/second-opinion",
+      "mode": "panel",
+      "schema_variant": "none",
+      "status": "installed",
+      "phase": "post-barrier",
+      "condition": {
+        "type": "always"
+      },
+      "$effort": "NO LONGER PINNED HERE, and the reason is the convention this roster already states for code-audit: once the CONTRACT carries the value, a per-lens override repeating it is a second owner of one fact. `review.effort.judgment` moved to `low` on 2026-09-24 after the LENS corpus was measured (7/7 both settings, false-positive candidates 7 -> 1, ADMITTED by dominance), so this entry would now restate it.\n\nTHE MEASUREMENT STANDS AND IS ITS OWN, which is why it is kept rather than deleted. second-opinion was benched on the seeded RECONCILIATION-error corpus, not the code-defect one, across all three mutation shapes at opus/low against opus/medium: misanchor 6/6 both, deflate 6/6 both, drop 4/4 both, zero false alarms throughout, tokens down roughly 3.5x and wall-clock 2.3-3.1x. Every shape ADMITTED by dominance. Runs: bench/results/2026-09-21T16-35-42-060Z-second-opinion[.deflate|.drop][.effort-low].json.\n\nSo two independent corpora reached `low`, for this node and for the lenses, and the contract is where the one value now lives. RE-PIN HERE if the contract ever rises again: this node's evidence does not expire with the key that happens to agree with it today.",
+      "note": "Reads reconciled.md, not the diff. Adversarial to the reconciler, not a seventh lens."
+    },
+    {
+      "id": "remediation",
+      "skill_command": "/remediation",
+      "mode": "remediate",
+      "schema_variant": "remediation",
+      "status": "installed",
+      "phase": "remediation",
+      "$repair_passes": "How many repair passes the runner gives the node after its full check refuses the candidate on failing tests alone (remediation-repair-pass.plan.md stage 2; lib/remediation-chain.mjs repairPassCap): a whole number, 0 for none, absent 3. Set at 3 by the operator's RP-D2 on that plan's stage-4 measurement (operator, 2026-11-03: \"B\", until green up to a cap of 3); the passes end at the first green.",
+      "repair_passes": 3,
+      "note": "Spawned by scripts/remediate.mjs in a remediation run (new-run --remediates), never by run-graph and never in the run that found the findings (remediate-rebuild stage 4). Its policy is the run's remediate-settings.json: edits scoped to source_globs and test_globs, and no commit path: the runner commits each cluster it reports. Its contract is prompts/remediation/PROMPT.md; the person-invoked flow around it is skills/remediate."
+    }
+  ],
+  "$panel": "External arms run DURING the fan-out, on the lens's own review criteria plus the same run brief \u2014 not after the barrier. The arm gets the shadowed lens's SKILL.md as well as the brief, because a brief carries scope and evidence mechanics but not the criteria: an arm handed the brief alone is answering a DIFFERENT question, and its agreement with the lens would then mean only that both were asked something easy. That ordering is the whole mechanism: an arm handed the reconciler's conclusions can only audit the adjudication, whereas an arm handed the same scope produces an independent verdict, and agreement between two model families is evidence in a way agreement between two Claude lenses is not. story-pipeline paneled arch-review, plan-review and doc-consistency-review for exactly this reason. Arms are capped at basis=convention/MEDIUM and verdict RISK (shared/external-reviewers.md) because they run outside the run sandbox and cannot produce a verifiable evidence path \u2014 they corroborate, they never decide. Gated on review.external_panel: source leaves the machine.",
+  "$panel_runtime": "Each arm declares its own 'model' and 'effort'. They live HERE, beside the reviewer that has to accept them, because a model name is only meaningful paired with a CLI and the two disagree on the effort vocabulary (agy takes low|medium|high; codex takes it as -c model_reasoning_effort). run-graph.mjs threads both to external-review.mjs, which sends no flag for an unset value and names the omission in not_checked[] \u2014 an arm on an ambient default is not reproducible, and the framework's rule for a gap is to name it. gpt-5.6-sol at high effort is a STARTING point per CODEX_RUNTIME_FINDINGS.md, not a proven optimum: compare medium against high on archived reviews and change the value here, not in any script.",
+  "panel_arms": [
+    {
+      "id": "panel-codex-arch",
+      "reviewer": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "shadows": "arch-review",
+      "note": "Structural judgment is where a second model family disagrees most usefully.",
+      "severity_ceiling": "MEDIUM",
+      "verdict_ceiling": "RISK"
+    },
+    {
+      "id": "panel-codex-contract",
+      "reviewer": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "shadows": "contract-audit",
+      "note": "Conformance against written criteria is checkable by an arm that shares no priors with the lens.",
+      "severity_ceiling": "MEDIUM",
+      "verdict_ceiling": "RISK"
+    },
+    {
+      "id": "panel-codex-code",
+      "reviewer": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "shadows": "code-audit",
+      "note": "Widened 2026-09-02 with the arms below: cross-family review is the operator's standard for ANY review, and shadowing only two lenses was porting history, not a decision. Every judgment lens has an arm \u2014 enforced at the gate, not asserted here: an unshadowed judgment lens is named in not_checked[] so this claim can never again outrun the roster (G-19).",
+      "severity_ceiling": "MEDIUM",
+      "verdict_ceiling": "RISK"
+    },
+    {
+      "id": "panel-codex-security",
+      "reviewer": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "shadows": "security-audit",
+      "note": "Security is where a second family's different blind spots matter most.",
+      "severity_ceiling": "MEDIUM",
+      "verdict_ceiling": "RISK"
+    },
+    {
+      "id": "panel-codex-docs",
+      "reviewer": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "shadows": "doc-consistency-review",
+      "note": "Doc-vs-code lies are checkable by any family; agreement across families is strong evidence of one.",
+      "severity_ceiling": "MEDIUM",
+      "verdict_ceiling": "RISK"
+    },
+    {
+      "id": "panel-codex-perf",
+      "reviewer": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "shadows": "perf-audit",
+      "note": "Static perf reasoning benefits most from a dissenting prior; UNBENCHED caps still apply.",
+      "severity_ceiling": "MEDIUM",
+      "verdict_ceiling": "RISK"
+    },
+    {
+      "id": "panel-codex-ui",
+      "reviewer": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "shadows": "ui-audit",
+      "note": "ui-audit is a judgment lens (convention, invariant) and was the one left single-family while the roster claimed otherwise. A consuming project with a UI surface ran it against one model and the gate recorded no gap \u2014 absence reading as agreement, which is the failure the panel exists to prevent.",
+      "severity_ceiling": "MEDIUM",
+      "verdict_ceiling": "RISK"
+    }
+  ],
+  "$adjudicators": "A JUDGE SET, NOT A TIE-BREAKER. Adjudication is the third panel topology (shared/graph-topologies.md): independent votes on one fixed item, where disagreement is MEASURED rather than resolved and the merge is arithmetic. For this use nobody is the tie-breaker, because a tie between two judges IS the finding -- so a 1-1 split returns the group undecided instead of being broken by whoever was asked last. .claude/requests/adjudication-merge-for-disputes.md.\n\nNEITHER OF THESE JUDGES IS NEUTRAL, and that is a limit of what is installed rather than a choice. Only two adapters serve the reviewer role, codex and agy, and every panel arm runs on codex -- so on a lens-versus-arm dispute the codex judge is a party to the position its own family raised. The merge records `party` per judge and the run names the gap in not_checked[]; the source work measured this bias at ~8 points when a model judged its own output. A third vendor would fix it, and until one is declared the honest form is a labelled vote rather than a hidden one.\n\nagy's pinning, kept from the tie_breaker entry this replaces: PINNED because an unpinned adjudicator cannot promise it is a different family -- agy also offers Claude Sonnet 4.6 and Claude Opus 4.6, either of which would make it the SAME family as a lens it is deciding about. agy encodes effort in the model LABEL, so there is no effort key and --effort is rejected for these names. Chosen by measurement over the only two disputed groups this repository had produced (20260904-185900-conformance, G-36 and G-53), replayed at the commit that run reviewed: before the excerpt fix 1 of 10 replays produced a ruling, after it 8 of 8, and Pro spent ~10k tokens per ruling against Flash at ~38k. A STARTING point, not a proven optimum -- and note that CORRECTNESS still cannot be scored, because no run has yet produced a dispute the orchestrator actually adjudicated.\n\nEACH JUDGE DECLARES ITS `family`, and `id` is what names its node. `reviewer` is a TRANSPORT: agy serves Gemini models and also Claude Sonnet/Opus, so two judges reached through different adapters can be the same family and two judges on one adapter can be different ones. Independence and the `party` flag are family questions, not vendor ones, and comparing `reviewer` answered the wrong one. `family` defaults to the reviewer name when a vendor serves one family; declare it explicitly when it does not.",
+  "not_graph_nodes": [
+    {
+      "id": "plan-review",
+      "status": "installed",
+      "why": "a pre-run gate on whether the run should start at all, not a node in it; run as the session's subagent with the plan-verdict shape, its settings checked by the caller with scripts/check-plan-verdict.mjs"
+    },
+    {
+      "id": "version-gate",
+      "status": "installed",
+      "why": "consumes gate.json after the run; not part of the graph"
+    },
+    {
+      "id": "remediate",
+      "status": "installed",
+      "why": "runs in its own later run; never in the run that produced the findings"
+    },
+    {
+      "id": "graph-plan",
+      "status": "installed",
+      "why": "doctrine for decomposing novel parallel work; deliberately off the review critical path"
+    },
+    {
+      "id": "full-review",
+      "status": "installed",
+      "why": "the orchestrator itself"
+    },
+    {
+      "id": "plan-authoring",
+      "status": "installed",
+      "why": "authors the plan that plan-review then gates; runs before a run exists and produces a document, not a verdict"
+    },
+    {
+      "id": "claim-check",
+      "status": "installed",
+      "why": "checks the agent's own DRAFT report before it reaches the operator — a fresh checker subagent plus a script that recomputes the grades; it reviews prose, not the change, so it is not a node and emits no envelope (.claude/requests/claim-check.md)"
+    },
+    {
+      "id": "candidate-pool",
+      "status": "installed",
+      "why": "widens the option set before a hard-to-reverse choice; proposes and filters against constraints the caller stated, decides nothing, emits no envelope"
+    },
+    {
+      "id": "request",
+      "status": "installed",
+      "why": "authors the approved request that contract-audit later judges against, in the operator's own words; runs in conversation before any run exists and produces a document, not a verdict \u2014 the same class as plan-authoring"
+    },
+    {
+      "id": "unit-test-writer",
+      "status": "installed",
+      "why": "writes tests, does not review; invoked directly or by remediate, never spawned by run-graph"
+    },
+    {
+      "id": "integration-test-writer",
+      "status": "installed",
+      "why": "writes tests, does not review; same class as unit-test-writer and likewise never a node"
+    },
+    {
+      "id": "invoke",
+      "status": "installed",
+      "why": "the person-facing entry point for running ONE lens through the whole path \u2014 it mints a run and calls run-graph with --only, so it is an orchestrator like full-review rather than a node inside the graph. What it may fire is declared per-lens as `invokable` above, with the exclusions recorded in $invokable; a node that spawned this would be starting graph work from inside a graph, which \u00a78 forbids."
+    }
+  ],
+  "adjudicators": [
+    {
+      "id": "adj-agy",
+      "reviewer": "agy",
+      "model": "Gemini 3.8 Flash (High)",
+      "family": "gemini"
+    },
+    {
+      "id": "adj-codex",
+      "reviewer": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "family": "openai"
+    }
+  ],
+  "$proposers": "THE MODEL AND EFFORT EACH EXTERNAL PROPOSER RUNS AT, keyed by reviewer: candidate-pool passes them as --model and --effort to `external-review --mode propose`, and check-reviewers probes propose at them. candidate-pool read them from panel_arms, which holds codex shadow arms only, so agy had no source and codex had several (G-1 of 20261018-195709-pins-review; operator, 2026-10-18: \"A proposers block in the roster (Recommended)\"). The values start as each reviewer's adjudicator pin and are UNMEASURED for proposing.",
+  "proposers": {
+    "codex": {
+      "model": "gpt-5.6-sol",
+      "effort": "high"
+    },
+    "agy": {
+      "model": "Gemini 3.8 Flash (High)",
+      "effort": null,
+      "$effort": "null: agy rejects --effort and spells its effort in the model name, so this proposer is passed --model alone."
+    }
+  },
+  "$claim_checker": "WHICH REVIEWER CHECKS A REPORT'S CLAIMS WHEN THE PANEL IS ON, and at what model and effort: claim-check runs `external-review --mode claim-check` at this pin, so the checker is not the family that wrote the draft (claim-check-cross-family.md; operator, 2026-10-18: \"Cross-family when the panel is on (Recommended)\", and \"Roster entry, codex adjudicator pin (Recommended)\"). In the roster, not a script, because a model is meaningful only paired with its CLI. It starts at that reviewer's adjudicator pin and is UNMEASURED for claim checking; the first real checks are the measurement.",
+  "claim_checker": {
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "effort": "high"
+  },
+  "$decision_panel": "THE EXTERNAL SEATS OF THE DECISION PANEL, and at what model and effort: scripts/decide.mjs asks each through `external-review --mode decide`, beside a Claude subagent at the contract's judgment model and effort, so a question the operator would otherwise answer is decided by three families, blind, by majority (autonomous-run.md criteria 1, 9; autonomous-run.design.md AR-D1, decided 2026-10-31: \"do A\"). In the roster, not a script, because a model is meaningful only paired with its CLI. Each seat starts at its reviewer's adjudicator pin (agy's effort is null: it rejects --effort and spells its effort in the model name) and is UNMEASURED for deciding; the first real decisions are the measurement.",
+  "decision_panel": {
+    "seats": [
+      { "reviewer": "codex", "model": "gpt-5.6-sol", "effort": "high" },
+      { "reviewer": "agy", "model": "Gemini 3.8 Flash (High)", "effort": null }
+    ]
+  },
+  "$panel_caps": "HOW MUCH WEIGHT A THIRD-PARTY REVIEWER'S FINDING CARRIES, stated per arm so an auditor finds it in the declared place (G-14). An arm's verdict_ceiling here only REPEATS the convention rung's, which external-review and run-graph apply whatever this file says; new-run refuses any other value, because a declared PASS once turned an arm's RISK into a PASS (G-8 of 20261111-015717-dps-remediation-10-review). Two literals inside the adapter decided it \u2014 capSeverity's MEDIUM and `verdict === 'PASS' ? 'PASS' : 'RISK'` \u2014 while run-graph and finding-scope both carried comments saying the ROSTER capped the arm, and no arm entry carried a ceiling at all. An auditor asking what bounds an external reviewer looked in the declared place and found nothing. shared/external-reviewers.md, \"The ceiling on an external arm\", owns what bounds one, and shared/adapter-contract.md says why its verdict ceiling is not derived. The VALUES are unchanged and are not free: an arm's basis is `convention`, which \u00a74 caps at MEDIUM, and a FAIL from an unverifiable evidence path would promote the whole gate. Raising a severity_ceiling here without changing the basis rule gets the finding REJECTED downstream, not honoured.",
+  "$basis_ceilings": "HOW MUCH WEIGHT EACH KIND OF EVIDENCE CARRIES. It was hardcoded in lib/capabilities.mjs as the pair MEDIUM/RISK, and the operator asked the right question: why is this not where models, vendors and efforts already live? It is a JUDGEMENT \u2014 today's judgement \u2014 about what an unverifiable claim is worth, and a judgement nobody can change without editing the engine is indistinguishable from a law. \u00a74 of the disk-first protocol owns the reasoning; this is the number. Raising a ceiling here does NOT make a finding stick: the validator still rejects a basis a node was not allowed to use, so this bounds what the framework will honour rather than granting anything. ONE EXCEPTION: convention's verdict_ceiling only REPEATS the value fixed in lib/capabilities.mjs, because every external arm stands on that rung and its verdict cap does not move; new-run refuses any other value (G-7 of 20261111-024650-dps-remediation-11-review).",
+  "$default_judge": "WHICH ADJUDICATOR A SINGLE-JUDGE TOOL ASKS when the caller names none, BY `id`. This is not the tie-breaker `$adjudicators` above spends a paragraph denying: adjudication proper asks EVERY judge and returns a 1-1 split undecided. A tool that asks ONE judge — bench-second-opinion scoring a report — still has to ask a particular one, and `judges.find((j) => j.reviewer === 'codex')` made that a vendor name in a script, which is the class G-50 named and A-9 forbids. Set to adj-codex because it is what that harness has always used; changing it changes which family scores a bench pass, which is a real decision and now an editable one. With exactly one adjudicator declared there is nothing to decide and this key may be absent; with several and no key, the tool refuses rather than taking whichever was typed first.",
+  "default_judge": "adj-codex",
+  "$default_models": "THE MODELS USED WHEN THE CONTRACT DECLARES NONE. `review.models` in CLAUDE.md is the place a project sets these; this is what an ABSENT key falls back to, and it lives here because a model name in a script is the one thing this repository has decided it will not have (G-50). Three scripts carried `?? 'opus'` and `?? 'sonnet'` as literals \u2014 the same class of fact as the vendors and efforts already in this file, spelled three times in code instead of once in config. An absent key is a question nobody asked; these are the answers, and they are editable.",
+  "default_models": {
+    "judgment": "opus",
+    "mechanical": "sonnet"
+  },
+  "basis_ceilings": {
+    "convention": {
+      "severity_ceiling": "MEDIUM",
+      "verdict_ceiling": "RISK",
+      "requires": null,
+      "$why": "An observation about the code that any reader could make. Nothing on disk demonstrates it, so a FAIL resting on it would promote the whole gate on an unverifiable claim."
+    },
+    "invariant": {
+      "severity_ceiling": null,
+      "verdict_ceiling": null,
+      "requires": "evidence_capture",
+      "$why": "A named \u00a76 invariant, cited against a captured artifact. Never capped \u2014 including above a degraded lens's ceiling."
+    },
+    "measurement": {
+      "severity_ceiling": null,
+      "verdict_ceiling": null,
+      "requires": "evidence_capture",
+      "$why": "A captured measurement demonstrates it: the file exists, this run produced it, any reader can open it."
+    },
+    "intent": {
+      "severity_ceiling": null,
+      "verdict_ceiling": null,
+      "requires": null,
+      "$why": "A numbered criterion in intent.md, frozen before any implementation was read. Its authority comes from the freeze, not from anything the runtime can do \u2014 so it is ROLE-GRANTED: a node gets it by being handed criteria to judge against, and it must not be counted when deriving what a RUNTIME can substantiate. Counting it made every runtime uncapped the moment this table was introduced, because `intent` requires no capability. Caught by checking the derived values against the ones the tree had always produced.",
+      "role_granted": true
+    }
+  },
+  "$invokable": "WHAT /invoke MAY FIRE, decided here and not discovered at runtime.\n\nThe operator asked for /invoke on 2026-09-08, was told \"a lens invoked directly doesn't degrade gracefully, it breaks\", and the answer was never written down \u2014 it survived only as a line in a session log, because quorate's own /request skill did not resolve in quorate's own repository at the time. It resurfaced eleven days later from the opposite direction. The set lives HERE, beside the nodes it names, so the next version of that conversation has a file to argue with.\n\nThe bar, in the operator's words: /invoke \"should be allowed on tasks that can be safely invoked. if one is not meaningful alone as you said and can't be turned into one then /invoke can't fire one.\" Every LENS clears it: a lens answers one question about the change, and a run directory is all it needs to answer it with real evidence. Each carries its own sentence above rather than a shared true, because a blanket flag is a capability probe with extra steps.\n\nEXCLUDED, with reasons, because an absent entry cannot be told from an oversight:\n\n  intent-capture   produces the criteria OTHER nodes are judged against. Alone it writes an intent.md nothing reads. Not meaningful alone and not made so by pointing it anywhere.\n\n  request-capture  a recovery producer for a missing request, spawned in phase 0.5. The person-facing way to author a request is the /request skill, which does it in the operator's own words rather than inferring it from a diff. Exposing this would be a second, worse door to one room.\n\n  reconcile        needs a finding set from a fan-out. Alone it reconciles nothing.\n\n  second-opinion   THE ONE WORTH REVISITING. It reads a finished run's reconciled.md, so unlike the three above it CAN be made meaningful alone \u2014 by pointing it at an existing run, which is exactly the case the request says belongs in this decision rather than excluded by type. Left out of the first /invoke because it needs a different invocation shape: /invoke mints a run and reviews a diff, while this would take a run id and mint nothing. Folding both into one verb would make the verb mean two things. QUORATE.md separately claims a bare /second-opinion exists and it does not \u2014 that claim is being corrected, not satisfied here.\n\nA panel ARM is not in this set either, and for a different reason: an arm shadows a lens and is selected by the lens running, so /invoke <lens> already brings its arm. There is nothing to name."
+}

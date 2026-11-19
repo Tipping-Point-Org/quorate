@@ -1,0 +1,1030 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-09-06T03:40:49.343Z",
+  "finished_at": "2026-09-06T04:27:37.216Z",
+  "tolerance": 15,
+  "not_run": [
+    {
+      "seed": "status-never-a-pass",
+      "reason": "run-graph exited 1; lens(es) that never reported OK: contract-audit — this seed is NOT RUN, never a miss. A lens that was not asked cannot have missed. See bench\\results\\2026-09-06T03-40-49-343Z-status-never-a-pass.log"
+    }
+  ],
+  "scores": [
+    {
+      "seed": "clamp-silent-noop",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 24,
+          "severity": "HIGH",
+          "claim": "The new `SEVERITY_RUNGS.includes(...)` guards on lines 24-25 make an unrecognised floor/ceiling skip the clamp and return the severity unchanged. That reinstates the silent_error_swallowing shape this function was rewritten to remove — a VERDICT ('RISK') in the SEVERITY slot once left every degraded lens uncapped while every artifact reported a cap — and it stays invisible, since `status.severity_"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      }
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "doc-consistency-review"
+      ],
+      "hits": [
+        {
+          "node": "doc-consistency-review",
+          "file": "shared/external-reviewers.md",
+          "line": 58,
+          "severity": "MEDIUM",
+          "claim": "The section 'What the external arm is given' states the reviewer has 'no session context, no brief, and no memory of the run' and lists four items omitting both the external-arm constraints block and the run brief — but buildCodexShadowPrompt (scripts/lib/codex-prompts.mjs:76-101) assembles Role/Goal, EXTERNAL_ARM_CONSTRAINTS, the lens SKILL.md, then '# Run brief', with run-graph.mjs:1400-1401 rea"
+        }
+      ],
+      "expected_hit": [
+        "doc-consistency-review"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "doc-consistency-review": 1
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit",
+        "security-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 53,
+          "severity": "BLOCKER",
+          "claim": "The bundle detector was narrowed back to `/^-[A-Za-z]/`, so a single-dash token whose first character is not a letter returns `false` before any character of the cluster is scanned — `-2Ocat` never reaches the FORBIDDEN_SHORT loop below it. That is wrong because git grep declares OPT_NUMBER_CALLBACK (`-<num>` is shorthand for `-C NUM`) and parse_short_opt keeps parsing the SAME token afterwards, s"
+        },
+        {
+          "node": "security-audit",
+          "file": "scripts/lib/forbidden-tail.mjs",
+          "line": 53,
+          "severity": "BLOCKER",
+          "claim": "The bundle test `if (!/^-[A-Za-z]/.test(t)) return false` decides WHETHER to scan a short-flag cluster by its first character, so any single-dash token opening with a digit returns non-forbidden with its characters never examined. git grep declares OPT_NUMBER_CALLBACK, so `-<num>` is shorthand for `-C NUM` and parse_short_opt keeps parsing the SAME token after consuming the digits: `-2Ocat` is `-2"
+        }
+      ],
+      "expected_hit": [
+        "code-audit",
+        "security-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1,
+        "security-audit": 1
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "tolerance": 15,
+      "caught": false,
+      "caught_by": [],
+      "hits": [],
+      "expected_hit": [],
+      "expected_missed": [
+        "code-audit"
+      ],
+      "fp_candidates": {
+        "code-audit": 1
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/lib/decisions.mjs",
+          "line": 67,
+          "severity": "HIGH",
+          "claim": "classifyResult now tests `!hasPayload` BEFORE the `schemaVariant === 'none'` branch, so every prose node — which has no structured_output by definition, that being exactly what variant 'none' means — is classified `{branch:'no-payload', state:'DEGRADED'}` instead of `{branch:'prose', state:'OK'}`; the branch that would write the prose report is unreachable for the graph's one prose node (second-op"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 2
+      }
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "tolerance": 15,
+      "caught": true,
+      "caught_by": [
+        "code-audit"
+      ],
+      "hits": [
+        {
+          "node": "code-audit",
+          "file": "scripts/spawn-node.mjs",
+          "line": 1346,
+          "severity": "BLOCKER",
+          "claim": "The verdict floor is gone from the lens validation path: between the severity clamp (line 1342) and the verdict ceiling (line 1346) the validator no longer compares `payload.verdict` against the severities of the findings it just kept, and verdictFloorFromFindings/raiseVerdict are deleted from scripts/lib/decisions.mjs entirely. This is wrong because the gate decides only on verdicts — run-graph.m"
+        }
+      ],
+      "expected_hit": [
+        "code-audit"
+      ],
+      "expected_missed": [],
+      "fp_candidates": {
+        "code-audit": 1
+      }
+    }
+  ],
+  "summary": {
+    "seeds": 6,
+    "caught": 5,
+    "overall_recall": 0.833,
+    "lenses": {
+      "code-audit": {
+        "expected": 5,
+        "caught": 4,
+        "recall": 0.8,
+        "cost_usd": 10.00986
+      },
+      "doc-consistency-review": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 2.0137304999999994
+      },
+      "security-audit": {
+        "expected": 1,
+        "caught": 1,
+        "recall": 1,
+        "cost_usd": 2.096818
+      }
+    }
+  },
+  "config": {
+    "corpus_commit": "849f597b7c82064575dc42aac02e680886635c5e",
+    "framework": {
+      "name": "quorate",
+      "version": "0.1.0",
+      "commit": "849f597b7c82064575dc42aac02e680886635c5e",
+      "dirty": true,
+      "layout": "bench"
+    },
+    "declared_models": {
+      "judgment": "opus",
+      "mechanical": "sonnet"
+    },
+    "declared_effort": {
+      "judgment": "xhigh"
+    },
+    "claude_version": "2.1.259 (Claude Code)",
+    "node_version": "v24.13.1",
+    "measured_at": "2026-09-06T03:40:49.343Z",
+    "alias_caveat": "Model aliases float: the provider may replace the model behind \"opus\"/\"sonnet\" at any time. A result is only comparable to another with the same claude_version and a nearby measured_at. Re-measure before trusting an older number, and never carry a recall figure forward across a model change in either direction."
+  },
+  "runs": [
+    {
+      "seed": "clamp-silent-noop",
+      "costs": {
+        "code-audit": 2.8656375000000005,
+        "reconcile": 1.6622999999999994
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 62,
+          "cache_creation_input_tokens": 89818,
+          "cache_read_input_tokens": 2085395,
+          "output_tokens": 36855,
+          "output_tokens_details": {
+            "thinking_tokens": 14214
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 89818,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 6008,
+              "cache_read_input_tokens": 102149,
+              "cache_creation_input_tokens": 5589,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 5589
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 38,
+          "cache_creation_input_tokens": 63920,
+          "cache_read_input_tokens": 1016130,
+          "output_tokens": 20476,
+          "output_tokens_details": {
+            "thinking_tokens": 10440
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 63920,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2270,
+              "cache_read_input_tokens": 78522,
+              "cache_creation_input_tokens": 2546,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2546
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 39,
+        "reconcile": 35
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "doc-stale-panel-contract",
+      "costs": {
+        "doc-consistency-review": 2.0137304999999994,
+        "reconcile": 1.304478
+      },
+      "usage": {
+        "doc-consistency-review": {
+          "input_tokens": 36,
+          "cache_creation_input_tokens": 89811,
+          "cache_read_input_tokens": 1183251,
+          "output_tokens": 20800,
+          "output_tokens_details": {
+            "thinking_tokens": 13313
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 89811,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 5335,
+              "cache_read_input_tokens": 87362,
+              "cache_creation_input_tokens": 2449,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2449
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 26,
+          "cache_creation_input_tokens": 62741,
+          "cache_read_input_tokens": 561694,
+          "output_tokens": 13170,
+          "output_tokens_details": {
+            "thinking_tokens": 7795
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 62741,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3850,
+              "cache_read_input_tokens": 61963,
+              "cache_creation_input_tokens": 778,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 778
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "doc-consistency-review": 24,
+        "reconcile": 24
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": null,
+          "effort": null
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "numeric-bundle-pager",
+      "costs": {
+        "code-audit": 1.614289,
+        "reconcile": 1.2980024999999997,
+        "security-audit": 2.096818
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 30,
+          "cache_creation_input_tokens": 79907,
+          "cache_read_input_tokens": 792140,
+          "output_tokens": 16637,
+          "output_tokens_details": {
+            "thinking_tokens": 6689
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 79907,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3641,
+              "cache_read_input_tokens": 76028,
+              "cache_creation_input_tokens": 3879,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3879
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 28,
+          "cache_creation_input_tokens": 48056,
+          "cache_read_input_tokens": 656535,
+          "output_tokens": 19444,
+          "output_tokens_details": {
+            "thinking_tokens": 12494
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 48056,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 6786,
+              "cache_read_input_tokens": 63343,
+              "cache_creation_input_tokens": 1861,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1861
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "security-audit": {
+          "input_tokens": 32,
+          "cache_creation_input_tokens": 99818,
+          "cache_read_input_tokens": 1023540,
+          "output_tokens": 23365,
+          "output_tokens_details": {
+            "thinking_tokens": 15443
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 99818,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 7298,
+              "cache_read_input_tokens": 96439,
+              "cache_creation_input_tokens": 3379,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3379
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 21,
+        "reconcile": 23,
+        "security-audit": 25
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "probe-substring-match",
+      "costs": {
+        "code-audit": 1.0742984999999998,
+        "reconcile": 1.4100139999999999
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 30,
+          "cache_creation_input_tokens": 45013,
+          "cache_read_input_tokens": 653591,
+          "output_tokens": 11766,
+          "output_tokens_details": {
+            "thinking_tokens": 3134
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 45013,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 2905,
+              "cache_read_input_tokens": 59372,
+              "cache_creation_input_tokens": 3561,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 3561
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 36,
+          "cache_creation_input_tokens": 57185,
+          "cache_read_input_tokens": 879888,
+          "output_tokens": 15804,
+          "output_tokens_details": {
+            "thinking_tokens": 9404
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 57185,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 6340,
+              "cache_read_input_tokens": 71997,
+              "cache_creation_input_tokens": 2336,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 2336
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 19,
+        "reconcile": 30
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "prose-before-payload",
+      "costs": {
+        "code-audit": 2.4214094999999993,
+        "reconcile": 1.7773334999999997
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 68,
+          "cache_creation_input_tokens": 81945,
+          "cache_read_input_tokens": 2261373,
+          "output_tokens": 18714,
+          "output_tokens_details": {
+            "thinking_tokens": 9380
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 81945,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 6753,
+              "cache_read_input_tokens": 99234,
+              "cache_creation_input_tokens": 631,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 631
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 42,
+          "cache_creation_input_tokens": 66817,
+          "cache_read_input_tokens": 1208747,
+          "output_tokens": 20066,
+          "output_tokens_details": {
+            "thinking_tokens": 12414
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 66817,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 4066,
+              "cache_read_input_tokens": 82951,
+              "cache_creation_input_tokens": 1014,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1014
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 35,
+        "reconcile": 36
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    },
+    {
+      "seed": "verdict-floor-absent",
+      "costs": {
+        "code-audit": 2.0342255,
+        "reconcile": 1.390621
+      },
+      "usage": {
+        "code-audit": {
+          "input_tokens": 66,
+          "cache_creation_input_tokens": 63105,
+          "cache_read_input_tokens": 1867785,
+          "output_tokens": 18635,
+          "output_tokens_details": {
+            "thinking_tokens": 6526
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 63105,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3408,
+              "cache_read_input_tokens": 76216,
+              "cache_creation_input_tokens": 4809,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 4809
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "reconcile": {
+          "input_tokens": 24,
+          "cache_creation_input_tokens": 59956,
+          "cache_read_input_tokens": 606312,
+          "output_tokens": 19394,
+          "output_tokens_details": {
+            "thinking_tokens": 10950
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 59956,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 1982,
+              "cache_read_input_tokens": 71798,
+              "cache_creation_input_tokens": 5306,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 5306
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      },
+      "turns": {
+        "code-audit": 34,
+        "reconcile": 23
+      },
+      "nodes": {
+        "arch-review": {
+          "model": null,
+          "effort": null
+        },
+        "code-audit": {
+          "model": "opus",
+          "effort": "medium"
+        },
+        "contract-audit": {
+          "model": null,
+          "effort": null
+        },
+        "doc-consistency-review": {
+          "model": null,
+          "effort": null
+        },
+        "feature-verify": {
+          "model": null,
+          "effort": null
+        },
+        "perf-audit": {
+          "model": null,
+          "effort": null
+        },
+        "reconcile": {
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "second-opinion": {
+          "model": null,
+          "effort": null
+        },
+        "security-audit": {
+          "model": null,
+          "effort": null
+        },
+        "ui-audit": {
+          "model": null,
+          "effort": null
+        }
+      }
+    }
+  ],
+  "total_cost_usd": 24.61,
+  "scored_cost_usd": 22.96,
+  "unscored_cost_usd": 1.65,
+  "unscored_spend": [
+    {
+      "seed": "status-never-a-pass",
+      "costs": {
+        "intent-capture": 1.6501769999999998
+      },
+      "usage": {
+        "intent-capture": {
+          "input_tokens": 18,
+          "cache_creation_input_tokens": 79040,
+          "cache_read_input_tokens": 334460,
+          "output_tokens": 27618,
+          "output_tokens_details": {
+            "thinking_tokens": 10240
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 79040,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 24928,
+              "cache_read_input_tokens": 72941,
+              "cache_creation_input_tokens": 6099,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 6099
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        }
+      }
+    }
+  ],
+  "total_usage": {
+    "input_tokens": 536,
+    "output_tokens": 282744,
+    "thinking_tokens": 142436,
+    "cache_creation_input_tokens": 987132,
+    "cache_read_input_tokens": 15130841
+  },
+  "corrections": [
+    {
+      "seed": "probe-substring-match",
+      "recorded": "MISS",
+      "actual": "HIT (code-audit)",
+      "cause": "manifest defect.line was 174; the true seeded line was 270 (scripts/lib/decisions.mjs had grown 89 lines above the defect). code-audit reported the defect at exactly 270 with HIGH severity and was scored a miss because 96 > tolerance 15.",
+      "resolved": "manifest corrected and re-scored from the preserved run on 2026-09-06; corpus integrity now verifies defect.line against where the patch actually lands",
+      "note": "The measured numbers above are LEFT AS RECORDED. This annotates them; it does not restate them. Overall recall for this run was 6/6, not the 5/6 the summary states."
+    }
+  ]
+}

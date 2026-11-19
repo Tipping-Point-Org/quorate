@@ -1,0 +1,1 @@
+The graph identified this gap, attempted to close it, and FAILED — so the run checked what it could against less than it should have, and the gate is capped at RISK. What the gap itself means: {{base_consequence}}
