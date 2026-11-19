@@ -81,6 +81,27 @@ normal use nobody runs the engine by hand: you ask, and the session follows the 
 Every command, path, budget and model comes from a `graph_contract` block the project declares. Nodes never discover
 their own environment.
 
+```mermaid
+flowchart TD
+    C["graph_contract<br/>commands, paths, models"] --> P
+    P["0 · pre-flight<br/>build and test, captured to disk"] -->|build fails| B["gate: BLOCKED"]
+    P --> R{"approved request?"}
+    R -->|no| RC["0.5 · recovery<br/>inferred request, capped"]
+    R -->|yes| I
+    RC --> I["1 · intent<br/>criteria from the documents only"]
+    I --> F["2 · fan-out"]
+    F --> L1["lens"] & L2["lens"] & L3["lens"] & A1["cross-family arm"]
+    L1 & L2 & L3 & A1 --> BR["3 · barrier<br/>every node reported?"]
+    BR -->|a required node is silent| B
+    BR --> D{"lens and arm<br/>contradict?"}
+    D -->|yes| J["3.5 · adjudication<br/>judges of other families"]
+    D -->|no| S
+    J --> S["4 · second opinion"]
+    S --> G["5 · gate<br/>PASS · RISK · FAIL · BLOCKED"]
+    G -.-> RM["remediation<br/>a separate, later run"]
+    G -.-> LG["findings ledger"]
+```
+
 | Phase | What happens |
 |---|---|
 | **0 · pre-flight** | The declared `build`, `test`, `lint`, `fmt_check`, `typecheck`, `audit` and `deny` commands run through `capture.mjs`, which writes their real output to disk. A failed build stops the run. A result whose inputs have not changed is reused, and the gate says so. |
