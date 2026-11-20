@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "panel-codex-code",
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "timeout_minutes": 30,
+  "call": {
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "family": "openai",
+    "started_at": "2026-11-19T05:25:06.281Z",
+    "ended_at": "2026-11-19T05:31:25.728Z",
+    "duration_ms": 379447,
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "timeout_minutes": 30,
+    "usage": {
+      "input_tokens": 3145455,
+      "cached_input_tokens": 2981376,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 13629,
+      "reasoning_output_tokens": 7675
+    },
+    "outcome": "answered"
+  },
+  "state": "OK",
+  "reviewer_answered": true,
+  "verdict": "RISK",
+  "source": "codex",
+  "shadows": "code-audit",
+  "session_id": null,
+  "report_path": "nodes\\panel-codex-code-report.md",
+  "report_sha256": "4b9e32c45c164406158186500b1b2cf0d736632d85b4a62507b3e64197b0ae03",
+  "model": "gpt-5.6-sol",
+  "effort": "high",
+  "duration_ms": 379447,
+  "auth_mode": "external-vendor",
+  "env_passed": [
+    "ALLUSERSPROFILE",
+    "APPDATA",
+    "COMSPEC",
+    "HOME",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "LOCALAPPDATA",
+    "NUMBER_OF_PROCESSORS",
+    "OS",
+    "PATH",
+    "PATHEXT",
+    "PROGRAMFILES",
+    "ProgramData",
+    "ProgramFiles(x86)",
+    "SHELL",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TERM",
+    "TMP",
+    "USERDOMAIN",
+    "USERNAME",
+    "USERPROFILE",
+    "WINDIR"
+  ],
+  "not_checked": [
+    {
+      "item": "commands.lint",
+      "reason": "empty in graph_contract — lint could not be run"
+    },
+    {
+      "item": "commands.fmt_check",
+      "reason": "empty in graph_contract — fmt_check could not be run"
+    },
+    {
+      "item": "commands.typecheck",
+      "reason": "empty in graph_contract — typecheck could not be run"
+    },
+    {
+      "item": "commands.bench",
+      "reason": "empty in graph_contract — bench could not be run"
+    },
+    {
+      "item": "commands.run",
+      "reason": "empty in graph_contract — run could not be run"
+    },
+    {
+      "item": "commands.audit",
+      "reason": "empty in graph_contract — audit could not be run"
+    },
+    {
+      "item": "commands.deny",
+      "reason": "empty in graph_contract — deny could not be run"
+    },
+    {
+      "item": "commands.test_product",
+      "reason": "empty in graph_contract — test_product could not be run"
+    },
+    {
+      "item": "commands.test",
+      "reason": "Integration cases requiring temporary repositories could not run because the read-only sandbox denied mkdtemp under <tmp> with EPERM; 56 affected cases were therefore not behaviorally evaluated."
+    },
+    {
+      "item": "real gitleaks integration",
+      "reason": "gitleaks is not installed on this host, so the real-scanner regression was explicitly skipped."
+    },
+    {
+      "item": "evidence capture",
+      "reason": "This external arm had no capture channel; findings therefore rest on repository source locations and convention as directed by the brief."
+    },
+    {
+      "item": "brief-gap",
+      "reason": "The brief provided no writable temporary directory, which blocked integration checks; the large prose-only document paths were low-yield for this lens, and writable temporary storage plus prior test outcomes would have improved the review."
+    },
+    {
+      "item": "evidence paths",
+      "reason": "codex runs outside the run sandbox and cannot produce verifiable evidence; findings are capped at basis=convention"
+    }
+  ],
+  "launched": true,
+  "started_at": "2026-11-19T05:25:03.874Z",
+  "ended_at": "2026-11-19T05:31:25.748Z",
+  "findings_count": 2,
+  "rejected_findings_count": 0,
+  "graph_node_depth": 1,
+  "validator_errors": [],
+  "total_cost_usd": null,
+  "usage": {
+    "input_tokens": 3145455,
+    "cached_input_tokens": 2981376,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 13629,
+    "reasoning_output_tokens": 7675
+  }
+}

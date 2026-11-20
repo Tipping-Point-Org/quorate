@@ -84,8 +84,14 @@ is still to be checked.
    one pre-filled with what it detected. Then validate:
 
    ```
-   node .claude/skills/quorate/scripts/new-run.mjs --dry-run
+   node .claude/skills/quorate/scripts/new-run.mjs --dry-run --full-sweep <your source dir>
    ```
+
+   It prints the resolved contract and what each empty key will cost a run, and spawns nothing. Name a
+   directory your `source_globs` match. Without `--full-sweep`, the scope is derived from your last commit
+   and untracked files, and a fresh install usually has no source file there, so the dry run refuses
+   (exit 2, "Refusing to infer a whole-repo scope"). That refusal is the scope rule working, not a broken
+   install.
 
    Every key is documented in `shared/claude-md-contract.md` (in this submodule). The rules that
    matter most: commands must be **exact and runnable from your repo root**; an empty key means

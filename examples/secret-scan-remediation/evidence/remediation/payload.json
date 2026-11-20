@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-054112-m2-9c-secret-scan-remediation",
+  "groups": [
+    {
+      "group_id": "G-10",
+      "disposition": "fixed",
+      "reason": "publish.mjs records --out's HEAD before step 6 changes anything. When the public CI's scan fails after the commit, it resets --out to that commit (git reset --hard; --out was checked clean beforehand, so nothing of the operator's is lost). On an unborn branch it deletes the ref, empties the index and removes the shipped files. The stop message says the commit was undone, or that undoing it failed and must be done by hand, so it no longer asks for a hand reset --soft. The scan reads --out's whole history, so it still runs on the commit; I-6 allows 'before or as part of committing'. A failing result now blocks the commit. The 'committed ... not pushed' line is printed only after the scan passes. Red: the new test 'a failing public scan blocks the commit' failed with HEAD left at the rejected commit. Green: it passes.",
+      "red_evidence": "evidence/remediation/red-g10-g11-publish.log",
+      "green_evidence": "evidence/remediation/green-g10-g11-publish.log",
+      "no_red": null,
+      "stop_reason": null,
+      "limit_kind": null,
+      "stop_cause": null,
+      "cluster": "c1",
+      "files": [
+        "scripts/publish.mjs",
+        "tests/regression-publish.test.mjs"
+      ],
+      "search_command": "grep -rnE \"reset --soft|check-secrets\\.mjs|was not run here|not installed.*(continu|skip)\" scripts .claude/hooks --include=*.mjs --include=pre-* ; grep -rn \"gitCommitSync(\" scripts --include=*.mjs ; grep -rnE \"\\[\\s*'commit'\" scripts --include=*.mjs",
+      "search_sites": [
+        "scripts/publish.mjs:297",
+        "scripts/publish.mjs:402",
+        "scripts/lib/push-gate.mjs:151",
+        "scripts/lib/secret-shapes.mjs:107"
+      ],
+      "not_in_class": [
+        {
+          "site": "scripts/publish.mjs:297",
+          "reason": "This commit goes into the throwaway snapshot repository that the snapshot's own checks run in. It is deleted afterwards, so no rejected commit can survive there."
+        },
+        {
+          "site": "scripts/lib/push-gate.mjs:151",
+          "reason": "A doc comment naming check-secrets.mjs as a caller of the policy. It makes no commit and gives no pass on a missing scanner."
+        },
+        {
+          "site": "scripts/lib/secret-shapes.mjs:107",
+          "reason": "A generated config comment, with no control flow."
+        }
+      ],
+      "unmatched_spellings": [
+        "A commit made through a raw spawnSync('git', ['commit', ...]) or through git commit-tree/update-ref, which neither the gitCommitSync nor the ['commit' search would match",
+        "A later step that changes --out without a commit (files copied, then a failure), leaving it dirty rather than leaving a commit at HEAD"
+      ],
+      "deferred": [
+        {
+          "file": "scripts/publish.mjs",
+          "line": 385,
+          "severity": "LOW",
+          "claim": "If git add or the commit itself fails in step 6, --out is left with its tracked files deleted and the snapshot copied in. That is a dirty tree, not a rejected commit, and nothing undoes it.",
+          "reason": "This is pre-existing and is not the commit-before-scan defect G-10 names. The same prior-HEAD reset could be applied there, but the change belongs to a finding of its own."
+        },
+        {
+          "file": "ROADMAP.md",
+          "line": 452,
+          "severity": "LOW",
+          "claim": "ROADMAP D2 still describes the order as scan, then commit. It does not mention that the public scan runs on the commit and undoes it on failure.",
+          "reason": "ROADMAP.md is outside source_globs and test_globs, so this node may not edit it. The operator edits ROADMAP by hand."
+        }
+      ]
+    },
+    {
+      "group_id": "G-11",
+      "disposition": "fixed",
+      "reason": "Two changes. First, a committing publish whose snapshot ships no scripts/check-secrets.mjs is now refused at the start of step 6, before --out is touched. Before, it printed a notice and committed. Second, the scan's output is no longer stdio 'inherit'. It is captured, echoed, and recorded as <--out git dir>/quorate-publish/check-secrets.log with the commit, the source commit and the exit code. The record is in --out, is never tracked, and does not dirty the clone. It is written on both pass and fail, before any undo. The test fixture now ships a passing stand-in check-secrets.mjs, since a committing publish needs one. Red: the 'records it there' and 'refused before --out is touched' tests failed (no log; exit 0 with a commit). Green: both pass. The arch arm's note about where the scan-outcome policy should live is a separate layering point: reconcile called it weaker and not this group's defect, so it is not acted on here.",
+      "red_evidence": "evidence/remediation/red-g10-g11-publish.log",
+      "green_evidence": "evidence/remediation/green-g10-g11-publish.log",
+      "no_red": null,
+      "stop_reason": null,
+      "limit_kind": null,
+      "stop_cause": null,
+      "cluster": "c1",
+      "files": [
+        "scripts/publish.mjs",
+        "tests/regression-publish.test.mjs"
+      ],
+      "search_command": "grep -rnE \"reset --soft|check-secrets\\.mjs|was not run here|not installed.*(continu|skip)\" scripts .claude/hooks --include=*.mjs --include=pre-* ; grep -rn \"existsSync\" scripts/publish.mjs",
+      "search_sites": [
+        "scripts/lib/push-gate.mjs:151",
+        "scripts/lib/secret-shapes.mjs:107",
+        "scripts/publish.mjs:139",
+        "scripts/publish.mjs:213",
+        "scripts/publish.mjs:230",
+        "scripts/publish.mjs:233"
+      ],
+      "not_in_class": [
+        {
+          "site": "scripts/publish.mjs:139",
+          "reason": "When the local identity patterns file is missing, publish refuses. That is not a pass."
+        },
+        {
+          "site": "scripts/publish.mjs:213",
+          "reason": "secretScanConfig picks the rules file and falls back to the framework's. That is a config choice, not a skipped scan."
+        },
+        {
+          "site": "scripts/publish.mjs:230",
+          "reason": "An existence check that only decides whether a shipped .gitleaksignore is set aside. The scan runs either way."
+        },
+        {
+          "site": "scripts/publish.mjs:233",
+          "reason": "Refuses when the aside name collides. That is a refusal, not a pass."
+        },
+        {
+          "site": "scripts/lib/push-gate.mjs:151",
+          "reason": "A comment. A missing gitleaks is a block in secretScanOutcome and secretScanPasses."
+        },
+        {
+          "site": "scripts/lib/secret-shapes.mjs:107",
+          "reason": "A generated config comment."
+        }
+      ],
+      "unmatched_spellings": [
+        "A scanner absence detected by a spawn error (ENOENT) rather than existsSync. For gitleaks, secretScanPasses already blocks on it.",
+        "A scan run with stdio 'inherit' under a different scanner name. The snapshot's own checks at publish.mjs:320 already record to logs."
+      ],
+      "deferred": []
+    }
+  ],
+  "summary": "I fixed both groups on the work list, G-10 and G-11, as one cluster c1 (scripts/publish.mjs plus tests/regression-publish.test.mjs). I captured the red and green with test_one on tests/regression-publish.test.mjs. Three new tests failed before the fix, each for the reason its finding names: the rejected commit was left at HEAD, nothing was recorded in --out, and a snapshot with no scanner was committed. All three pass after it. The full suite was not run by this node; the runner runs it. After a public-scan failure, publish now undoes its own commit and leaves --out at its earlier release. It refuses a snapshot that ships no scripts/check-secrets.mjs before touching --out. It records the scan's output in --out's git directory. Two LOW items are deferred: a failed git add or commit in step 6 still leaves --out dirty, and the scan order in ROADMAP D2 is out of date, which is outside this node's globs. The groups the operator deferred (G-1, G-2, G-3, G-4, G-7) were left alone."
+}

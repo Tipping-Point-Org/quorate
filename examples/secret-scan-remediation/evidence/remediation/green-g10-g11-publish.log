@@ -1,0 +1,67 @@
+$ node --test tests/regression-publish.test.mjs
+# admitted: test_one tests/regression-publish.test.mjs
+# cwd: <repo>
+# exit: 0
+# timeout: 25 minute(s)
+# elapsed: 3.2 of 30 minute(s)
+# captured: 2026-11-19T05:44:51.144Z
+------------------------------------------------------------------------
+✔ a clean snapshot is committed into the public clone: exclusions gone, earlier content replaced, never pushed (1453.7728ms)
+✔ a committing publish runs the published tree's check-secrets in --out, records it there, and passes (1457.6901ms)
+✔ a failing public scan blocks the commit: --out is back at its earlier release, the result recorded (1535.7782ms)
+✔ a snapshot without scripts/check-secrets.mjs is refused before --out is touched (1178.7625ms)
+✔ the commit message is the release CHANGELOG entry, with the source commit (1584.3133ms)
+✔ the commit is authored and committed as --identity, never the machine's git identity (1552.9626ms)
+✔ a machine-local path in a shipped file is named, and nothing is committed (918.9305ms)
+✔ the operator's identity, from the untracked local file, is named wherever it ships (912.0682ms)
+✔ an identity in an EXCLUDED file is not a finding: only what ships is scanned (1563.4478ms)
+✔ no local identity file refuses the publish rather than scanning without it (630.322ms)
+✔ a placeholder marker refuses the publish (NOTICE before the holder's name is known) (860.9317ms)
+✔ a tracked change in the working tree refuses the publish (508.2653ms)
+✔ an untracked, unignored file at a path that ships refuses the publish; one under an excluded path does not (1104.4995ms)
+✔ a release with no CHANGELOG section of its version is refused (857.6047ms)
+✔ the snapshot's own suite failing refuses the publish (1162.9881ms)
+✔ the snapshot's checks and the secret scanner get no run pin, runtime auth or secret-shaped variable (1147.0114ms)
+✔ the secret scan honours no .gitleaksignore: not the shipped one, not the working directory's (868.4892ms)
+✔ an identity in a UTF-16 or binary file is still named, and nothing is committed (1747.789ms)
+✔ the published contract may differ from the private one only in doc_roles.request (2520.11ms)
+✔ a scanner override is said; a missing scanner refuses (1295.7613ms)
+✔ a planted secret fails the real gitleaks scan (1135.8578ms)
+✔ an allowance covers its hit by file, pattern and line; the same hit in another file still stops the publish (2345.3584ms)
+✔ an allowance that matches nothing is stale and refuses the publish (860.9813ms)
+✔ a gitleaks finding always refuses the publish, and the manifest cannot allow one (1417.2919ms)
+✔ an allowance can name neither a marker nor an identity pattern (0.3617ms)
+✔ publicContractText drops the comment above doc_roles.request and empties the key, and nothing else (1.1723ms)
+✔ a stale published contract refuses the publish, naming the key it is stale at (1852.219ms)
+✔ --write-public-contract writes the generated file, and a publish then passes (2139.4079ms)
+✔ planSnapshot: a replacement whose source is excluded is an error and ships nothing (5.9936ms)
+✔ planSnapshot: a replacement source does not ship under its own name; a missing source is an error (0.3112ms)
+✔ validateManifest refuses unknown keys, bad globs, g flags and paths leaving the repository (0.1309ms)
+✔ changelogEntry, parseIdentity, contractDrift and scanText (0.6282ms)
+✔ validateManifest refuses a manifest pattern named with the local: prefix the identity patterns are renamed to (0.1791ms)
+✔ validateManifest refuses a replace path with a .git component (0.1197ms)
+✔ validateManifest refuses a replace path naming .git or .. by a Windows alias (0.1662ms)
+✔ a publish of a commit that is not master's tip is refused, and nothing is committed (708.5722ms)
+✔ a secret-scan exit of 99 with no finding in its report refuses the publish (853.2362ms)
+✔ a tracked CLAUDE.md shipped as itself, unreplaced, refuses the publish (704.6566ms)
+✔ --no-suite without --dry-run is refused, and nothing is committed (466.2265ms)
+✔ --out naming the source repository is refused before anything in it is touched (489.1392ms)
+✔ a snapshot check that changes a shipped file refuses the publish (1139.3465ms)
+✔ a tracked symbolic link refuses the publish: only regular files ship (849.7908ms)
+✔ an --identity matching a local identity pattern is refused, and nothing is committed (613.0944ms)
+✔ the secret scanner's whole command line is printed on every publish (866.4819ms)
+✔ each snapshot check's output is recorded in a log under the engine's home, named in the output (1138.9744ms)
+✔ a shipped file at the scan's aside name for .gitleaksignore refuses the publish rather than being overwritten (831.9225ms)
+✔ a local identity file without the private-repo-owner pattern refuses the publish, naming the pattern (596.8391ms)
+✔ the published contract may carry comments written for readers; its keys are what is checked (1891.4153ms)
+✔ the published contract block carries no private development history in its comments (1.1501ms)
+✔ stage 2: --out spelled through a link commits, as its real path does (1584.0786ms)
+✔ stage 2: an --out below its repository's top is still refused, and nothing is committed (1260.7862ms)
+ℹ tests 51
+ℹ suites 0
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 48950.9903

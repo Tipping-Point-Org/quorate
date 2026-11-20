@@ -33,7 +33,7 @@ const RECORDS = /^(\.claude\/(requests|reviews|claim-checks)\/|blog\/)/;
 const listed = gitSync(['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
 if (listed.status !== 0) die(`git ls-files failed in ${root}: ${listed.error?.message ?? listed.stderr}`);
 const files = [...new Set(listed.stdout.split('\0').filter(Boolean))]
-  .filter((f) => syntaxFor(f) && !RECORDS.test(f) && fs.existsSync(path.join(root, f)));
+  .filter((f) => syntaxFor(f) && !RECORDS.test(f));
 
 // WHERE A RESTATEMENT COUNTS, read from the contract (plan stage 4): source_globs and doc_paths, plus the template and
 // README a consumer reads, which neither names; test_globs and generated_globs are out, since a test quotes a phrase to
@@ -57,7 +57,12 @@ const restated = [];
 const pending = [];
 for (const f of files) {
   const abs = path.join(root, f);
-  const text = fs.readFileSync(abs, 'utf8');
+  // A file git listed may be gone by the time it is read (a tracked file deleted, or a test's untracked directory
+  // removed mid-walk, as the full suite does): that, and only that, is skipped. Any other failure to read it stops the
+  // run naming the file, so --check never passes over a file it could not read. No existsSync filter stands in front:
+  // it answers false for every stat failure, EACCES included (G-1 of 20261120-022706-m2-gaps-remediation-review).
+  let text;
+  try { text = fs.readFileSync(abs, 'utf8'); } catch (e) { if (e.code === 'ENOENT') continue; die(`cannot read ${f}: ${e.message}`); }
   let result;
   try { result = regenerate(text, f, templates); } catch (e) { die(e.message); }
   for (const s of result.stale) stale.push(`${f}:${s.line}: rule:${s.id} differs from its owner`);

@@ -1,0 +1,87 @@
+$ node <repo>/.claude/skills/quorate/scripts/find-inert-features.mjs
+# cwd: <repo>
+# exit: 0
+# timeout: 25 minute(s)
+# elapsed: 1.5 of 30 minute(s)
+# captured: 2026-11-19T05:27:38.213Z
+------------------------------------------------------------------------
+Searched 942 documented identifiers across 23 doc file(s)
+against 328 source file(s).
+
+INERT (37) — documented, no occurrence anywhere in source_globs:
+  b46a729                            declared in ROADMAP.md
+  b5e95d2                            declared in ROADMAP.md
+  b7c6bac                            declared in ROADMAP.md
+  c67e63f                            declared in ROADMAP.md
+  c9c0ae95                           declared in ROADMAP.md
+  claudeBin                          declared in ARCHITECTURE.md
+  claudeCmd                          declared in ARCHITECTURE.md
+  config.override                    declared in bench/RESULTS.md
+  config.toml                        declared in shared/external-reviewers.md
+  d33db1a                            declared in ROADMAP.md
+  d52ec64                            declared in ROADMAP.md
+  d64101ea                           declared in bench/RESULTS.md
+  defect.severity_floor              declared in shared/bench-corpus.md
+  deny.toml                          declared in shared/claude-md-contract.md
+  fa5148d                            declared in ROADMAP.md
+  feb3aa01                           declared in ROADMAP.md
+  fizz                               declared in shared/remediation.md
+  framework.dirty                    declared in shared/code-index.md
+  from_template                      declared in shared/scaffold-contract.md
+  fs.cp                              declared in bench/test-selection/RESULTS.md
+  generated_at                       declared in shared/scaffold-contract.md
+  globals.parseInt                   declared in shared/code-index.md
+  LICENSE                            declared in ROADMAP.md
+  module.rs.tmpl                     declared in shared/scaffold-contract.md
+  node_runtime.budget.flag           declared in shared/adapter-contract.md
+  node_runtime.timeout.flag          declared in shared/adapter-contract.md
+  options.import_roots               declared in extractors/README.md
+  permissions.deny                   declared in QUORATE.md
+  pull_request                       declared in QUORATE.md
+  quote_by                           declared in shared/ledger-transitions.md
+  review.autonomy_floor              declared in ARCHITECTURE.md
+  ripgrep                            declared in ARCHITECTURE.md
+  settings.flag                      declared in shared/adapter-contract.md
+  SPECIFIED                          declared in ARCHITECTURE.md
+  stage_8_run                        declared in ROADMAP.md
+  trust_level                        declared in shared/external-reviewers.md
+  updater.full_deps                  declared in bench/test-selection/RESULTS.md
+
+RECORD-ONLY (33) — exactly one occurrence, so written or declared but never read:
+  CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR scripts/reviewers.json
+  codex.cmd                          scripts/lib/reviewers.mjs
+  commands.audit                     scripts/lib/contract-version.mjs
+  commands.deny                      scripts/lib/contract-version.mjs
+  core.fileMode                      scripts/io/set-aside.mjs
+  crash_on_valid_input               scripts/verdict.schema.json
+  desktop                            prompts/security-audit/PROMPT.md
+  effort_note                        scripts/lens-roster.json
+  GIT_NO_REPLACE_OBJECTS             scripts/io/snapshot.mjs
+  http.extraheader                   scripts/lib/decisions.mjs
+  input_files                        scripts/run-checks.mjs
+  journal_unparsed_lines             scripts/lib/telemetry-record.mjs
+  known_models                       scripts/lib/capabilities.mjs
+  memory_unsafety                    scripts/verdict.schema.json
+  MY_API_KEY                         scripts/lib/decisions.mjs
+  node_runtime.prompt.via            scripts/lib/reviewers.mjs
+  OPEN_STATUSES                      scripts/lib/ledger.mjs
+  proc.boundedLaunch                 scripts/spawn-node.mjs
+  PROPOSED                           scripts/lib/ledger.mjs
+  QUORATE_ACORN_DIR                  publish/CLAUDE.public.md
+  QUORATE_REQUIRE_ACORN              publish/CLAUDE.public.md
+  QUORATE_REQUIRE_PYTHON             publish/CLAUDE.public.md
+  reconcile_state                    scripts/run-graph.mjs
+  RECORD_STRING_FIELDS               scripts/lib/telemetry-record.mjs
+  Remediates                         scripts/remediate.mjs
+  remediation_frame.run_dir          scripts/bench-repair-pass.mjs
+  request_inherited_from             scripts/new-run.mjs
+  review.budget_usd_per_barrier      scripts/run-graph.mjs
+  same_family.runtime                scripts/io/telemetry-record.mjs
+  self.m                             extractors/python/extract.py
+  tsconfig                           prompts/ui-audit/PROMPT.md
+  unparsed_lines                     scripts/lib/telemetry-record.mjs
+  UNSCORED                           scripts/lib/telemetry-record.mjs
+
+Verify each candidate before reporting it as a finding: a field reached through
+whole-struct deserialization, a macro, or a name this search cannot follow is a false
+positive. State the result either way — not running this is not a verdict.

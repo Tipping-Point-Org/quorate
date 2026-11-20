@@ -20,6 +20,33 @@ Two conventions worth knowing before reading:
 
 ---
 
+## 0.3.1
+
+### What a consumer coming from 0.3.0 must change
+
+Nothing. No contract key, flag or default changed; `graph_contract_version` is still 6.
+
+### What was wrong, and what changed
+
+- **`QUORATE.md`'s validate step refused on a fresh install.** `new-run --dry-run` derives its scope from the last
+  commit and the untracked files, and a newly mounted project usually has no source file there, so the step meant to
+  say "you are set up" exited 2. The step is now `new-run --dry-run --full-sweep <your source dir>`, and the page says
+  that the plain form's refusal is the scope rule working, not a broken install. Found by installing 0.3.0 from the
+  public repository into a throwaway project, following `QUORATE.md` alone.
+- **Nothing showed a newcomer what a run produces.** `examples/` now holds two real runs, curated: a review that
+  failed (gate FAIL, a HIGH confirmed by four arms from another model family) and the separate run that fixed what it
+  found, red before green. Machine paths and the operator's identity are replaced in the copies, and its README says
+  what was left out.
+- **The install was checked only on the developer's machine.** CI now has an `install` job, on a push to the public
+  repository's `master`: it clones the repository from its public URL without credentials, mounts it in a throwaway
+  project at the pushed commit, follows `QUORATE.md`'s setup with an empty home directory and an allow-listed
+  environment, and requires `check-install` to pass (`tests/tools/install-from-repo.mjs`).
+- **`gen-rule-text --check` could pass over a file it could not read.** A git-listed file was skipped when an
+  existence check said it was absent, and that check also says "absent" for a file that exists but cannot be read. Now
+  only a file that is really gone (ENOENT) is skipped, and any other read error fails the check.
+- **The public `CLAUDE.md` described a build log the public tree does not have.** The build log stays private; the
+  layout row says so.
+
 ## 0.3.0
 
 ### What a consumer coming from 0.2.0 must change

@@ -1,0 +1,463 @@
+{
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "gate": "FAIL",
+  "reason": null,
+  "max_verdict": "PASS",
+  "stamps": [
+    "UNSWEPT-DIFF",
+    "UNBENCHED",
+    "CONTRACT-PARTIAL",
+    "UNCAPPED-BUDGET"
+  ],
+  "adjudicated_floor": "FAIL",
+  "adjudication": null,
+  "scope": {
+    "full_sweep": true,
+    "paths": [
+      ".gitleaksignore",
+      "CLAUDE.md",
+      "README.md",
+      "publish/CLAUDE.public.md",
+      "publish/manifest.json",
+      "scripts/lib/publish.mjs",
+      "scripts/publish.mjs",
+      "tests/regression-argv-adoption.test.mjs",
+      "tests/regression-arms-surface-ars-r3.test.mjs",
+      "tests/regression-arms-surface-ars-r5.test.mjs",
+      "tests/regression-arms-surface-link-classes.test.mjs",
+      "tests/regression-ledger-review-ltr3-remediation.test.mjs",
+      "tests/regression-panel-runtime.test.mjs",
+      "tests/regression-publish.test.mjs",
+      "tests/regression-vendor-stderr-off-the-tracked-side.test.mjs"
+    ],
+    "changed_files": [
+      "publish/CLAUDE.public.md",
+      "publish/manifest.json",
+      "scripts/lib/publish.mjs",
+      "scripts/publish.mjs"
+    ]
+  },
+  "intent_sha256": "33e3ca0896d88decfdaa2929f9987a965cd0b36d5aee1d15eaf320b89bbbff7d",
+  "preflight": {
+    "state": "ran",
+    "from": null,
+    "inputs_inferred": false,
+    "evidence_restored": null,
+    "reason": null
+  },
+  "framework": {
+    "name": "quorate",
+    "version": "0.2.0",
+    "commit": "c9c0ae95cea709922514d65d847271a598e44175",
+    "dirty": false,
+    "layout": "plugin"
+  },
+  "nodes": [
+    {
+      "node_id": "contract-audit",
+      "required": true,
+      "required_by_roster": true,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "RISK",
+      "findings_count": 1,
+      "report_path": "nodes\\contract-audit-report.md",
+      "report_sha256": "e66292def610fa53e0f571c0ed5d9cd783f17fdc32b6a786dc5834b481e12d44",
+      "evidence_dir": "evidence/contract-audit",
+      "skip_reason": null,
+      "session_id": "8bfdfd23-ba61-4019-b7d5-32708a222905",
+      "total_cost_usd": 0.8898782
+    },
+    {
+      "node_id": "code-audit",
+      "required": true,
+      "required_by_roster": true,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "PASS",
+      "findings_count": 0,
+      "report_path": "nodes\\code-audit-report.md",
+      "report_sha256": "77f8a8327d372b463196b4ae27b9e1f2b1076b3d8641166fa8497d94512dd657",
+      "evidence_dir": "evidence/code-audit",
+      "skip_reason": null,
+      "session_id": "d811aeb6-8c4f-490e-bf48-3ab330b028fc",
+      "total_cost_usd": 0.8539499999999999
+    },
+    {
+      "node_id": "security-audit",
+      "required": true,
+      "required_by_roster": true,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "PASS",
+      "findings_count": 0,
+      "report_path": "nodes\\security-audit-report.md",
+      "report_sha256": "4627e5ff2742c533a4eed16fb1cfc5dfcb621d6b2509fd35acf283288947e69f",
+      "evidence_dir": "evidence/security-audit",
+      "skip_reason": null,
+      "session_id": "5967c9db-e9cf-4fca-a492-2f98c503e21f",
+      "total_cost_usd": 0.8086549999999999
+    },
+    {
+      "node_id": "arch-review",
+      "required": true,
+      "required_by_roster": true,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "PASS",
+      "findings_count": 0,
+      "report_path": "nodes\\arch-review-report.md",
+      "report_sha256": "c94776bca7bb9555eeb84a572853beb4b7810b051881d79c7be1613cc124f29f",
+      "evidence_dir": "evidence/arch-review",
+      "skip_reason": null,
+      "session_id": "c41a49f3-9595-4251-a1e7-4ac9ee7f4614",
+      "total_cost_usd": 0.7227689999999999
+    },
+    {
+      "node_id": "doc-consistency-review",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "PASS",
+      "findings_count": 0,
+      "report_path": "nodes\\doc-consistency-review-report.md",
+      "report_sha256": "21c85f135dccab650f73937d5ddb66262e67b3d71007d5bbe7570276254793d8",
+      "evidence_dir": "evidence/doc-consistency-review",
+      "skip_reason": null,
+      "session_id": "f73c604f-b6d4-47ca-9bc5-b3b7caea7c14",
+      "total_cost_usd": 0.8327698
+    },
+    {
+      "node_id": "perf-audit",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "RISK",
+      "findings_count": 0,
+      "report_path": "nodes\\perf-audit-report.md",
+      "report_sha256": "a47eaf53d26462287a31a9da92b2e95554b89ae90caad072aa5c032fc3200ae1",
+      "evidence_dir": "evidence/perf-audit",
+      "skip_reason": null,
+      "session_id": "9ed4faa5-d7c0-4d73-a6f9-399c09b27f74",
+      "total_cost_usd": 0.7160953999999999
+    },
+    {
+      "node_id": "ui-audit",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "SKIPPED",
+      "verdict": null,
+      "findings_count": 0,
+      "report_path": null,
+      "report_sha256": null,
+      "evidence_dir": "evidence/ui-audit",
+      "skip_reason": "condition not met: {\"type\":\"not_equal\",\"key\":\"ui.surface\",\"value\":\"none\"}",
+      "session_id": null,
+      "total_cost_usd": null
+    },
+    {
+      "node_id": "feature-verify",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "SKIPPED",
+      "verdict": null,
+      "findings_count": 0,
+      "report_path": null,
+      "report_sha256": null,
+      "evidence_dir": "evidence/feature-verify",
+      "skip_reason": "condition not met: {\"type\":\"nonempty\",\"key\":\"commands.run\"}",
+      "session_id": null,
+      "total_cost_usd": null
+    },
+    {
+      "node_id": "panel-codex-arch",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "RISK",
+      "findings_count": 2,
+      "report_path": "nodes\\panel-codex-arch-report.md",
+      "report_sha256": "61f97eab9b37c9afc6259985209ce097b5db486dd8d2bcf887919e83531fe921",
+      "evidence_dir": "evidence/panel-codex-arch",
+      "skip_reason": null,
+      "session_id": null,
+      "total_cost_usd": null
+    },
+    {
+      "node_id": "panel-codex-contract",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "RISK",
+      "findings_count": 8,
+      "report_path": "nodes\\panel-codex-contract-report.md",
+      "report_sha256": "51d77975f9edd97bfd4c2cec78e8a9d1e5e492d0053d9d28ba9f37b8d466d108",
+      "evidence_dir": "evidence/panel-codex-contract",
+      "skip_reason": null,
+      "session_id": null,
+      "total_cost_usd": null
+    },
+    {
+      "node_id": "panel-codex-code",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "RISK",
+      "findings_count": 2,
+      "report_path": "nodes\\panel-codex-code-report.md",
+      "report_sha256": "4b9e32c45c164406158186500b1b2cf0d736632d85b4a62507b3e64197b0ae03",
+      "evidence_dir": "evidence/panel-codex-code",
+      "skip_reason": null,
+      "session_id": null,
+      "total_cost_usd": null
+    },
+    {
+      "node_id": "panel-codex-security",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "RISK",
+      "findings_count": 2,
+      "report_path": "nodes\\panel-codex-security-report.md",
+      "report_sha256": "52e0f8b1c5e9b949ff3ac928b74838205c26218eb118aca5d1655b1f60fe27e3",
+      "evidence_dir": "evidence/panel-codex-security",
+      "skip_reason": null,
+      "session_id": null,
+      "total_cost_usd": null
+    },
+    {
+      "node_id": "panel-codex-docs",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "RISK",
+      "findings_count": 1,
+      "report_path": "nodes\\panel-codex-docs-report.md",
+      "report_sha256": "bc999cad7eb71432aec20ec8cba6b4a4b8bba7b835331fd4c6947b24712df509",
+      "evidence_dir": "evidence/panel-codex-docs",
+      "skip_reason": null,
+      "session_id": null,
+      "total_cost_usd": null
+    },
+    {
+      "node_id": "panel-codex-perf",
+      "required": false,
+      "required_by_roster": false,
+      "deselected": false,
+      "state": "OK",
+      "verdict": "RISK",
+      "findings_count": 3,
+      "report_path": "nodes\\panel-codex-perf-report.md",
+      "report_sha256": "ec261ffbe3d9f61428d4184816ad0a9160456252f974b8d80877ae7dfbebbb88",
+      "evidence_dir": "evidence/panel-codex-perf",
+      "skip_reason": null,
+      "session_id": null,
+      "total_cost_usd": null
+    }
+  ],
+  "buckets": {
+    "ok": [
+      {
+        "node_id": "contract-audit",
+        "verdict": "RISK",
+        "findings": 1,
+        "source": null
+      },
+      {
+        "node_id": "code-audit",
+        "verdict": "PASS",
+        "findings": 0,
+        "source": null
+      },
+      {
+        "node_id": "security-audit",
+        "verdict": "PASS",
+        "findings": 0,
+        "source": null
+      },
+      {
+        "node_id": "arch-review",
+        "verdict": "PASS",
+        "findings": 0,
+        "source": null
+      },
+      {
+        "node_id": "doc-consistency-review",
+        "verdict": "PASS",
+        "findings": 0,
+        "source": null
+      },
+      {
+        "node_id": "perf-audit",
+        "verdict": "RISK",
+        "findings": 0,
+        "source": null
+      },
+      {
+        "node_id": "panel-codex-arch",
+        "verdict": "RISK",
+        "findings": 2,
+        "source": "codex"
+      },
+      {
+        "node_id": "panel-codex-contract",
+        "verdict": "RISK",
+        "findings": 8,
+        "source": "codex"
+      },
+      {
+        "node_id": "panel-codex-code",
+        "verdict": "RISK",
+        "findings": 2,
+        "source": "codex"
+      },
+      {
+        "node_id": "panel-codex-security",
+        "verdict": "RISK",
+        "findings": 2,
+        "source": "codex"
+      },
+      {
+        "node_id": "panel-codex-docs",
+        "verdict": "RISK",
+        "findings": 1,
+        "source": "codex"
+      },
+      {
+        "node_id": "panel-codex-perf",
+        "verdict": "RISK",
+        "findings": 3,
+        "source": "codex"
+      }
+    ],
+    "did_not_report": [],
+    "not_checked": [
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__adapter-contract.md — <repo>\\shared\\adapter-contract.md and <repo>\\.claude\\skills\\quorate\\shared\\adapter-contract.md share the snapshot name shared__adapter-contract.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\adapter-contract.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__bench-corpus.md — <repo>\\shared\\bench-corpus.md and <repo>\\.claude\\skills\\quorate\\shared\\bench-corpus.md share the snapshot name shared__bench-corpus.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\bench-corpus.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__claude-md-contract.md — <repo>\\shared\\claude-md-contract.md and <repo>\\.claude\\skills\\quorate\\shared\\claude-md-contract.md share the snapshot name shared__claude-md-contract.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\claude-md-contract.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__code-index.md — <repo>\\shared\\code-index.md and <repo>\\.claude\\skills\\quorate\\shared\\code-index.md share the snapshot name shared__code-index.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\code-index.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__design-step.md — <repo>\\shared\\design-step.md and <repo>\\.claude\\skills\\quorate\\shared\\design-step.md share the snapshot name shared__design-step.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\design-step.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__disk-first-protocol.md — <repo>\\shared\\disk-first-protocol.md and <repo>\\.claude\\skills\\quorate\\shared\\disk-first-protocol.md share the snapshot name shared__disk-first-protocol.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\disk-first-protocol.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__external-reviewers.md — <repo>\\shared\\external-reviewers.md and <repo>\\.claude\\skills\\quorate\\shared\\external-reviewers.md share the snapshot name shared__external-reviewers.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\external-reviewers.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__graph-topologies.md — <repo>\\shared\\graph-topologies.md and <repo>\\.claude\\skills\\quorate\\shared\\graph-topologies.md share the snapshot name shared__graph-topologies.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\graph-topologies.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__ledger-transitions.md — <repo>\\shared\\ledger-transitions.md and <repo>\\.claude\\skills\\quorate\\shared\\ledger-transitions.md share the snapshot name shared__ledger-transitions.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\ledger-transitions.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__remediation.md — <repo>\\shared\\remediation.md and <repo>\\.claude\\skills\\quorate\\shared\\remediation.md share the snapshot name shared__remediation.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\remediation.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__scaffold-contract.md — <repo>\\shared\\scaffold-contract.md and <repo>\\.claude\\skills\\quorate\\shared\\scaffold-contract.md share the snapshot name shared__scaffold-contract.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\scaffold-contract.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__session-rules.md — <repo>\\shared\\session-rules.md and <repo>\\.claude\\skills\\quorate\\shared\\session-rules.md share the snapshot name shared__session-rules.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\session-rules.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__telemetry.md — <repo>\\shared\\telemetry.md and <repo>\\.claude\\skills\\quorate\\shared\\telemetry.md share the snapshot name shared__telemetry.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\telemetry.md"
+      },
+      {
+        "node_id": "intent-capture",
+        "why": "doc snapshot shared__unverified-claims.md — <repo>\\shared\\unverified-claims.md and <repo>\\.claude\\skills\\quorate\\shared\\unverified-claims.md share the snapshot name shared__unverified-claims.md; the node reads only <repo>\\.claude\\skills\\quorate\\shared\\unverified-claims.md"
+      },
+      {
+        "node_id": "ui-audit",
+        "why": "condition not met: {\"type\":\"not_equal\",\"key\":\"ui.surface\",\"value\":\"none\"}"
+      },
+      {
+        "node_id": "feature-verify",
+        "why": "condition not met: {\"type\":\"nonempty\",\"key\":\"commands.run\"}"
+      },
+      {
+        "node_id": "commands.lint",
+        "why": "empty in graph_contract — lint could not be run, and nothing in this run substitutes for it"
+      },
+      {
+        "node_id": "commands.fmt_check",
+        "why": "empty in graph_contract — fmt_check could not be run, and nothing in this run substitutes for it"
+      },
+      {
+        "node_id": "commands.typecheck",
+        "why": "empty in graph_contract — typecheck could not be run, and nothing in this run substitutes for it"
+      },
+      {
+        "node_id": "commands.bench",
+        "why": "empty in graph_contract — bench could not be run, and nothing in this run substitutes for it"
+      },
+      {
+        "node_id": "commands.run",
+        "why": "empty in graph_contract — run could not be run, and nothing in this run substitutes for it"
+      },
+      {
+        "node_id": "commands.audit",
+        "why": "empty in graph_contract — audit could not be run, and nothing in this run substitutes for it"
+      },
+      {
+        "node_id": "commands.deny",
+        "why": "empty in graph_contract — deny could not be run, and nothing in this run substitutes for it"
+      },
+      {
+        "node_id": "commands.test_product",
+        "why": "empty in graph_contract — test_product could not be run, and nothing in this run substitutes for it"
+      },
+      {
+        "node_id": "budget.per-node",
+        "why": "uncapped by contract — no per-node dollar ceiling was enforced on this run (UNCAPPED-BUDGET)"
+      },
+      {
+        "node_id": "budget.per-barrier",
+        "why": "uncapped by contract — no per-barrier dollar ceiling was enforced on this run (UNCAPPED-BUDGET)"
+      },
+      {
+        "node_id": "budget.per-run",
+        "why": "uncapped by contract — no per-run dollar ceiling was enforced on this run (UNCAPPED-BUDGET)"
+      },
+      {
+        "node_id": "ui.static_bundle",
+        "why": "not declared — ui-audit reviewed source only; no built bundle or shipped webview was inspected"
+      }
+    ],
+    "orphan_reports": []
+  },
+  "reconcile_state": "OK",
+  "reconcile_reask": null,
+  "total_cost_usd": 6.9917,
+  "reviewer_overrides": []
+}

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "panel-codex-arch",
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "timeout_minutes": 30,
+  "call": {
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "family": "openai",
+    "started_at": "2026-11-19T05:25:06.281Z",
+    "ended_at": "2026-11-19T05:30:54.657Z",
+    "duration_ms": 348376,
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "timeout_minutes": 30,
+    "usage": {
+      "input_tokens": 2076735,
+      "cached_input_tokens": 1945856,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 14082,
+      "reasoning_output_tokens": 8796
+    },
+    "outcome": "answered"
+  },
+  "state": "OK",
+  "reviewer_answered": true,
+  "verdict": "RISK",
+  "source": "codex",
+  "shadows": "arch-review",
+  "session_id": null,
+  "report_path": "nodes\\panel-codex-arch-report.md",
+  "report_sha256": "61f97eab9b37c9afc6259985209ce097b5db486dd8d2bcf887919e83531fe921",
+  "model": "gpt-5.6-sol",
+  "effort": "high",
+  "duration_ms": 348376,
+  "auth_mode": "external-vendor",
+  "env_passed": [
+    "ALLUSERSPROFILE",
+    "APPDATA",
+    "COMSPEC",
+    "HOME",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "LOCALAPPDATA",
+    "NUMBER_OF_PROCESSORS",
+    "OS",
+    "PATH",
+    "PATHEXT",
+    "PROGRAMFILES",
+    "ProgramData",
+    "ProgramFiles(x86)",
+    "SHELL",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TERM",
+    "TMP",
+    "USERDOMAIN",
+    "USERNAME",
+    "USERPROFILE",
+    "WINDIR"
+  ],
+  "not_checked": [
+    {
+      "item": "commands.lint",
+      "reason": "empty in graph_contract — lint could not be run"
+    },
+    {
+      "item": "commands.fmt_check",
+      "reason": "empty in graph_contract — fmt_check could not be run"
+    },
+    {
+      "item": "commands.typecheck",
+      "reason": "empty in graph_contract — typecheck could not be run"
+    },
+    {
+      "item": "commands.bench",
+      "reason": "empty in graph_contract — bench could not be run"
+    },
+    {
+      "item": "commands.run",
+      "reason": "empty in graph_contract — run could not be run"
+    },
+    {
+      "item": "commands.audit",
+      "reason": "empty in graph_contract — audit could not be run"
+    },
+    {
+      "item": "commands.deny",
+      "reason": "empty in graph_contract — deny could not be run"
+    },
+    {
+      "item": "commands.test_product",
+      "reason": "empty in graph_contract — test_product could not be run"
+    },
+    {
+      "item": "build and test execution",
+      "reason": "The external arm has no capture channel, so the declared build and test commands were not run and no dynamic evidence was claimed."
+    },
+    {
+      "item": "private request and ADR corpus",
+      "reason": "The declared request was outside the full_sweep_paths and architecture review may not infer conformance from it; no separate ADR paths were declared."
+    },
+    {
+      "item": "brief-gap",
+      "reason": "The brief did not explicitly ask whether final publication checks must precede mutation of --out; no scoped path wasted time, and a stated rollback/atomicity contract for failed publishes would have sharpened the lifecycle review."
+    },
+    {
+      "item": "evidence paths",
+      "reason": "codex runs outside the run sandbox and cannot produce verifiable evidence; findings are capped at basis=convention"
+    }
+  ],
+  "launched": true,
+  "started_at": "2026-11-19T05:25:03.828Z",
+  "ended_at": "2026-11-19T05:30:54.681Z",
+  "findings_count": 2,
+  "rejected_findings_count": 0,
+  "graph_node_depth": 1,
+  "validator_errors": [],
+  "total_cost_usd": null,
+  "usage": {
+    "input_tokens": 2076735,
+    "cached_input_tokens": 1945856,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 14082,
+    "reasoning_output_tokens": 8796
+  }
+}

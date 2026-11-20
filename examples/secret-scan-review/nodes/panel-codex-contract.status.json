@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "panel-codex-contract",
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "timeout_minutes": 30,
+  "call": {
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "family": "openai",
+    "started_at": "2026-11-19T05:25:06.282Z",
+    "ended_at": "2026-11-19T05:31:41.355Z",
+    "duration_ms": 395073,
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "timeout_minutes": 30,
+    "usage": {
+      "input_tokens": 2698813,
+      "cached_input_tokens": 2567936,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 13040,
+      "reasoning_output_tokens": 7857
+    },
+    "outcome": "answered"
+  },
+  "state": "OK",
+  "reviewer_answered": true,
+  "verdict": "RISK",
+  "source": "codex",
+  "shadows": "contract-audit",
+  "session_id": null,
+  "report_path": "nodes\\panel-codex-contract-report.md",
+  "report_sha256": "51d77975f9edd97bfd4c2cec78e8a9d1e5e492d0053d9d28ba9f37b8d466d108",
+  "model": "gpt-5.6-sol",
+  "effort": "high",
+  "duration_ms": 395073,
+  "auth_mode": "external-vendor",
+  "env_passed": [
+    "ALLUSERSPROFILE",
+    "APPDATA",
+    "COMSPEC",
+    "HOME",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "LOCALAPPDATA",
+    "NUMBER_OF_PROCESSORS",
+    "OS",
+    "PATH",
+    "PATHEXT",
+    "PROGRAMFILES",
+    "ProgramData",
+    "ProgramFiles(x86)",
+    "SHELL",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TERM",
+    "TMP",
+    "USERDOMAIN",
+    "USERNAME",
+    "USERPROFILE",
+    "WINDIR"
+  ],
+  "not_checked": [
+    {
+      "item": "commands.lint",
+      "reason": "empty in graph_contract — lint could not be run"
+    },
+    {
+      "item": "commands.fmt_check",
+      "reason": "empty in graph_contract — fmt_check could not be run"
+    },
+    {
+      "item": "commands.typecheck",
+      "reason": "empty in graph_contract — typecheck could not be run"
+    },
+    {
+      "item": "commands.bench",
+      "reason": "empty in graph_contract — bench could not be run"
+    },
+    {
+      "item": "commands.run",
+      "reason": "empty in graph_contract — run could not be run"
+    },
+    {
+      "item": "commands.audit",
+      "reason": "empty in graph_contract — audit could not be run"
+    },
+    {
+      "item": "commands.deny",
+      "reason": "empty in graph_contract — deny could not be run"
+    },
+    {
+      "item": "commands.test_product",
+      "reason": "empty in graph_contract — test_product could not be run"
+    },
+    {
+      "item": "publish integration execution",
+      "reason": "The targeted tests could not create their temporary repositories because the configured <tmp> location returned EPERM; pure publish tests passed, but integration behavior was assessed statically."
+    },
+    {
+      "item": "public-history secret scan",
+      "reason": "Gitleaks is not installed and public commit 2a669ba0 is absent from this checkout, so the shipped rules could not be executed against that history."
+    },
+    {
+      "item": "red-before-green provenance",
+      "reason": "The current checkout contains assertions but no run evidence demonstrating that every named regression failed before its implementation."
+    },
+    {
+      "item": "brief-gap",
+      "reason": "The brief covered the contract criteria, but the repository-wide inert-feature scan was unrelated to this publish change; access to public commit 2a669ba0, gitleaks, and a writable temporary directory would have strengthened verification."
+    },
+    {
+      "item": "evidence paths",
+      "reason": "codex runs outside the run sandbox and cannot produce verifiable evidence; findings are capped at basis=convention"
+    }
+  ],
+  "launched": true,
+  "started_at": "2026-11-19T05:25:03.857Z",
+  "ended_at": "2026-11-19T05:31:41.382Z",
+  "findings_count": 8,
+  "rejected_findings_count": 0,
+  "graph_node_depth": 1,
+  "validator_errors": [],
+  "total_cost_usd": null,
+  "usage": {
+    "input_tokens": 2698813,
+    "cached_input_tokens": 2567936,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 13040,
+    "reasoning_output_tokens": 7857
+  }
+}

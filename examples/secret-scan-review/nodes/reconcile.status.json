@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "reconcile",
+  "state": "OK",
+  "mode": "reconcile",
+  "skill_command": "/reconcile",
+  "model": "opus",
+  "session_id": "cb1bab6f-6ef2-47a2-8eba-3efe7b692a4b",
+  "cmd": [
+    "claude",
+    "-p",
+    "--model",
+    "opus",
+    "--output-format",
+    "json",
+    "--effort",
+    "low",
+    "--json-schema",
+    "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"schema_version\",\"run_id\",\"intent_intact\",\"groups\",\"summary\"],\"properties\":{\"schema_version\":{\"const\":1},\"run_id\":{\"type\":\"string\",\"pattern\":\"^[0-9]{8}-[0-9]{6}-[a-z0-9-]+$\"},\"intent_intact\":{\"type\":\"boolean\",\"description\":\"False if intent.md no longer hashes to the value in your brief. A run whose criteria moved mid-flight measured nothing.\"},\"groups\":{\"type\":\"array\",\"maxItems\":80,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"group_id\",\"decision\",\"severity\",\"rationale\"],\"properties\":{\"group_id\":{\"type\":\"string\",\"pattern\":\"^G-[0-9]{1,3}$\"},\"decision\":{\"type\":\"string\",\"enum\":[\"confirmed\",\"coincidence\",\"symptom\",\"dropped\"],\"description\":\"confirmed: real and corroborated. coincidence: lenses agreed by accident. symptom: real but downstream of another group. dropped: not defensible.\"},\"severity\":{\"type\":\"string\",\"enum\":[\"BLOCKER\",\"HIGH\",\"MEDIUM\",\"LOW\"]},\"root_cause_group\":{\"type\":\"string\",\"pattern\":\"^(G-[0-9]{1,3}|)$\"},\"disputed\":{\"type\":\"boolean\",\"description\":\"True only when a lens and an external panel arm explicitly contradict each other about this group. Not for asymmetric coverage.\"},\"rationale\":{\"type\":\"string\",\"minLength\":20,\"maxLength\":1000}}}},\"summary\":{\"type\":\"string\",\"minLength\":20,\"maxLength\":20000}}}",
+    "--settings",
+    "<home>\\.quorate\\reviews\\quorate-83d533eb\\20261119-051632-m2-9c-secret-scan\\node-settings.json",
+    "--setting-sources",
+    "project",
+    "--add-dir",
+    "<repo>",
+    "<home>\\.quorate\\reviews\\quorate-83d533eb\\20261119-051632-m2-9c-secret-scan",
+    "--disallowedTools",
+    "Edit",
+    "Write",
+    "NotebookEdit",
+    "WebFetch",
+    "WebSearch",
+    "Task",
+    "Grep",
+    "--permission-mode",
+    "manual",
+    "--session-id",
+    "cb1bab6f-6ef2-47a2-8eba-3efe7b692a4b",
+    "--no-chrome"
+  ],
+  "cwd": "<home>\\.quorate\\reviews\\quorate-83d533eb\\20261119-051632-m2-9c-secret-scan",
+  "add_dirs": [
+    "<repo>",
+    "<home>\\.quorate\\reviews\\quorate-83d533eb\\20261119-051632-m2-9c-secret-scan"
+  ],
+  "settings_path": "node-settings.json",
+  "settings_sha256": "4b4697537255722c510454bcd88756c174f00c3614a5091ccda3fa006d3ba8d4",
+  "graph_node_depth": 1,
+  "started_at": "2026-11-19T05:38:17.264Z",
+  "ended_at": "2026-11-19T05:39:27.493Z",
+  "duration_ms": 70229,
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "killed_tree": false,
+  "stdout_bytes": 16733,
+  "stderr_bytes": 0,
+  "stdout_path": "evidence\\reconcile\\stdout.json",
+  "stderr_path": "evidence\\reconcile\\stderr.log",
+  "envelope_parsed": true,
+  "verdict_json_valid": true,
+  "validator_errors": [],
+  "verdict": null,
+  "findings_count": 0,
+  "rejected_findings_count": 0,
+  "permission_denials_count": 2,
+  "total_cost_usd": 0.4869698,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 42648,
+    "cache_read_input_tokens": 254409,
+    "output_tokens": 4742,
+    "output_tokens_details": {
+      "thinking_tokens": 906
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42648,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3414,
+        "cache_read_input_tokens": 42388,
+        "cache_creation_input_tokens": 260,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 260
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "model_usage": {
+    "claude-opus-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4742,
+      "cacheReadInputTokens": 254409,
+      "cacheCreationInputTokens": 42648,
+      "webSearchRequests": 0,
+      "costUSD": 0.4869698,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 906,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42648,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "timeout_minutes": 35,
+  "num_turns": 9,
+  "stop_reason": "tool_use",
+  "subtype": "success",
+  "report_path": null,
+  "report_sha256": null,
+  "skip_reason": null,
+  "auth_mode": "subscription",
+  "env_stripped": [
+    "BRAIN_KEY",
+    "CHATOPS_API_TOKEN",
+    "CLAUDE_CODE_BRIDGE_SESSION_ID",
+    "CLAUDE_CODE_CHILD_SESSION",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS",
+    "CLAUDE_CODE_MESSAGING_TOKEN",
+    "CLAUDE_CODE_SESSION_ATTENDED",
+    "CLAUDE_CODE_SESSION_ID",
+    "DATABASE_URL",
+    "GEMINI_API_KEY",
+    "GITHUB_TOKEN",
+    "HF_TOKEN",
+    "INITIAL_PASSWORD",
+    "JIRA_API_KEY",
+    "LINEAR_API_KEY",
+    "MEMORYGROOVE_OWNER_TOKEN",
+    "NVIDIA_KEY",
+    "REQUIRE_API_KEY",
+    "SESSIONNAME",
+    "WT_SESSION",
+    "ANTHROPIC_API_KEY",
+    "CLAUDECODE",
+    "CLAUDE_CODE_ENTRYPOINT"
+  ],
+  "severity_ceiling": null,
+  "severity_floor": null,
+  "verdict_ceiling": null,
+  "sandbox_cwd": "",
+  "effort": "low",
+  "sandboxed": true,
+  "file_size_ceiling_bytes": null,
+  "call": {
+    "reviewer": "claude",
+    "model": "opus",
+    "family": "anthropic",
+    "started_at": "2026-11-19T05:38:17.264Z",
+    "ended_at": "2026-11-19T05:39:27.489Z",
+    "duration_ms": 70225,
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "timeout_minutes": 35,
+    "usage": {
+      "input_tokens": 16,
+      "cache_creation_input_tokens": 42648,
+      "cache_read_input_tokens": 254409,
+      "output_tokens": 4742,
+      "output_tokens_details": {
+        "thinking_tokens": 906
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 42648,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 3414,
+          "cache_read_input_tokens": 42388,
+          "cache_creation_input_tokens": 260,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 260
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "outcome": "answered"
+  },
+  "launched": true
+}

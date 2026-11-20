@@ -1,0 +1,140 @@
+$ node --test tests/regression-publish.test.mjs
+# admitted: test_one tests/regression-publish.test.mjs
+# cwd: <repo>
+# exit: 1
+# timeout: 25 minute(s)
+# elapsed: 1.9 of 30 minute(s)
+# captured: 2026-11-19T05:43:29.812Z
+------------------------------------------------------------------------
+✔ a clean snapshot is committed into the public clone: exclusions gone, earlier content replaced, never pushed (1536.1329ms)
+✖ a committing publish runs the published tree's check-secrets in --out, records it there, and passes (1480.1258ms)
+✖ a failing public scan blocks the commit: --out is back at its earlier release, the result recorded (1531.8243ms)
+✖ a snapshot without scripts/check-secrets.mjs is refused before --out is touched (1464.0374ms)
+✔ the commit message is the release CHANGELOG entry, with the source commit (1525.9473ms)
+✔ the commit is authored and committed as --identity, never the machine's git identity (1503.4719ms)
+✔ a machine-local path in a shipped file is named, and nothing is committed (898.9363ms)
+✔ the operator's identity, from the untracked local file, is named wherever it ships (890.2325ms)
+✔ an identity in an EXCLUDED file is not a finding: only what ships is scanned (1489.1033ms)
+✔ no local identity file refuses the publish rather than scanning without it (626.9582ms)
+✔ a placeholder marker refuses the publish (NOTICE before the holder's name is known) (892.1665ms)
+✔ a tracked change in the working tree refuses the publish (527.0012ms)
+✔ an untracked, unignored file at a path that ships refuses the publish; one under an excluded path does not (1076.1377ms)
+✔ a release with no CHANGELOG section of its version is refused (880.9198ms)
+✔ the snapshot's own suite failing refuses the publish (1126.3293ms)
+✔ the snapshot's checks and the secret scanner get no run pin, runtime auth or secret-shaped variable (1195.5044ms)
+✔ the secret scan honours no .gitleaksignore: not the shipped one, not the working directory's (893.7098ms)
+✔ an identity in a UTF-16 or binary file is still named, and nothing is committed (1864.041ms)
+✔ the published contract may differ from the private one only in doc_roles.request (2462.8299ms)
+✔ a scanner override is said; a missing scanner refuses (1319.7639ms)
+✔ a planted secret fails the real gitleaks scan (1148.6323ms)
+✔ an allowance covers its hit by file, pattern and line; the same hit in another file still stops the publish (2357.3315ms)
+✔ an allowance that matches nothing is stale and refuses the publish (853.1387ms)
+✔ a gitleaks finding always refuses the publish, and the manifest cannot allow one (1422.194ms)
+✔ an allowance can name neither a marker nor an identity pattern (0.4145ms)
+✔ publicContractText drops the comment above doc_roles.request and empties the key, and nothing else (1.5604ms)
+✔ a stale published contract refuses the publish, naming the key it is stale at (1808.2941ms)
+✔ --write-public-contract writes the generated file, and a publish then passes (2037.7766ms)
+✔ planSnapshot: a replacement whose source is excluded is an error and ships nothing (6.3328ms)
+✔ planSnapshot: a replacement source does not ship under its own name; a missing source is an error (0.3527ms)
+✔ validateManifest refuses unknown keys, bad globs, g flags and paths leaving the repository (0.1346ms)
+✔ changelogEntry, parseIdentity, contractDrift and scanText (0.6424ms)
+✔ validateManifest refuses a manifest pattern named with the local: prefix the identity patterns are renamed to (0.112ms)
+✔ validateManifest refuses a replace path with a .git component (0.1701ms)
+✔ validateManifest refuses a replace path naming .git or .. by a Windows alias (0.2462ms)
+✔ a publish of a commit that is not master's tip is refused, and nothing is committed (719.6692ms)
+✔ a secret-scan exit of 99 with no finding in its report refuses the publish (843.5139ms)
+✔ a tracked CLAUDE.md shipped as itself, unreplaced, refuses the publish (699.7258ms)
+✔ --no-suite without --dry-run is refused, and nothing is committed (455.7651ms)
+✔ --out naming the source repository is refused before anything in it is touched (488.4726ms)
+✔ a snapshot check that changes a shipped file refuses the publish (1146.1545ms)
+✔ a tracked symbolic link refuses the publish: only regular files ship (847.5989ms)
+✔ an --identity matching a local identity pattern is refused, and nothing is committed (612.9318ms)
+✔ the secret scanner's whole command line is printed on every publish (834.7484ms)
+✔ each snapshot check's output is recorded in a log under the engine's home, named in the output (1167.1775ms)
+✔ a shipped file at the scan's aside name for .gitleaksignore refuses the publish rather than being overwritten (842.8949ms)
+✔ a local identity file without the private-repo-owner pattern refuses the publish, naming the pattern (617.081ms)
+✔ the published contract may carry comments written for readers; its keys are what is checked (1808.235ms)
+✔ the published contract block carries no private development history in its comments (1.1826ms)
+✔ stage 2: --out spelled through a link commits, as its real path does (1432.9609ms)
+✔ stage 2: an --out below its repository's top is still refused, and nothing is committed (1181.4384ms)
+ℹ tests 51
+ℹ suites 0
+ℹ pass 48
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 48860.1561
+
+✖ failing tests:
+
+test at tests\regression-publish.test.mjs:88:1
+✖ a committing publish runs the published tree's check-secrets in --out, records it there, and passes (1480.1258ms)
+  Error: ENOENT: no such file or directory, open '<tmp>\q-publish-mOlo5Y\public\.git\quorate-publish\check-secrets.log'
+      at Object.readFileSync (node:fs:439:20)
+      at TestContext.<anonymous> (file:///<repo>/tests/regression-publish.test.mjs:93:19)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '<tmp>\\q-publish-mOlo5Y\\public\\.git\\quorate-publish\\check-secrets.log'
+  }
+
+test at tests\regression-publish.test.mjs:97:1
+✖ a failing public scan blocks the commit: --out is back at its earlier release, the result recorded (1531.8243ms)
+  AssertionError [ERR_ASSERTION]: the rejected commit was left at HEAD
+  + actual - expected
+  
+  + '1036bd94f91e6b34915f8c86d195f98aa7e5b618'
+  - 'a8fc1574f904511e3ffd02746eb461bffc4d5fab'
+  
+      at TestContext.<anonymous> (file:///<repo>/tests/regression-publish.test.mjs:103:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '1036bd94f91e6b34915f8c86d195f98aa7e5b618',
+    expected: 'a8fc1574f904511e3ffd02746eb461bffc4d5fab',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\regression-publish.test.mjs:109:1
+✖ a snapshot without scripts/check-secrets.mjs is refused before --out is touched (1464.0374ms)
+  AssertionError [ERR_ASSERTION]: publish: snapshot of 63f4df48: 8 files, 1 excluded
+  publish: the secret scanner is OVERRIDDEN by QUORATE_PUBLISH_GITLEAKS: <program-files>/nodejs\node.exe -e process.exit(0)
+  publish: secret scan command: <program-files>/nodejs\node.exe -e process.exit(0) dir <tmp>\quorate-publish-nEWwCt\snapshot --redact --no-banner --exit-code 99 --report-format json --report-path <tmp>\quorate-publish-nEWwCt\gitleaks.json --gitleaks-ignore-path <tmp>\quorate-publish-nEWwCt\no-gitleaksignore --config <repo>/.claude/hooks/gitleaks.toml
+  publish: scan: 0 finding(s), 0 allowed by the manifest, 0 stale allowance(s), over 8 files (3 patterns, 1 markers)
+  publish: gitleaks: no secrets found
+  publish: snapshot build: exit 0; output recorded in <tmp>\quorate-test-home\publish\20261119-054246-63f4df485912\build.log
+  publish: snapshot tests: exit 0; output recorded in <tmp>\quorate-test-home\publish\20261119-054246-63f4df485912\tests.log
+  publish: snapshot contract: exit 0; output recorded in <tmp>\quorate-test-home\publish\20261119-054246-63f4df485912\contract.log
+  publish: committed b41a20d960b6a400a60e00f09028bbe11643eb1a in <tmp>\q-publish-JO2MOu\public as New Account <123+newacct@users.noreply.github.com>; not pushed (the operator's step)
+  publish: the published tree has no scripts/check-secrets.mjs, so the public CI's secret scan was not run here
+  
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///<repo>/tests/regression-publish.test.mjs:113:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1103:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
+      at Test.postRun (node:internal/test_runner/test:1232:19)
+      at Test.run (node:internal/test_runner/test:1160:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

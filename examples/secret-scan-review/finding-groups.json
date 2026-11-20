@@ -1,0 +1,353 @@
+{
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "groups": [
+    {
+      "group_id": "G-1",
+      "file": "publish/manifest.json",
+      "line": 4,
+      "proximate_nodes": [
+        "panel-codex-contract"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-contract",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The required exclusion list does not include blog/sessions digests, so a tracked digest under blog/sessions would be copied into the public snapshot.",
+          "evidence_path": "evidence/panel-codex-contract/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-2",
+      "file": "publish/manifest.json",
+      "line": 16,
+      "proximate_nodes": [
+        "panel-codex-contract"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-contract",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The Windows-path pattern accepts only backslash paths with a multi-character first component; valid machine-local paths such as <home>/file or C:\\x\\file pass unnamed.",
+          "evidence_path": "evidence/panel-codex-contract/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-3",
+      "file": "ROADMAP.md",
+      "line": 454,
+      "proximate_nodes": [
+        "panel-codex-docs"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-docs",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "D2 still documents publishing as scanning the snapshot and then committing it, but scripts/publish.mjs:388-405 now creates the public commit before running a second whole-history secret scan; when that scan fails, the commit remains and the operator is told to undo it. The documented sequencing therefore omits the new post-commit failure state and can falsely lead operators to expect every failed secret scan to leave no commit.",
+          "evidence_path": "evidence/panel-codex-docs/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-4",
+      "file": "scripts/lib/publish.mjs",
+      "line": 39,
+      "proximate_nodes": [
+        "panel-codex-contract"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-contract",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "Allowance identity hashes trimmed line text, so editing only leading or trailing whitespace preserves the allowance even though the contract requires any edited line to lose it.",
+          "evidence_path": "evidence/panel-codex-contract/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-5",
+      "file": "scripts/lib/publish.mjs",
+      "line": 212,
+      "proximate_nodes": [
+        "panel-codex-perf"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-perf",
+          "severity": "LOW",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "scanText permits zero-width regular expressions and recomputes SHA-256 over the complete line for every match; an empty regex on an N-character user-controlled line produces about N buffered hits and O(N²) hashing work, risking excessive CPU and memory during publish. Static risk only because no benchmark is declared.",
+          "evidence_path": "evidence/panel-codex-perf/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-6",
+      "file": "scripts/lib/publish.mjs",
+      "line": 342,
+      "proximate_nodes": [
+        "panel-codex-perf"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-perf",
+          "severity": "LOW",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "applyAllowances linearly searches all A allowances for each of H scan hits, producing O(H×A) comparisons and quadratic behavior when the user-controlled allowance and hit collections grow together. Static risk only because no benchmark is declared.",
+          "evidence_path": "evidence/panel-codex-perf/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-7",
+      "file": "scripts/publish.mjs",
+      "line": 82,
+      "proximate_nodes": [
+        "panel-codex-contract"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-contract",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The committing path accepts any syntactically valid --identity not matched by local deny patterns; it does not require Tipping Point Org <dev@tippingpointconsultoria.com.br> and can commit as another identity.",
+          "evidence_path": "evidence/panel-codex-contract/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-8",
+      "file": "scripts/publish.mjs",
+      "line": 103,
+      "proximate_nodes": [
+        "panel-codex-contract"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-contract",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The dirty-tree check deliberately ignores untracked files and later permits those under excluded paths, so a dirty working tree can publish despite the requirement to refuse every dirty tree.",
+          "evidence_path": "evidence/panel-codex-contract/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-9",
+      "file": "scripts/publish.mjs",
+      "line": 254,
+      "proximate_nodes": [
+        "panel-codex-perf"
+      ],
+      "distinct_node_count": 1,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-perf",
+          "severity": "LOW",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The gitleaks-report loop synchronously rereads and splits an entire staged file for every finding; H findings in an S-byte file cause O(H×S) I/O and allocation, quadratic when file size grows with finding count, even though manifest validation now prohibits gitleaks allowances. Static risk only because no benchmark is declared.",
+          "evidence_path": "evidence/panel-codex-perf/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-10",
+      "file": "scripts/publish.mjs",
+      "line": 388,
+      "proximate_nodes": [
+        "panel-codex-arch",
+        "panel-codex-code",
+        "panel-codex-contract",
+        "panel-codex-security"
+      ],
+      "distinct_node_count": 4,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-arch",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The publisher commits the candidate to --out before running the final whole-history validation at line 402; a failed scan therefore leaves the rejected release as HEAD and requires manual rollback, instead of validating before changing the target repository, contrary to A-11's rule that what reaches Git is a decision (ARCHITECTURE.md §4).",
+          "evidence_path": "evidence/panel-codex-arch/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        },
+        {
+          "node_id": "panel-codex-code",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The release commit is created before the public-history scan runs, so a scan failure returns exit 1 with `--out` already advanced to a rejected commit; retrying from that clean but contaminated clone stacks another commit and the whole-history failure persists until HEAD is repaired manually.",
+          "evidence_path": "evidence/panel-codex-code/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        },
+        {
+          "node_id": "panel-codex-contract",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The public commit is created before check-secrets runs; when that check fails, the commit already remains in --out, contrary to the requirement that failure block the commit.",
+          "evidence_path": "evidence/panel-codex-contract/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        },
+        {
+          "node_id": "panel-codex-security",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The publisher commits the snapshot before running the public repository's whole-history secret scan; when that scan fails, the error path never resets the commit, so the rejected snapshot remains at HEAD ready for an ordinary push and may leave the machine despite publish reporting failure.",
+          "evidence_path": "evidence/panel-codex-security/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    },
+    {
+      "group_id": "G-11",
+      "file": "scripts/publish.mjs",
+      "line": 399,
+      "proximate_nodes": [
+        "panel-codex-arch",
+        "panel-codex-code",
+        "panel-codex-contract",
+        "panel-codex-security",
+        "contract-audit"
+      ],
+      "distinct_node_count": 5,
+      "grouped_by": "same file, within 3 lines of the anchor — proximity only, not a corroboration claim",
+      "findings": [
+        {
+          "node_id": "panel-codex-arch",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The orchestration layer directly decides that an absent public scan passes and that a nonzero scan blocks publication, duplicating the scan-outcome policy already assigned to scripts/lib/publish.mjs; this testable release rule belongs in the pure decision layer rather than orchestration (ARCHITECTURE.md §2).",
+          "evidence_path": "evidence/panel-codex-arch/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        },
+        {
+          "node_id": "panel-codex-code",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "The missing-script branch treats absence of `scripts/check-secrets.mjs` as success after logging, so an exclusion or snapshot error can remove the validation it is meant to perform; the publish exits 0 and leaves a release commit whose public-history scan never ran.",
+          "evidence_path": "evidence/panel-codex-code/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        },
+        {
+          "node_id": "panel-codex-contract",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "A snapshot without scripts/check-secrets.mjs is accepted and committed after only a notice, although every committing publish must run the published tree's scanner.",
+          "evidence_path": "evidence/panel-codex-contract/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        },
+        {
+          "node_id": "panel-codex-security",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "A missing scripts/check-secrets.mjs only produces a notice and the publish still succeeds, so a master commit that removes or renames the checker bypasses the whole-history scan and leaves an unchecked release commit ready to push; the current head contains the checker, making this reachable when such a commit becomes the release source.",
+          "evidence_path": "evidence/panel-codex-security/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        },
+        {
+          "node_id": "contract-audit",
+          "severity": "MEDIUM",
+          "basis": "intent",
+          "invariant": "",
+          "intent_ref": "I-6",
+          "claim": "I-6 says a failing check-secrets result blocks the commit. Here the published tree's check-secrets runs only after the commit is already made in --out (line 388). When it fails, the publish stops but leaves the commit in place and tells the operator to reset --soft it by hand. The scan's output goes to the terminal (stdio: 'inherit') and is never written as a record in --out. If scripts/check-secrets.mjs is missing, the publish only logs a line and goes on (line 400). So a failing or absent scan does not prevent a commit, and its result is not recorded.",
+          "evidence_path": "evidence/contract-audit/check-secrets-after-commit.log",
+          "source": "opus",
+          "model": "opus"
+        },
+        {
+          "node_id": "panel-codex-contract",
+          "severity": "MEDIUM",
+          "basis": "convention",
+          "invariant": "",
+          "intent_ref": "",
+          "claim": "check-secrets inherits terminal output and no result file is written under --out, so the required recorded scan result is absent.",
+          "evidence_path": "evidence/panel-codex-contract/raw.log",
+          "source": "codex",
+          "model": "gpt-5.6-sol"
+        }
+      ]
+    }
+  ]
+}

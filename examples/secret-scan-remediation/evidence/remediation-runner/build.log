@@ -1,0 +1,9 @@
+$ node scripts/check-syntax.mjs
+# admitted: build
+# cwd: <repo>
+# exit: 0
+# timeout: 25 minute(s)
+# elapsed: unknown (not inside a node)
+# captured: 2026-11-19T05:46:11.432Z
+------------------------------------------------------------------------
+check-syntax: 1061/1061 file(s) parse

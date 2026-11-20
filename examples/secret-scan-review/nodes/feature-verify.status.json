@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "feature-verify",
+  "state": "SKIPPED",
+  "started_at": "2026-11-19T05:16:54.366Z",
+  "ended_at": "2026-11-19T05:16:54.366Z",
+  "launched": false,
+  "graph_node_depth": 1,
+  "validator_errors": [],
+  "findings_count": 0,
+  "skip_reason": "condition not met: {\"type\":\"nonempty\",\"key\":\"commands.run\"}"
+}

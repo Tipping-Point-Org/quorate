@@ -1,0 +1,69 @@
+{
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "ran_at": "2026-11-19T05:23:11.199Z",
+  "barrier_failed": null,
+  "results": [
+    {
+      "check": "build",
+      "class": "barrier",
+      "status": "PASS",
+      "command": "node scripts/check-syntax.mjs",
+      "exit_code": 0,
+      "evidence_path": "evidence/pre-flight/build.log",
+      "started_at": "2026-11-19T05:16:55.125Z",
+      "duration_ms": 49240,
+      "outcome": "passed",
+      "outcome_detail": "exit 0"
+    },
+    {
+      "check": "test",
+      "class": "evidence",
+      "status": "PASS",
+      "command": "node tests/run-all.mjs",
+      "exit_code": 0,
+      "evidence_path": "evidence/pre-flight/test.log",
+      "started_at": "2026-11-19T05:17:44.366Z",
+      "duration_ms": 326820,
+      "outcome": "passed",
+      "outcome_detail": "exit 0",
+      "tests_reported": 4668,
+      "suite_ran": true
+    },
+    {
+      "check": "lint",
+      "class": "evidence",
+      "status": "SKIPPED",
+      "reason": "commands.lint is empty in graph_contract"
+    },
+    {
+      "check": "fmt_check",
+      "class": "evidence",
+      "status": "SKIPPED",
+      "reason": "commands.fmt_check is empty in graph_contract"
+    },
+    {
+      "check": "typecheck",
+      "class": "evidence",
+      "status": "SKIPPED",
+      "reason": "commands.typecheck is empty in graph_contract"
+    },
+    {
+      "check": "audit",
+      "class": "evidence",
+      "status": "SKIPPED",
+      "reason": "commands.audit is empty in graph_contract"
+    },
+    {
+      "check": "deny",
+      "class": "evidence",
+      "status": "SKIPPED",
+      "reason": "commands.deny is empty in graph_contract"
+    }
+  ],
+  "stamps": [
+    "UNSWEPT-DIFF",
+    "UNBENCHED",
+    "CONTRACT-PARTIAL",
+    "UNCAPPED-BUDGET"
+  ]
+}

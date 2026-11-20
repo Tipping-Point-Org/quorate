@@ -1,0 +1,10 @@
+$ git grep -n -E ^import|process\.|readFileSync|spawn -- scripts/lib/publish.mjs
+# cwd: <repo>
+# exit: 0
+# timeout: 25 minute(s)
+# elapsed: 0.5 of 30 minute(s)
+# captured: 2026-11-19T05:26:15.471Z
+------------------------------------------------------------------------
+scripts/lib/publish.mjs:11:import crypto from 'node:crypto';
+scripts/lib/publish.mjs:12:import { matchesGlob, validateGlob } from './contract-glob.mjs';
+scripts/lib/publish.mjs:13:import { secretScanOutcome, SECRET_LEAK_EXIT } from './push-gate.mjs';

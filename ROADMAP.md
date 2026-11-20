@@ -23,8 +23,8 @@ Each row says how it was established; a value carried from an earlier table with
 | Milestone | **M0's gate met** (2026-10-03, one stated exception: `64980a9`, below), **M1's gate met** (2026-10-04, `.claude/requests/m1-story-pipeline.plan.md`), and **Consumer use met** (2026-11-12, all five end conditions below). **M2 started 2026-11-13**: `.claude/requests/m2-public-release.plan.md` approved (operator: "Approve, start stage 0 (Recommended)", after plan-review round 9 PASS), and `doc_roles.request` names it; stages 0 to 9b done (9b, the merge to `master`, on 2026-11-18), 9c (publish) in progress. M3 not started |
 | Consumer use, end conditions | Decided by the operator, 2026-10-17: "When the in-flight items close (Recommended)". (1) item 2's chain, observation-guard-and-sibling-census, meets D1: **met** (20261017-044216-ogsc-remediation-2-review). (2) item 3's PATH fix, reviewer-path-entries, meets D1: **met** (20261017-190519-rpe-remediation-4-review). (3) `deploy-test` is merged to `master`: **met** 2026-11-12: master fast-forwarded from `318f7be4` to `c9c0ae95` after PR #2's CI went green on all five jobs (run 43309179949), and master's own CI green (run 43320590005), the first green run since 2026-10-11. (4) story-pipeline asked to repin to that merge: **met** 2026-11-12, repinned to `c9c0ae95` (its beca26e), check-install unchanged bar the hash and `new-run --dry-run` exit 0 with an asserted scope (it repinned to `4baa0184` on 2026-11-12, its 6061a66; a repin only, by the operator's 2026-11-12 ruling below). (5) ledger-findings' stage 8, story-pipeline told and asked: **met** 2026-10-15 (`ledger-findings.plan.md:87`: story-pipeline declared `commands.test_one` and `review.candidate_env` and repinned; a CLAUDE.md comment of 2026-10-17 still called it open) |
 | Pulled ahead of M2 since | closed: autonomous-run part 3 delivered 2026-11-12 (`autonomous-run.plan.md`, stage 9's run with the decision panel on), with the design steps delivered inside it (decision-panel-seats, stdin-folder-owner, the `--runtime-bin` rename, hardlink-egress); the code index's own half of stage 8 met 2026-11-13 (`code-index.plan.md`, `stage_8_run`); the code index delivered 2026-11-13 (operator: "Delivered, compare deferred (Recommended)"), its scored compare against story-pipeline's answer file deferred until that file exists; test selection deferred to after M2 (operator: "Defer to after M2 (Recommended)") |
-| Version | `0.3.0` in `VERSION` and `.claude-plugin/plugin.json`; `CHANGELOG.md`'s newest section is *0.3.0*; no tag yet (`git tag` lists none; the tag is M2 stage 9d) (rechecked 2026-11-18) |
-| Branch | `origin/master` at `45188401`, the merge of PR #3 (M2 stage 9b); `deploy-test` ahead of it by the stage 9c commits (the public install URL and `NOTICE`'s holder, the snapshot's own suite made to pass, and this review chain's fixes), which reach `master` through stage 9b's route (2026-11-18) |
+| Version | `0.3.1` in `VERSION` and `.claude-plugin/plugin.json`; `CHANGELOG.md`'s newest section is *0.3.1*; `v0.3.0` tagged on the public mirror's `3ec4f049` with a GitHub Release (2026-11-19); 0.3.1 not tagged yet (rechecked 2026-11-20) |
+| Branch | `origin/master` at `94385c61`, the merge of PR #7; `deploy-test` ahead of it by the version gate's gap-closing commits (`examples/`, the CI install job, the build log kept private), which reach `master` by pull request (rechecked 2026-11-20) |
 | Consumer | story-pipeline pins `c9c0ae95` (its beca26e, 2026-11-12; `git -C story-pipeline submodule status .claude/skills/quorate`, rechecked 2026-11-18). Moving its pointer is asked of its session first |
 | M0 gate, condition 1 | **28 of 28**: every confirmed group of `20260925-200721-platform-remediated` fixed by claim+silence, declined, or closed on the operator's word, each judged by its own defect (entries followed by `first_seen` and file where the ledger re-bucketed them; G-8 settled by group as the gate list records). Re-run 2026-10-03 at stage 8 and again after the last review |
 | M0 gate, condition 2 | Met: every follow-up review's findings resolved under D1, through `stopping-a-child.plan.md` stage 7 and the arms' directory work (`arms-directory-home.design.md`). **Stated exception:** `64980a9` (a one-paragraph doc edit, its guard, a test's load headroom) was not reviewed before M0 closed, on the operator's choice; its G-13/G-12 claims are promoted only when a later review covers that paragraph (whether one has since is not rechecked) |
@@ -32,7 +32,7 @@ Each row says how it was established; a value carried from an earlier table with
 | OS coverage | CI on the push to `master`: ubuntu Node 22, 24, 26 and windows Node 26, green on `45188401` (run 44395581032, 2026-11-18); a pull request runs Node 26 on ubuntu and windows only (operator, 2026-11-18: "1"). macOS: a hand-started job only (operator, 2026-11-13: "Here, once, on the release PR"), green on the release pull request's head `feb3aa01` (run 44360966711, 2026-11-18). The public repository's run on all three is M2 stage 9d |
 | Public-release files | `LICENSE` (Apache-2.0) and `NOTICE` added 2026-11-13, `NOTICE` naming Tipping Point Org since 2026-11-18 (operator: "Tipping Point Org (Recommended)"); `CONTRIBUTING.md` and `SECURITY.md` written 2026-11-14 (M2 stage 5); no code of conduct |
 | Exposure | carried from 2026-09-25, not rechecked: tracked review runs and many tracked files carry the operator's local paths; D2/D4 keep `.claude/reviews/` and `.claude/requests/` out of the public mirror |
-| Remote visibility | this repository is **private** (`gh repo view --json visibility`, rechecked 2026-11-18) and stays private: the public mirror is `github.com/Tipping-Point-Org/quorate`, public and still empty (no refs, read unauthenticated, 2026-11-18), filled by M2 stage 9c's publish |
+| Remote visibility | this repository is **private** (`gh repo view --json visibility`, rechecked 2026-11-20) and stays private: the public mirror is `github.com/Tipping-Point-Org/quorate`, **public**, its `master` at `3ec4f049` (`v0.3.0`), filled by `scripts/publish.mjs` (rechecked 2026-11-20) |
 
 ## The problem every milestone meets first: review convergence
 
@@ -285,7 +285,7 @@ private or machine-local ships with it.
 **Implement**
 1. **Licence**: Apache-2.0 (D3), with `LICENSE` and a `NOTICE` file.
 2. **What ships** (D2, D4): the publish script and its exclusion list; `examples/` with one or two
-   curated runs; the build log after the operator's read-through; and a `gitleaks` scan of the
+   curated runs; and a `gitleaks` scan of the
    snapshot that must come back clean — its exact command recorded in the gate.
 3. **Outsider docs**: `README.md` written for someone who has never seen this repository — what quorate
    is, what it costs (it spends model and vendor quota), what leaves the machine (the external panel),
@@ -455,8 +455,8 @@ v1 is a promise: the contract, the CLI and the artifacts a consumer depends on s
   on that snapshot, and commits it.
 - **D3 — licence.** Apache-2.0.
 - **D4 — run artifacts and the build log.** One or two curated, scrubbed example runs in `examples/`;
-  the tracked runs and `ledger.json` stay private. The build log is published after the operator
-  reads it as a stranger would.
+  the tracked runs and `ledger.json` stay private. The build log stays private too (operator, 2026-11-20: "3",
+  to keeping it private for good): it was to be published after the operator read it as a stranger would.
 - **D5 — operating systems.** One release and one tag for every OS; a release may CONTAIN an OS-specific
   fix and the changelog says so. `macos-latest` joins the CI matrix, so "supported on macOS" means the
   suite ran there.

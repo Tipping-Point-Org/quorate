@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "intent-capture",
+  "state": "OK",
+  "mode": "intent",
+  "skill_command": "/intent-capture",
+  "model": "opus",
+  "session_id": "b5db62f2-6445-4f0e-bf9a-973cdbd42e20",
+  "cmd": [
+    "claude",
+    "-p",
+    "--model",
+    "opus",
+    "--output-format",
+    "json",
+    "--effort",
+    "low",
+    "--json-schema",
+    "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"schema_version\",\"run_id\",\"criteria\",\"assumed_contract_unverified\",\"not_checked\"],\"properties\":{\"schema_version\":{\"const\":1},\"run_id\":{\"type\":\"string\",\"pattern\":\"^[0-9]{8}-[0-9]{6}-[a-z0-9-]+$\"},\"criteria\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":60,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"behaviour\",\"io_contract\",\"failure_modes\"],\"properties\":{\"id\":{\"type\":\"string\",\"pattern\":\"^I-[0-9]{1,3}$\"},\"behaviour\":{\"type\":\"string\",\"minLength\":20},\"io_contract\":{\"type\":\"string\",\"minLength\":5},\"failure_modes\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"minLength\":5},\"maxItems\":12}}}},\"assumed_contract_unverified\":{\"type\":\"array\",\"maxItems\":40,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"assumption\",\"why_unverifiable\"],\"properties\":{\"assumption\":{\"type\":\"string\",\"minLength\":10},\"why_unverifiable\":{\"type\":\"string\",\"minLength\":10}}}},\"not_checked\":{\"type\":\"array\",\"maxItems\":40,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"item\",\"reason\"],\"properties\":{\"item\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}}",
+    "--settings",
+    "<home>\\.quorate\\reviews\\quorate-83d533eb\\20261119-051632-m2-9c-secret-scan\\intent-settings.json",
+    "--setting-sources",
+    "project",
+    "--add-dir",
+    "<home>\\.quorate\\reviews\\quorate-83d533eb\\20261119-051632-m2-9c-secret-scan\\sandbox\\intent-capture",
+    "--disallowedTools",
+    "Edit",
+    "Write",
+    "NotebookEdit",
+    "WebFetch",
+    "WebSearch",
+    "Task",
+    "Bash",
+    "PowerShell",
+    "Grep",
+    "--permission-mode",
+    "manual",
+    "--session-id",
+    "b5db62f2-6445-4f0e-bf9a-973cdbd42e20",
+    "--no-chrome"
+  ],
+  "cwd": "<home>\\.quorate\\reviews\\quorate-83d533eb\\20261119-051632-m2-9c-secret-scan\\sandbox\\intent-capture",
+  "add_dirs": [
+    "<home>\\.quorate\\reviews\\quorate-83d533eb\\20261119-051632-m2-9c-secret-scan\\sandbox\\intent-capture"
+  ],
+  "settings_path": "intent-settings.json",
+  "settings_sha256": "bbe2f66b5d9dfa92b9bc2e4a1b2b97e34dba066991a0f3cfce947702c9e828b1",
+  "graph_node_depth": 1,
+  "started_at": "2026-11-19T05:23:13.747Z",
+  "ended_at": "2026-11-19T05:24:22.566Z",
+  "duration_ms": 68819,
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "killed_tree": false,
+  "stdout_bytes": 23073,
+  "stderr_bytes": 0,
+  "stdout_path": "evidence\\intent-capture\\stdout.json",
+  "stderr_path": "evidence\\intent-capture\\stderr.log",
+  "envelope_parsed": true,
+  "verdict_json_valid": true,
+  "validator_errors": [],
+  "verdict": null,
+  "findings_count": 0,
+  "rejected_findings_count": 0,
+  "permission_denials_count": 0,
+  "total_cost_usd": 0.8757514000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 96147,
+    "cache_read_input_tokens": 74677,
+    "output_tokens": 4580,
+    "output_tokens_details": {
+      "thinking_tokens": 297
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 96147,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 4,
+        "output_tokens": 4130,
+        "cache_read_input_tokens": 32864,
+        "cache_creation_input_tokens": 63283,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 63283
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "model_usage": {
+    "claude-opus-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4580,
+      "cacheReadInputTokens": 74677,
+      "cacheCreationInputTokens": 96147,
+      "webSearchRequests": 0,
+      "costUSD": 0.8757514000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 297,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 96147,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "timeout_minutes": 30,
+  "num_turns": 7,
+  "stop_reason": "tool_use",
+  "subtype": "success",
+  "report_path": null,
+  "report_sha256": null,
+  "skip_reason": null,
+  "auth_mode": "subscription",
+  "env_stripped": [
+    "BRAIN_KEY",
+    "CHATOPS_API_TOKEN",
+    "CLAUDE_CODE_BRIDGE_SESSION_ID",
+    "CLAUDE_CODE_CHILD_SESSION",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS",
+    "CLAUDE_CODE_MESSAGING_TOKEN",
+    "CLAUDE_CODE_SESSION_ATTENDED",
+    "CLAUDE_CODE_SESSION_ID",
+    "DATABASE_URL",
+    "GEMINI_API_KEY",
+    "GITHUB_TOKEN",
+    "HF_TOKEN",
+    "INITIAL_PASSWORD",
+    "JIRA_API_KEY",
+    "LINEAR_API_KEY",
+    "MEMORYGROOVE_OWNER_TOKEN",
+    "NVIDIA_KEY",
+    "REQUIRE_API_KEY",
+    "SESSIONNAME",
+    "WT_SESSION",
+    "ANTHROPIC_API_KEY",
+    "CLAUDECODE",
+    "CLAUDE_CODE_ENTRYPOINT"
+  ],
+  "severity_ceiling": null,
+  "severity_floor": null,
+  "verdict_ceiling": null,
+  "sandbox_cwd": "sandbox/intent-capture",
+  "effort": "low",
+  "sandboxed": true,
+  "file_size_ceiling_bytes": null,
+  "call": {
+    "reviewer": "claude",
+    "model": "opus",
+    "family": "anthropic",
+    "started_at": "2026-11-19T05:23:13.747Z",
+    "ended_at": "2026-11-19T05:24:22.561Z",
+    "duration_ms": 68814,
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "timeout_minutes": 30,
+    "usage": {
+      "input_tokens": 10,
+      "cache_creation_input_tokens": 96147,
+      "cache_read_input_tokens": 74677,
+      "output_tokens": 4580,
+      "output_tokens_details": {
+        "thinking_tokens": 297
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 96147,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 4,
+          "output_tokens": 4130,
+          "cache_read_input_tokens": 32864,
+          "cache_creation_input_tokens": 63283,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 63283
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "outcome": "answered"
+  },
+  "launched": true
+}

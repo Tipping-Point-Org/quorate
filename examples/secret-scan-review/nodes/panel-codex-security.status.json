@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "panel-codex-security",
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "timeout_minutes": 30,
+  "call": {
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "family": "openai",
+    "started_at": "2026-11-19T05:30:56.454Z",
+    "ended_at": "2026-11-19T05:38:16.997Z",
+    "duration_ms": 440543,
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "timeout_minutes": 30,
+    "usage": {
+      "input_tokens": 2347230,
+      "cached_input_tokens": 2214272,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 17373,
+      "reasoning_output_tokens": 11947
+    },
+    "outcome": "answered"
+  },
+  "state": "OK",
+  "reviewer_answered": true,
+  "verdict": "RISK",
+  "source": "codex",
+  "shadows": "security-audit",
+  "session_id": null,
+  "report_path": "nodes\\panel-codex-security-report.md",
+  "report_sha256": "52e0f8b1c5e9b949ff3ac928b74838205c26218eb118aca5d1655b1f60fe27e3",
+  "model": "gpt-5.6-sol",
+  "effort": "high",
+  "duration_ms": 440543,
+  "auth_mode": "external-vendor",
+  "env_passed": [
+    "ALLUSERSPROFILE",
+    "APPDATA",
+    "COMSPEC",
+    "HOME",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "LOCALAPPDATA",
+    "NUMBER_OF_PROCESSORS",
+    "OS",
+    "PATH",
+    "PATHEXT",
+    "PROGRAMFILES",
+    "ProgramData",
+    "ProgramFiles(x86)",
+    "SHELL",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TERM",
+    "TMP",
+    "USERDOMAIN",
+    "USERNAME",
+    "USERPROFILE",
+    "WINDIR"
+  ],
+  "not_checked": [
+    {
+      "item": "commands.lint",
+      "reason": "empty in graph_contract — lint could not be run"
+    },
+    {
+      "item": "commands.fmt_check",
+      "reason": "empty in graph_contract — fmt_check could not be run"
+    },
+    {
+      "item": "commands.typecheck",
+      "reason": "empty in graph_contract — typecheck could not be run"
+    },
+    {
+      "item": "commands.bench",
+      "reason": "empty in graph_contract — bench could not be run"
+    },
+    {
+      "item": "commands.run",
+      "reason": "empty in graph_contract — run could not be run"
+    },
+    {
+      "item": "commands.audit",
+      "reason": "empty in graph_contract — audit could not be run"
+    },
+    {
+      "item": "commands.deny",
+      "reason": "empty in graph_contract — deny could not be run"
+    },
+    {
+      "item": "commands.test_product",
+      "reason": "empty in graph_contract — test_product could not be run"
+    },
+    {
+      "item": "commands.build and commands.test",
+      "reason": "Not executed because this external arm has no capture channel; syntax and test behavior were assessed statically."
+    },
+    {
+      "item": "contract-key and capture.mjs command execution",
+      "reason": "The relevant production implementations are outside full_sweep_paths."
+    },
+    {
+      "item": "intent-sandbox escape",
+      "reason": "Intent sandbox production code is outside full_sweep_paths."
+    },
+    {
+      "item": "run-directory and evidence-path traversal",
+      "reason": "The owning production implementations are outside full_sweep_paths."
+    },
+    {
+      "item": "node spawning further nodes",
+      "reason": "Graph spawning production code is outside full_sweep_paths."
+    },
+    {
+      "item": "external-panel source egress",
+      "reason": "External-review and snapshot production implementations are outside full_sweep_paths; scoped test files were reviewed only for whether they constrain their claims."
+    },
+    {
+      "item": "brief-gap",
+      "reason": "The brief did not state whether a failed post-commit scan must roll back the public clone or whether a missing shipped checker is an accepted release mode; that context would sharpen severity, and no declared path was a material distraction."
+    },
+    {
+      "item": "evidence paths",
+      "reason": "codex runs outside the run sandbox and cannot produce verifiable evidence; findings are capped at basis=convention"
+    }
+  ],
+  "launched": true,
+  "started_at": "2026-11-19T05:30:54.688Z",
+  "ended_at": "2026-11-19T05:38:17.015Z",
+  "findings_count": 2,
+  "rejected_findings_count": 0,
+  "graph_node_depth": 1,
+  "validator_errors": [],
+  "total_cost_usd": null,
+  "usage": {
+    "input_tokens": 2347230,
+    "cached_input_tokens": 2214272,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 17373,
+    "reasoning_output_tokens": 11947
+  }
+}

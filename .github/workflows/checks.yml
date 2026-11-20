@@ -112,3 +112,19 @@ jobs:
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: secret scan (full history, or skipped and said so when declared off)
         run: node scripts/check-secrets.mjs
+
+  # A newcomer's install, on a runner that is not the developer's machine (ROADMAP.md M2's exit gate; the operator has
+  # no second machine, 2026-11-19). It clones THIS repository over its public URL, unauthenticated, mounts it as a
+  # submodule at the pushed commit in a throwaway consumer, and follows QUORATE.md's Setup steps with a fresh HOME:
+  # tests/tools/install-from-repo.mjs. Only where the repository is public, since an anonymous clone of a private one
+  # fails, and only on a push to master, which is what a newcomer clones. One Linux job, about a minute.
+  install:
+    if: github.event_name == 'push' && !github.event.repository.private
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26   # the primary line (node-support-policy.md)
+      - name: install from the public URL by QUORATE.md, check-install clean
+        run: node tests/tools/install-from-repo.mjs --url "${{ github.server_url }}/${{ github.repository }}" --ref "${{ github.sha }}"

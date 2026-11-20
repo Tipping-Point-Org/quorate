@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "panel-codex-perf",
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "timeout_minutes": 30,
+  "call": {
+    "reviewer": "codex",
+    "model": "gpt-5.6-sol",
+    "family": "openai",
+    "started_at": "2026-11-19T05:31:43.510Z",
+    "ended_at": "2026-11-19T05:35:43.868Z",
+    "duration_ms": 240358,
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "timeout_minutes": 30,
+    "usage": {
+      "input_tokens": 1288310,
+      "cached_input_tokens": 1200128,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 9276,
+      "reasoning_output_tokens": 5062
+    },
+    "outcome": "answered"
+  },
+  "state": "OK",
+  "reviewer_answered": true,
+  "verdict": "RISK",
+  "source": "codex",
+  "shadows": "perf-audit",
+  "session_id": null,
+  "report_path": "nodes\\panel-codex-perf-report.md",
+  "report_sha256": "ec261ffbe3d9f61428d4184816ad0a9160456252f974b8d80877ae7dfbebbb88",
+  "model": "gpt-5.6-sol",
+  "effort": "high",
+  "duration_ms": 240358,
+  "auth_mode": "external-vendor",
+  "env_passed": [
+    "ALLUSERSPROFILE",
+    "APPDATA",
+    "COMSPEC",
+    "HOME",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "LOCALAPPDATA",
+    "NUMBER_OF_PROCESSORS",
+    "OS",
+    "PATH",
+    "PATHEXT",
+    "PROGRAMFILES",
+    "ProgramData",
+    "ProgramFiles(x86)",
+    "SHELL",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TERM",
+    "TMP",
+    "USERDOMAIN",
+    "USERNAME",
+    "USERPROFILE",
+    "WINDIR"
+  ],
+  "not_checked": [
+    {
+      "item": "commands.bench",
+      "reason": "empty in graph_contract; no measurement is possible, so every finding is static risk only"
+    },
+    {
+      "item": "commands.lint",
+      "reason": "empty in graph_contract — lint could not be run"
+    },
+    {
+      "item": "commands.fmt_check",
+      "reason": "empty in graph_contract — fmt_check could not be run"
+    },
+    {
+      "item": "commands.typecheck",
+      "reason": "empty in graph_contract — typecheck could not be run"
+    },
+    {
+      "item": "commands.bench",
+      "reason": "empty in graph_contract — bench could not be run"
+    },
+    {
+      "item": "commands.run",
+      "reason": "empty in graph_contract — run could not be run"
+    },
+    {
+      "item": "commands.audit",
+      "reason": "empty in graph_contract — audit could not be run"
+    },
+    {
+      "item": "commands.deny",
+      "reason": "empty in graph_contract — deny could not be run"
+    },
+    {
+      "item": "commands.test_product",
+      "reason": "empty in graph_contract — test_product could not be run"
+    },
+    {
+      "item": "commands.build/test",
+      "reason": "Not executed because this external review permits only read-only inspection and the specifically exempt inert-feature detector; test behavior was inspected statically."
+    },
+    {
+      "item": "brief-gap",
+      "reason": "The brief supplied no representative repository sizes, scan-hit distributions, memory ceiling, or benchmark harness; the broad policy-document surface added no executable performance evidence, while workload scales and captured publish timings would have made the findings stronger."
+    },
+    {
+      "item": "evidence paths",
+      "reason": "codex runs outside the run sandbox and cannot produce verifiable evidence; findings are capped at basis=convention"
+    }
+  ],
+  "launched": true,
+  "started_at": "2026-11-19T05:31:41.388Z",
+  "ended_at": "2026-11-19T05:35:43.889Z",
+  "findings_count": 3,
+  "rejected_findings_count": 0,
+  "graph_node_depth": 1,
+  "validator_errors": [],
+  "total_cost_usd": null,
+  "usage": {
+    "input_tokens": 1288310,
+    "cached_input_tokens": 1200128,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 9276,
+    "reasoning_output_tokens": 5062
+  }
+}

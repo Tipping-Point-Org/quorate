@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "20261119-051632-m2-9c-secret-scan",
+  "node_id": "ui-audit",
+  "state": "SKIPPED",
+  "started_at": "2026-11-19T05:16:54.354Z",
+  "ended_at": "2026-11-19T05:16:54.354Z",
+  "launched": false,
+  "graph_node_depth": 1,
+  "validator_errors": [],
+  "findings_count": 0,
+  "skip_reason": "condition not met: {\"type\":\"not_equal\",\"key\":\"ui.surface\",\"value\":\"none\"}"
+}

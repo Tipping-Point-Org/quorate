@@ -1,6 +1,6 @@
 {
   "name": "quorate",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Evidence-backed planning, review, audit and code change for Claude Code: parallel review lenses spawned as isolated subprocesses, checked across model families, held at a barrier and reconciled into one gated verdict; separate runs fix what a review found. Every finding cites evidence written to disk before it was claimed; a required lens that did not report makes the gate BLOCKED, never PASS. Silence is not a verdict.",
   "author": { "name": "Tipping Point Org", "email": "dev@tippingpointconsultoria.com.br" },
   "license": "Apache-2.0"
