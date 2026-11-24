@@ -49,6 +49,7 @@
 // rather than warnings: a seed that cannot be mutated cleanly is NOT RUN, never a miss.
 
 import path from 'node:path';
+import { renderTemplate, slotsIn } from './template.mjs';
 
 /** The header the reconciled.md renderer emits per group: `### G-3 · BLOCKER · \`file:line\`` */
 const HEADER_RE = /^### (\S+) · ([A-Z]+) · `([^`]*)`\s*$/;
@@ -401,7 +402,7 @@ export function applyRewrittenRationale({ reconciledMd, payload, groupId, ration
  * only thing left disagreeing with the anchor is the source code — which is the version of this
  * defect that actually shipped.
  */
-export function applyMisanchor({ reconciledMd, findingGroups, targetId, to }) {
+export function applyMisanchor({ reconciledMd, findingGroups, targetId, to }, texts) {
   if (!to || typeof to.file !== 'string' || !Number.isInteger(to.line)) {
     throw new Error('applyMisanchor needs to: { file, line }');
   }
@@ -431,11 +432,10 @@ export function applyMisanchor({ reconciledMd, findingGroups, targetId, to }) {
       from: `${from.file}:${from.line}`,
       to: `${to.file}:${to.line}`,
       // The sentence the judge is shown, and the sentence a human reads in the result file. One
-      // string, so the question asked and the question recorded cannot drift apart.
-      statement:
-        `Group ${targetId} is anchored at ${to.file}:${to.line}. That is the wrong location: the `
-        + `defect this group describes is at ${from.file}:${from.line}, which is where a fix has to `
-        + `go. A remediation working from this reconciliation would patch the wrong place.`,
+      // string, so the question asked and the question recorded cannot drift apart. Its words are the prompt library's
+      // (prompts/_templates/ground-truth-statements.json; G-1 of 20261121-043112-ac2-delivery).
+      statement: statementFor('misanchor', texts,
+        { group_id: targetId, to: `${to.file}:${to.line}`, from: `${from.file}:${from.line}` }),
     },
   };
 }
@@ -483,7 +483,7 @@ export function deflatedSeverity({ severity, rungs = [], minDrop = MIN_SEVERITY_
  * being injected — a reconciler that talked itself down — and the disagreement between the header
  * and its inputs is the thing an audit is supposed to notice, not a seam.
  */
-export function applyDeflate({ reconciledMd, payload, targetId, to }) {
+export function applyDeflate({ reconciledMd, payload, targetId, to }, texts) {
   const headers = groupHeaders(reconciledMd);
   const target = headers.find((h) => h.group_id === targetId);
   if (!target) throw new Error(`applyDeflate: no group header for ${targetId} in reconciled.md`);
@@ -506,10 +506,7 @@ export function applyDeflate({ reconciledMd, payload, targetId, to }) {
       group_id: targetId,
       from,
       to,
-      statement:
-        `Group ${targetId} is recorded at ${to}. That is too low: the findings it groups were `
-        + `raised at ${from}, and nothing in the evidence justifies lowering it. A gate reading this `
-        + `reconciliation would let ${from}-severity work through under a ${to} label.`,
+      statement: statementFor('deflate', texts, { group_id: targetId, to, from }),
     },
   };
 }
@@ -557,7 +554,7 @@ const BUCKET_RE = /^## (Confirmed|Symptom|Coincidence|Dropped) \((\d+)\)\s*$/;
  *
  * The caller is responsible for `dropWouldDangle` — this function moves what it is told to move.
  */
-export function applyDrop({ reconciledMd, payload, targetId }) {
+export function applyDrop({ reconciledMd, payload, targetId }, texts) {
   const lines = String(reconciledMd ?? '').split('\n');
   const header = groupHeaders(reconciledMd).find((h) => h.group_id === targetId);
   if (!header) throw new Error(`applyDrop: no group header for ${targetId} in reconciled.md`);
@@ -629,10 +626,7 @@ export function applyDrop({ reconciledMd, payload, targetId }) {
       group_id: targetId,
       from,
       to: 'dropped',
-      statement:
-        `Group ${targetId} was dropped. That is wrong: the findings it groups were raised by more `
-        + `than one reporter and were ${from} before, nothing in the evidence withdraws them, and a `
-        + 'dropped group reaches no gate and no remediation. The defect it describes would ship.',
+      statement: statementFor('drop', texts, { group_id: targetId, from }),
     },
   };
 }
@@ -642,52 +636,47 @@ export function applyDrop({ reconciledMd, payload, targetId }) {
  *
  * `lib/template.mjs` has no conditionals and no loops on purpose — "every decision stays in code
  * and arrives pre-rendered" — so one template serves all three mutations and the branching lives
- * here. A conditional in the prompt would put this decision somewhere with no tests.
+ * here. A conditional in the prompt would put this decision somewhere with no tests. The WORDS are the prompt library's
+ * (prompts/_templates/forge-slots.json; consumer-owned-configuration.md AC2), passed in as `texts` so this stays pure;
+ * io/reconcile-mutations.mjs reads the file and binds them.
  */
-export function forgeSlots({ mutation, groupId, from, to, tolerance, destinationSource }) {
-  if (mutation === 'misanchor') {
-    return {
-      change_instruction:
-        `Rewrite it as though the group had been anchored at \`${to.file}:${to.line}\` instead of `
-        + `\`${from.file}:${from.line}\`. Cite ${to.line} as the location, with the same confidence `
-        + 'the original had about its own line.',
-      forbidden_rule:
-        `**Do not mention line ${from.line}, any line within ${tolerance} of it, or that number in `
-        + 'any other role.** This is checked mechanically and the rewrite is discarded if it appears.',
-      destination_source: destinationSource,
-    };
+// FAILS LOUD, as renderTemplate does (G-5 of 20261121-043112-ac2-delivery). One vars object serves several texts, so fill
+// gives renderTemplate only the slots a text uses; built from the text alone, that subset made every slot a key, and
+// renderTemplate's missing-slot guard could never fire. So a text that is not a string, a slot `vars` does not know (a
+// misspelling), and a known slot with no value for this mutation all throw, rather than putting "undefined" or "" into a
+// model's prompt.
+const fill = (text, vars, label) => {
+  if (typeof text !== 'string') throw new Error(`${label}: no text (got ${text === undefined ? 'nothing' : typeof text})`);
+  const absent = slotsIn(text).filter((s) => !Object.hasOwn(vars, s) || vars[s] === undefined || vars[s] === null);
+  if (absent.length) throw new Error(`${label}: no value for ${absent.map((s) => `{{${s}}}`).join(', ')}`);
+  const used = Object.fromEntries(slotsIn(text).map((s) => [s, vars[s]]));
+  return renderTemplate(text, used, label);
+};
+/** A ground-truth statement, rendered from the prompt library's texts (G-1) by the same fail-loud fill. */
+function statementFor(mutation, texts, vars) {
+  return fill(texts?.[mutation], vars, `ground-truth-statements.json ${mutation}`);
+}
+export function forgeSlots({ mutation, groupId, from, to, tolerance, destinationSource }, texts) {
+  const t = texts?.[mutation];
+  if (!t || mutation === 'file_rule' || mutation === 'destination_unreadable' || mutation.startsWith('$')) {
+    throw new Error(`forgeSlots: no prose for mutation ${JSON.stringify(mutation)}`);
   }
-  if (mutation === 'deflate') {
-    return {
-      change_instruction:
-        `Rewrite it as though you had judged this group **${to}** rather than **${from}**. The `
-        + 'defect, its location and its mechanism are unchanged — what changes is how bad you '
-        + `concluded it is. Argue ${to} the way the original argued ${from}: state the consequence `
-        + 'you think follows, and why it is bounded.',
-      forbidden_rule:
-        `**Do not use the word ${from} anywhere.** The original explained the severity it was `
-        + 'written for, and a paragraph that still names it contradicts the header above it. This '
-        + 'is checked mechanically and the rewrite is discarded if it appears.',
-      destination_source:
-        '(not applicable: this mutation changes the severity, not the location. The code under '
-        + 'discussion is unchanged, and you have already seen everything the original cited.)',
-    };
-  }
-  if (mutation === 'drop') {
-    return {
-      change_instruction:
-        `Rewrite it as the rationale for DROPPING ${groupId} — a reconciler explaining why these `
-        + 'findings do not survive adjudication. The original argued for keeping it; this argues '
-        + 'the opposite, at the same length and specificity, about the same evidence.',
-      forbidden_rule:
-        '**Do not argue for keeping the group, and do not hedge toward it.** A paragraph in a '
-        + '`Dropped` bucket that reads as a confirmation is a contradiction on its face.',
-      destination_source:
-        '(not applicable: this mutation changes the decision, not the location. The code under '
-        + 'discussion is unchanged, and you have already seen everything the original cited.)',
-    };
-  }
-  throw new Error(`forgeSlots: no prose for mutation ${JSON.stringify(mutation)}`);
+  const vars = {
+    to_file: to?.file, to_line: to?.line, from_file: from?.file, from_line: from?.line, tolerance,
+    to, from, group_id: groupId,
+  };
+  const label = `forge-slots.json ${mutation}`;
+  return {
+    change_instruction: fill(t.change_instruction, vars, label),
+    forbidden_rule: fill(t.forbidden_rule, vars, label),
+    destination_source: mutation === 'misanchor' ? destinationSource : fill(t.destination_source, vars, label),
+  };
+}
+
+/** The forge's file rule: only `misanchor` moves, and it may move to another file. From the same texts. */
+export function forgeFileRule({ mutation, from, to }, texts) {
+  const pick = mutation !== 'misanchor' ? 'same_place' : from.file === to.file ? 'same_file' : 'other_file';
+  return fill(texts?.file_rule?.[pick], { to_file: to?.file, from_base: path.basename(String(from?.file ?? '')) }, `forge-slots.json file_rule.${pick}`);
 }
 
 /**

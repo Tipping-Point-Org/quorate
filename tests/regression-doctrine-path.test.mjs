@@ -68,8 +68,11 @@ test('the lens brief carries a resolved doctrine_path for the skills to defer to
   const graph = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'run-graph.mjs'), 'utf8');
   assert.match(graph, /const DOCTRINE_PATH = /, 'and it must be derived, not hardcoded');
   assert.match(graph, /doctrine_path: DOCTRINE_PATH/, 'and the derived value must fill the slot');
-  // It must fail honestly rather than invent a path when the doctrine cannot be found.
-  assert.match(graph, /doctrine not found/, 'an unresolvable doctrine must say so, not guess');
+  // It must fail honestly rather than invent a path when the doctrine cannot be found. The words are an instruction to the
+  // node, so they live in the prompt library (consumer-owned-configuration.md AC2), and the script reads them from there.
+  const missing = fs.readFileSync(path.join(REPO_ROOT, 'prompts', '_templates', 'doctrine-not-found.md'), 'utf8');
+  assert.match(missing, /doctrine not found.*not_checked\[\]/, 'an unresolvable doctrine must say so, not guess');
+  assert.match(graph, /readTemplate\('doctrine-not-found\.md'\)/, 'and the script must use those words when it finds none');
 });
 
 test('the judgment lenses point at the brief for the doctrine location', () => {

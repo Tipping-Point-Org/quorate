@@ -557,8 +557,10 @@ if (totalLen > OUTPUT_BUDGET) {
 // Header then output, written in pieces (G-5, G-8): on the common path stdout and stderr go straight to disk with no
 // intermediate whole-output buffer; on the truncated path `body` is the kept slice. ONE EXCLUSIVE CREATE through the
 // owner (run-dir-descendants stage 2): a name another writer took, or a link planted at it, is refused, not overwritten.
+// Owner-only (G-6 of 20261121-193516-m3s7-b1-review): the log holds output of commands run with the operator's
+// credentials, so it is not left to the default 0666 less umask.
 try {
-  owner.create(['evidence', opts.node, logName], body !== null ? [header, body] : [header, stdout, stderr]);
+  owner.create(['evidence', opts.node, logName], body !== null ? [header, body] : [header, stdout, stderr], { mode: 0o600 });
 } catch (e) { die(`${logRel}: ${e.message}`); }
 
 // A failure to start, said as one. A timed-out command did start: its error is the stop's, already in the header. No

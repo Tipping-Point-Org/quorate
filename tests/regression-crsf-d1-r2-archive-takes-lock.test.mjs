@@ -12,8 +12,13 @@ import { runScript } from './helpers.mjs';
 
 test('G-3: archive-run takes remediate.lock exclusively, rather than checking it is absent', () => {
   const s = fs.readFileSync(new URL('../scripts/archive-run.mjs', import.meta.url), 'utf8');
-  assert.match(s, /\.create\(\['remediate\.lock'\]/, 'archive-run only observes remediate.lock; it never takes it');
-  assert.match(s, /archiveStagedRun\(\{[^}]*skip: \['remediate\.lock'\]/, 'the lock archive-run holds would be archived with the run');
+  // Taken through the lock's one owner since G-3 of 20261121-193516-m3s7-b1-review, whose take is the exclusive create.
+  assert.match(s, /takeRemediateLock\(confined\(runDir\)/, 'archive-run only observes remediate.lock; it never takes it');
+  const lock = fs.readFileSync(new URL('../scripts/lib/remediate-lock.mjs', import.meta.url), 'utf8');
+  assert.match(lock, /export const REMEDIATE_LOCK = 'remediate\.lock';/, 'the lock owner names another file');
+  assert.match(lock, /export function takeRemediateLock\([^)]*\) \{\s*\w+\.create\(\[REMEDIATE_LOCK\]/, 'the lock owner\'s take is not an exclusive create');
+  // By the owner's name, REMEDIATE_LOCK, since G-3 of 20261121-204740-m3s7-b1-remediation-review.
+  assert.match(s, /archiveStagedRun\(\{[^}]*skip: \[REMEDIATE_LOCK\]/, 'the lock archive-run holds would be archived with the run');
 });
 
 test('G-3: a refused remediation run keeps no lock of archive-run\'s', (t) => {

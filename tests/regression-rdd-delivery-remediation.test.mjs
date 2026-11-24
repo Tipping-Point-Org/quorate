@@ -60,16 +60,28 @@ test('G-12: a replace whose temporary write fails leaves no orphan .tmp file and
   assert.equal(fs.readFileSync(path.join(root, 'run.json'), 'utf8'), 'old');
 });
 
-test('G-19: saveRun merges the patch into a strictly read run.json, never a null-on-error read', () => {
-  const s = src('remediate.mjs');
-  const save = s.slice(s.indexOf('const saveRun = '), s.indexOf('const stamps = new Set('));
-  assert.ok(save.length > 0, 'saveRun not found');
-  assert.doesNotMatch(save, /\.\.\.\s*readRun\(/, 'saveRun spreads readRun, which answers null on any read or parse error');
-  const strict = save.match(/\.\.\.\s*(\w+)\(dir\)/)?.[1];
-  assert.ok(strict, 'saveRun spreads no reader of the record');
-  const def = s.split('\n').find((l) => l.startsWith(`const ${strict} = `)) ?? '';
-  assert.ok(def, `${strict} is not defined`);
-  assert.doesNotMatch(def, /\bcatch\b/, `${strict} swallows a failed read`);
+// RUN, NOT READ (G-11 of 20261124-180917-gsw-remediation-4-review-b): this test sliced remediate.mjs's source and checked
+// one definition line for `catch`, so a reader answering null by any other spelling kept it green. saveRun's merge is
+// lib/reviews-root's patchRunJson, and the merge is exercised: a record that cannot be read, cannot be parsed, or is not
+// an object throws and leaves the file as it was, where a null-on-error read wrote a run.json holding only the patch.
+test('G-19: saveRun merges the patch into a strictly read run.json, never a null-on-error read', async (t) => {
+  const rr = await import('../scripts/lib/reviews-root.mjs');
+  assert.equal(typeof rr.patchRunJson, 'function', 'no owner merges a patch into a strictly read run.json');
+  const root = tmpRoot(t);
+  const own = hostConfined(root);
+  fs.writeFileSync(path.join(root, 'run.json'), JSON.stringify({ run_id: 'r', repo_root: '/x' }));
+  rr.patchRunJson(own, { stamps: ['S'] });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, 'run.json'), 'utf8')), { run_id: 'r', repo_root: '/x', stamps: ['S'] });
+  for (const body of ['{ not json', 'null', '[1]', '7']) {
+    fs.writeFileSync(path.join(root, 'run.json'), body);
+    assert.throws(() => rr.patchRunJson(own, { stamps: ['S'] }), undefined, `a run.json of ${body} was merged into`);
+    assert.equal(fs.readFileSync(path.join(root, 'run.json'), 'utf8'), body, `a run.json of ${body} was overwritten by the patch`);
+  }
+  fs.rmSync(path.join(root, 'run.json'));
+  assert.throws(() => rr.patchRunJson(own, { stamps: ['S'] }), (e) => e.code === 'ENOENT');
+  assert.equal(fs.existsSync(path.join(root, 'run.json')), false, 'a missing run.json was created holding only the patch');
+  // remediate's saveRun is that owner, so what is exercised above is what the runner writes with.
+  assert.match(src('remediate.mjs'), /const saveRun = \([^)]*\) => patchRunJson\(/, 'remediate.mjs saveRun does not merge through patchRunJson');
 });
 
 test('G-17: remediate reads run.json through the confined owner, never a raw readFileSync', () => {
@@ -77,7 +89,10 @@ test('G-17: remediate reads run.json through the confined owner, never a raw rea
   assert.doesNotMatch(s, /readFileSync\(\s*path\.join\(\s*\w+\s*,\s*'run\.json'\s*\)/, 'a raw read of run.json below a run');
   const defs = s.split('\n').filter((l) => /^const (readRun|loadRun) = /.test(l));
   assert.ok(defs.length, 'no run.json reader');
-  assert.ok(defs.some((l) => /\.read\(\['run\.json'\]\)/.test(l)), 'the run.json reader does not go through the owner');
+  // Through the owner: `.read(['run.json'])`, or the bounded reader given the owner (readRunJson(owner, ['run.json']); G-10
+  // of 20261124-170802-gsw-remediation-3-review-b; operator, 2026-11-24: "I fix the test, add the census, retry (Recommended)").
+  assert.ok(defs.some((l) => /\.read\(\['run\.json'\]\)|readRunJson\(\s*\(?dir === runDir \? owner : confined\(dir\)\)?\s*,\s*\['run\.json'\]\)/.test(l)),
+    'the run.json reader does not go through the owner');
 });
 
 // G-4: the schema-less fallback's filter had branches for propose and tie-break only, so a claim-check answer, which

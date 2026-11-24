@@ -33,7 +33,7 @@ test('regression: every §8 exemption reaches the node as a RESOLVED path', () =
   // And the orchestrator must FILL it. A slot nothing populates renders as the literal braces and
   // is worse than the placeholder it replaced.
   const graph = read('scripts', 'run-graph.mjs');
-  assert.match(graph, /detector_abs: path\.join\(scriptsDir, 'find-inert-features\.mjs'\)/,
+  assert.match(graph, /detector_abs: briefHead\(path\.join\(scriptsDir, 'find-inert-features\.mjs'\)/,
     'resolved from the framework scripts dir, which is the location capture derives its own copy from');
 });
 

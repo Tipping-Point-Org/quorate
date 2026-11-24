@@ -86,12 +86,23 @@ const stripEmphasis = (t) => {
     });
   }
   const strip = new Set();
+  // The runs that can close, per character, in order, each read past once (G-18 of 20261121-233915-m3s7-b2-review): a
+  // search of the whole list for every opener was O(R^2) on R runs that never close. The head of a character's queue,
+  // once past every index at or before the opener and every run already stripped, is the first later run that can
+  // close it, the same run the search found.
+  const closers = new Map();
+  runs.forEach((b, k) => {
+    if (b.joins || b.dunder || !b.closes) return;
+    if (!closers.has(b.ch)) closers.set(b.ch, { at: 0, list: [] });
+    closers.get(b.ch).list.push(k);
+  });
   for (let i = 0; i < runs.length; i += 1) {
     const a = runs[i];
     if (a.joins || a.dunder || !a.opens || strip.has(i)) continue;
-    // The first later run of the same character that can close this one.
-    const j = runs.findIndex((b, k) => k > i && !strip.has(k) && b.ch === a.ch && !b.joins && !b.dunder && b.closes);
-    if (j > -1) { strip.add(i); strip.add(j); }
+    const q = closers.get(a.ch);
+    if (!q) continue;
+    while (q.at < q.list.length && (q.list[q.at] <= i || strip.has(q.list[q.at]))) q.at += 1;
+    if (q.at < q.list.length) { strip.add(i); strip.add(q.list[q.at]); q.at += 1; }
   }
   let out = '';
   let cursor = 0;

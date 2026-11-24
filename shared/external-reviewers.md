@@ -1,7 +1,8 @@
 # External review panel — Opus internal, Codex external, and a judge SET for disputes
 
-Every lens in this graph is a Claude model. That is a single point of correlated failure: a
-blind spot shared by the model family is invisible to every node simultaneously, and the
+Every lens in this graph runs on the contract's node runtime, so every lens is one model family (Claude under the
+default runtime; the family of a call is its adapter's, `familyOfCall` in `scripts/lib/reviewers.mjs`). That is a single
+point of correlated failure: a blind spot shared by the model family is invisible to every node simultaneously, and the
 reconciler cannot detect it because agreement among correlated reviewers looks exactly like
 corroboration. The panel exists to add an arm that fails differently.
 
@@ -17,11 +18,12 @@ its mode and dispute). The full invocation is owned by `shared/claude-md-contrac
 
 ## The uses of the panel, and why the rules invert
 
-The same reviewers answer three different questions, and every rule below belongs to the first one
+The same reviewers answer four different questions, and every rule below belongs to the first one
 only:
 
 - **Review** — *is this correct?* Findings converge on defects. Agreement across arms is
-  corroboration, disagreement goes to the tie-breaker, and an external arm's verdict is capped
+  corroboration, an explicit contradiction goes to every judge of the adjudicator set (a split is recorded
+  `outcome: tied`, as "Merging and tie-breaking" below states), and an external arm's verdict is capped
   because it asserts something about code without evidence this run can verify.
 - **Candidate generation** (`skills/candidate-pool`) — *what exists?* All three are
   **first-order proposers**, agy included, with no tie-breaking role. Answers are additive: a
@@ -65,8 +67,7 @@ only:
   measured below, for the arms), so a path it is given or guesses can leave with its answer too. Evidence outside the
   repository (a staged run below a reviews root) has no repository-relative path: it is
   not copied, the seat cannot read it, and `decide.mjs` says so on stderr and in the seat's `-copies.json` record. So is
-  every other path a copy refuses: one with a link or junction on it; a file with a second name (a hard link), whose
-  content may be another file's; a file over its size bound, or one that would take
+  every other path a copy refuses: one ARCHITECTURE.md A-30 refuses, a link or junction among them; a file over its size bound, or one that would take
   the call's copies past their total (`SEAT_COPY_MAX_FILE_BYTES` and `SEAT_COPY_MAX_TOTAL_BYTES` in
   `scripts/io/seat-copies.mjs`); a file git does not track, an ignored one included, that is not UTF-8 text or holds a
   NUL, since the credential screen reads only text; a file git does not track holding what looks like a credential (any
@@ -130,7 +131,7 @@ therefore true of every path, not just the graph.
 It is opt-in because **Codex and agy transmit whatever you pass them to their own cloud
 providers.** For a local-first product this is a real decision, not a formality: the rule that
 keeps user data on the device governs the shipped application, not the development tooling, but
-a diff is still source code leaving the machine. A shadow arm receives the shadowed lens's own criteria and the run brief (it runs DURING the fan-out, not after reconciliation), and the tie-breaker receives the specific
+a diff is still source code leaving the machine. A shadow arm receives the shadowed lens's own criteria and the run brief (it runs DURING the fan-out, not after reconciliation), and each adjudicating judge receives the specific
 excerpt under dispute — never the whole repository, and never user data or fixtures containing
 it. **The prompt file is the floor of what leaves the machine, not the ceiling**: the arm is an
 agentic CLI launched over a working directory it may read freely, codex runs under
@@ -294,13 +295,14 @@ Two rules follow, both learned from real defects:
   handing the reviewer CLI the operator's entire shell. A boundary enforced per-caller is a
   boundary that the next caller ships without.
 
-What **crossed** is recorded on the arm's status as `env_passed`. For an allow-list that is the
-fact an auditor needs; a stripped-name list only ever names the secrets the code already knew about.
+What the allow-list **passed** is recorded on the arm's status as `env_passed`; it is not quite all that crosses,
+and the one name it leaves out is said where the record is defined (`shared/claude-md-contract.md`, `auth_mode`).
+For an allow-list that is the fact an auditor needs; a stripped-name list only ever names the secrets the code already knew about.
 
 Candidate generation uses `--mode propose` with the same outcome-first brief for every proposer.
 The brief defines the goal, success criteria, caller-stated constraints, inputs, output fields,
-and stop rules. The adapter returns `{schema_version, source, model, effort, candidates,
-not_checked}`; it does not manufacture a verdict for a task that decides nothing. A proposer that
+and stop rules. The adapter returns a proposal record, whose fields are the `scripts/external-review.mjs` row of
+`shared/claude-md-contract.md`, their one copy; it does not manufacture a verdict for a task that decides nothing. A proposer that
 reports a status other than `ok` gets an empty `candidates` — a partial batch must not read as
 complete — and what it did propose in `incomplete_candidates`, counted in `not_checked[]`. The
 `--out` flag and its rules are stated once, in `shared/claude-md-contract.md` (the
@@ -424,7 +426,7 @@ roster's ceiling once turned an arm's `RISK` into a `PASS`. A roster entry for a
 the `convention` rung of `basis_ceilings`, may only repeat it, and mint refuses any other value.
 
 The reason is structural rather than a judgement about reviewer quality. An arm running outside
-the run sandbox has no `capture.mjs`, so nothing it claims carries an evidence path this run can
+the run sandbox has no capture channel into the run, so nothing it claims carries an evidence path this run can
 verify. `writeGate` promotes any `FAIL` verdict to a `FAIL` gate, so an uncapped arm could turn
 the whole run red on the strength of assertions no one can check — the cheap-reviewer cascade,
 arriving through the panel instead of through a cheap model. A reviewer that is confident and
@@ -468,8 +470,8 @@ before starting the next one.
 ## Merging and tie-breaking
 
 - **Label every finding with its source.** `[opus]`, `[codex]`, `[agy]`.
-- **Agreement is corroboration only across arms.** Two Claude lenses agreeing is weaker evidence
-  than Opus and Codex agreeing, because the lenses share a model family. `reconcile` must weigh
+- **Agreement is corroboration only across arms.** Two lenses agreeing is weaker evidence
+  than a lens and an arm of another family agreeing, because the lenses share the node runtime's model family. `reconcile` must weigh
   a cross-arm agreement above a same-arm one, and the envelope's `source` is how it can tell.
 - **Disagreement goes to a PANEL, narrowly, and is counted rather than broken.** When one arm
   asserts a finding the other explicitly contradicts, and you cannot settle it against the code
@@ -518,9 +520,13 @@ explicitly so the policy survives a change to that default.
   at all.
 - **Never Haiku for a verification node.** A cheap reviewer produces more false positives, and
   each one costs a remediation cycle downstream; the saving is nominal and the cascade is not.
-  `spawn-node.mjs` enforces this by hard-erroring on `--model haiku` in lens mode.
+  `spawn-node.mjs` enforces this by refusing any node whose model `lens-roster.json`'s `lens_models_refused` names,
+  in every mode it spawns, and by refusing when that list cannot be read.
 
-Where this file and `CLAUDE.md` disagree on model policy, **this file wins.**
+This section is the policy those settings follow, not their owner: the model a Claude node runs is read from the
+contract's `review.models` (`shared/claude-md-contract.md`), and an arm's or a judge's from `lens-roster.json`.
+Where this section and those settings disagree, the settings are what runs, and the disagreement is a defect in one of
+them to fix, not a precedence.
 
 ## How the prompt reaches each reviewer, and the ceiling inline argv had
 

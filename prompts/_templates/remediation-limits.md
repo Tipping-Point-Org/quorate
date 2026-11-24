@@ -1,0 +1,1 @@
+limits: each capture may take {{capture_minutes}} minute(s) (review.check_timeout_minutes); this session {{node_minutes}} minute(s); every capture's header says how much of it has passed (its "# elapsed:" line, from the runner's clock), so read it there rather than guess. Run every capture in the foreground and wait for it.

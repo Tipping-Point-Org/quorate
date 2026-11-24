@@ -1,8 +1,9 @@
 ---
 name: candidate-pool
 description: >-
-  Widen the pool of options before a hard-to-reverse choice is made — poll Opus,
-  Codex and agy in parallel as three independent PROPOSERS, then return one
+  Widen the pool of options before a hard-to-reverse choice is made — poll the
+  node runtime and every external proposer the roster names (Opus, Codex and agy
+  as shipped) in parallel as independent PROPOSERS, then return one
   merged, source-labelled list filtered only against constraints the caller stated.
   Use before choosing or benchmarking a model, library, framework, algorithm,
   topology or approach; when a plan, benchmark or comparison is about to be scoped
@@ -29,7 +30,8 @@ three independent advisors took a pool from 2 candidates to 15, and the stronges
 *category* of solution the original list was structurally incapable of producing.
 
 **This is not a graph node.** It runs before `new-run.mjs`, has no run directory, no scope diff
-and no evidence directory, and it emits no verdict envelope. Nothing it returns can pass or fail
+and no run's evidence directory (each proposer's raw reply goes to a directory the caller names with
+`--evidence-dir`, in the procedure below), and it emits no verdict envelope. Nothing it returns can pass or fail
 a gate. Its output is an input to a decision a human makes.
 
 ## Ask for options, not alternatives
@@ -97,11 +99,12 @@ a judgement about its worth.** "Three CVEs open more than 18 months, newest 2025
 observation; "riskier than the alternatives" is a ranking, and ranking belongs to the caller. If
 you cannot point at a source, leave it out.
 
-## The three proposers are equal here
+## The proposers are equal here
 
-Opus, Codex and agy are **first-order proposers** in this skill — three independent sources, none
-senior to another, none an arbiter. This is the deliberate inversion of
-`shared/external-reviewers.md`, where agy tie-breaks and an external arm's verdict is capped at
+The node-runtime proposer and every reviewer under `proposers` in `scripts/lens-roster.json` (Codex and agy as
+shipped) are **first-order proposers** in this skill — independent sources, none senior to another, none an
+arbiter. This is the deliberate inversion of
+`shared/external-reviewers.md`, where a dispute goes to its judge set and an external arm's verdict is capped at
 `RISK`. Those rules answer *is this correct?*, where convergence is confirmation and an
 unverifiable assertion can turn a run red. This skill answers *what exists?*, where the answer is
 additive, nothing is being asserted about the code, and no verdict is produced to cap. See that
@@ -115,7 +118,7 @@ panel that is really one model three times defeats the purpose.
 
 ## Procedure
 
-1. **Write one outcome-first brief; give it to all three unchanged.** Use these short sections:
+1. **Write one outcome-first brief; give it to every proposer unchanged.** Use these short sections:
    `Role`, `Goal`, `Success criteria`, `Constraints`, `Inputs`, `Output`, and `Stop rules`. Tell each
    proposer to widen the option set, not rank it; preserve the caller's constraints verbatim;
    filter only a mechanically failed constraint; return `unknown` rather than guess; and attach a
@@ -128,8 +131,15 @@ panel that is really one model three times defeats the purpose.
    verifiable, describe how it would be tested, do not test it."** An agentic proposer reads a
    constraint like "must be verifiable by an automated test" as an instruction to run one: codex
    did, on story-pipeline's pool (2026-10-08), spent 514 s and reported itself incomplete.
-2. **Poll all three in parallel**, in the background — they take minutes and are independent.
-   Codex and agy go through `scripts/external-review.mjs`, never a raw CLI line. Pass
+
+   Every brief then ENDS with the brief-feedback ask, the text of `prompts/_templates/brief-feedback.md` unchanged,
+   as every brief the panel sends does (`shared/external-reviewers.md`, "Every brief asks the reviewer to fix the
+   brief"): proposers given one brief share its blind spots, and the ask is how they name them. Propose mode does
+   not append it for you (G-30 of 20261122-232627-m3s7-b4-review).
+2. **Poll every proposer in parallel**, in the background — they take minutes and are independent.
+   Each reviewer named under `proposers` in `scripts/lens-roster.json` goes through `scripts/external-review.mjs`
+   as `--reviewer <name>`, one launch per entry, never a raw CLI line; a proposer added to or removed from that block
+   is polled or dropped with no edit here. Pass
    `--mode propose`, the shared prompt file, and an inline schema whose top-level object contains
    `candidates[]` and `not_checked[]`; each candidate must contain the baseline fields plus the
    caller's requested fields. Pass `--candidate-fields` naming the per-candidate fields you
@@ -148,18 +158,19 @@ panel that is really one model three times defeats the purpose.
    (its shape is the contract's `scripts/external-review.mjs` row, the one copy) rather than a review verdict, and drops any candidate that came back with no
    fields — an empty candidate makes the pool look wider than it is. A proposer that reports a
    status other than `ok` returns an EMPTY `candidates` plus whatever it did propose in
-   `incomplete_candidates`, so a partial batch never reads as a complete one. Opus is
-   spawned with `node <framework-root>/scripts/spawn-subagent.mjs --prompt-file <brief> --out <dir>/opus.envelope.json
-   --result <dir>/opus.json`, which runs it at the contract's `review.models.judgment` and `review.effort.judgment`,
+   `incomplete_candidates`, so a partial batch never reads as a complete one. The node-runtime proposer (Opus under the
+   default contract) is spawned with `node <framework-root>/scripts/spawn-subagent.mjs --prompt-file <brief>
+   --out <dir>/node-runtime.envelope.json --result <dir>/node-runtime.json`, which runs it at the contract's `review.models.judgment` and `review.effort.judgment`,
    read-only; a session's own subagent tool takes a model but no effort, so it cannot pin one. The effort is
    **unmeasured for this task**: the
    contract's figure was measured on the lens corpus, not on proposing. The panel's data-governance rule applies unchanged:
    the brief leaves the machine, so it carries the goal and constraints, not the repository.
-3. **Merge, labelled by source** — `[opus]`, `[codex]`, `[agy]`. Convergence is a **popularity**
-   signal, not a quality one: three models trained on overlapping public text agree most readily
+3. **Merge, labelled by source** — the node-runtime proposer by the model it ran (`[opus]` under the default contract's
+   `review.models.judgment`), each external one by its reviewer name (`[codex]`, `[agy]` as shipped). Convergence is a
+   **popularity** signal, not a quality one: models trained on overlapping public text agree most readily
    on whatever is most written about, and that visibility is often exactly the bias the caller
    already had. Record a single-source candidate identically, with no "unconfirmed" framing.
-   An `incomplete_candidates` entry is merged too, labelled `[codex, incomplete]` (or its source),
+   An `incomplete_candidates` entry is merged too, labelled `[<source>, incomplete]` (`[codex, incomplete]`),
    with the proposer's reason beside the pool: it is an option, not evidence the source finished.
    A proposer record carrying `reviewer_override` goes into the pool with it, beside that source's label —
    `[codex] (override: codex — cmd set by the contract; …)` — because the operator reads the pool, not the record,

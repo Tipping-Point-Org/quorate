@@ -20,7 +20,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 // The host-bound versions: these tests exercise the checks on real temporary trees.
 import { findingScopeErrors, findingOutOfScope, declaredSurface, countLines } from '../scripts/io/finding-scope.mjs';
-import { REPO_ROOT, repoRunDir, TEST_HOME } from './helpers.mjs';
+import { REPO_ROOT, repoRunDir, TEST_HOME, makeLink } from './helpers.mjs';
 
 function repo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'quorate-scope-'));
@@ -178,16 +178,16 @@ test('readExcerpt returns a numbered window, marks the line, and refuses to esca
 // reconciled.md, and could direct a later bypassPermissions edit at a file outside the tree under
 // review. Found independently by security-audit and panel-codex-security (G-25/G-26) against the
 // control this module's own header calls load-bearing.
-test('containment follows links, and an unresolvable path fails closed', () => {
+test('containment follows links, and an unresolvable path fails closed', (t) => {
   const root = repo();
   try {
     const outside = path.join(path.dirname(root), 'outside-secret.txt');
     fs.writeFileSync(outside, 'SECRET\n');
-    let linked = false;
-    try {
-      fs.symlinkSync(outside, path.join(root, 'scripts', 'link.txt'));
-      linked = true;
-    } catch { /* symlinks need privilege on Windows; the ordinary paths are still asserted below */ }
+    // A file symlink needs privilege on Windows. A directory junction needs none and is a link all the same, so the
+    // check runs there too; only where neither can be made is the link case skipped, saying so (silent-platform-skips.md).
+    const outsideDir = path.join(path.dirname(root), 'outside-secret-dir');
+    fs.mkdirSync(outsideDir, { recursive: true });
+    const linked = makeLink(t, { target: outside, at: path.join(root, 'scripts', 'link.txt'), type: 'file', fallback: { dir: outsideDir } });
 
     if (linked) {
       const why = errs({ file: 'scripts/link.txt', line: 1 }, root);
@@ -452,7 +452,9 @@ test('the panel worktree is torn down on every path out of the orchestrator', ()
     'the adjudicator must not read a tree holding the run it is adjudicating');
 
   // And the checkout outlives the barrier, because the tie-break runs inside it.
-  assert.ok(src.indexOf('NOT TORN DOWN HERE ANY MORE') < src.indexOf("console.log('tie-break rulings appended"),
+  const kept = src.indexOf('NOT TORN DOWN HERE ANY MORE');
+  const appended = src.indexOf("console.log('tie-break rulings appended");
+  assert.ok(kept !== -1 && appended !== -1 && kept < appended,
     'freeing it before the barrier leaves the adjudicator nowhere contained to stand');
 
   // Idempotence is what makes three call sites safe: the guard clears the handle before removing,
@@ -460,6 +462,10 @@ test('the panel worktree is torn down on every path out of the orchestrator', ()
   const fn = src.slice(src.indexOf('function tearDownPanelWorktree()'));
   const body = fn.slice(0, fn.indexOf('\n}\n'));
   assert.match(body, /if \(!panelWorktree\) return;/);
-  assert.ok(body.indexOf('panelWorktree = null') < body.indexOf('fs.rmSync('),
+  // Both anchors must be found: -1 for a missing one compared less than any index and passed (G-38 of
+  // 20261122-232627-m3s7-b4-review).
+  const cleared = body.indexOf('panelWorktree = null');
+  const removed = body.indexOf('fs.rmSync(');
+  assert.ok(cleared !== -1 && removed !== -1 && cleared < removed,
     'clear the handle before the removal, or a throw re-enters with the same path');
 });

@@ -97,7 +97,7 @@ than as zero, which is a different and more honest claim.
 
 **Declare only what the runtime actually provides.** `budget_bound` needs `node_runtime.budget.flag`
 and `wall_clock_bound` needs `node_runtime.timeout.flag`; either declared without its mechanism is
-refused by name before the spawn. The shipped `claude` entry declared `wall_clock_bound` for a while
+refused by name before the spawn. A graph node's spawn (`scripts/spawn-node.mjs`) renders the timeout flag with the node's own timeout in whole seconds. The engine's other runtime calls (`spawn-subagent.mjs`, `io/forge-spawn.mjs`, `check-intent-grant.mjs`, and `new-run.mjs`'s canary and intent probes) pass no timeout to `nodeArgv`, so they render no timeout flag, and this bound does not cover them (G-19 of 20261122-144505-m3s7-b3-remediation-3-review). The shipped `claude` entry declared `wall_clock_bound` for a while
 and there is no such flag — nothing required it, nothing rendered it, and no check looked, so the
 claim could not be wrong (G-18). A capability nothing consumes is worse than an absent one: in the
 run's artifact it reads exactly like a guarantee.
@@ -380,10 +380,10 @@ all a declaration nothing consumed.
 **Not built**: a second lens runtime. Every lens today is Claude Code, and its capabilities are
 satisfied by `--settings`, `--setting-sources`, `--permission-mode`, `--add-dir`,
 `--disallowedTools` and `--json-schema`. Those flags are now recorded as *one adapter's mechanism
-for meeting the requirements above*, rather than as the requirements themselves. A second runtime
-becomes possible when an adapter can declare its own equivalents and quorate spawns through the
-adapter instead of through a hardcoded `claude` invocation — the remaining work is that spawn path,
-not the contract.
+for meeting the requirements above*, rather than as the requirements themselves. The spawn path is
+built: `scripts/spawn-node.mjs` selects the runtime from the adapter table and spawns through its
+merged `node_runtime` block, not through a hardcoded `claude` invocation. What remains is a second
+adapter entry that declares its own equivalents, and the runtime to test it against.
 
 **Deliberately not promised**: that declaring a capability makes it true. An adapter's declaration
 is a claim like any other, and this framework does not accept claims it cannot check. The reviewer

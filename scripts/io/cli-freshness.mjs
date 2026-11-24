@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rawTable, selectAdapters, reviewersFromOutcome, overrideLine } from './reviewers.mjs';
-import { readContract } from './contract-reader.mjs';
+import { sessionContract } from './session-contract.mjs';
 import { cliVersion } from './reviewer-probe.mjs';
 import { freshnessStep, dueClis, freshnessAdapters, DUE_AFTER_DAYS, tableKey, cacheTableKey, freshnessCurrent, refreshWanted } from '../lib/cli-freshness.mjs';
 import { readFreshness, writeFreshness } from './run-state.mjs';
@@ -28,7 +28,11 @@ function chosenTable({ repoRoot, declared, contract }) {
   let decl = declared;
   if (decl === undefined || decl === null) {
     if (c === undefined && repoRoot) {
-      const outcome = readContract({ cwd: repoRoot });
+      // In process, through the session hooks' reader (G-13 of 20261124-021129-m3s9-remediation-2-review-b): the engine's
+      // reader spawns new-run --print-contract, and this runs in the refresh a turn start of a long run launches.
+      // Unreadable, it is the reader's error outcome, as stop-guard's turn start builds it.
+      const read = sessionContract(repoRoot);
+      const outcome = read.absent ? { absent: true } : read.unreadable ? { error: read.unreadable } : { contract: read.contract };
       decl = reviewersFromOutcome(outcome, 'cli-freshness');
       c = outcome?.contract ?? null;
     } else decl = c?.reviewers ?? {};
@@ -76,12 +80,14 @@ export function refreshFreshnessDetached({ repoRoot, home, now = new Date(), env
   // A spawn that fails takes its recorded start back (G-5 of 20261105-021654-ar-d1-c-remediation-2-review): the start was
   // kept and the error swallowed, so a refresh that never ran held off every retry for the window. A throw is the caller's
   // to report; an error event, which arrives after the hook may have returned, undoes the start when it does arrive.
-  const undo = () => {
+  // An error event also records why, in the cache, so the next turn start says the refresh could not start (G-2 of
+  // 20261124-021129-m3s9-remediation-2-review-b: it only took the start back, and a refresh that never ran went unsaid).
+  const undo = (err) => {
     try {
       const c = readFreshness(opts);
       if (c && c.refresh_started_at === now.toISOString() && c.refresh_key === key) {
         const { refresh_started_at: _s, refresh_key: _k, ...rest } = c;
-        writeFreshness(rest, opts);
+        writeFreshness(err ? { ...rest, refresh_error: { at: now.toISOString(), message: String(err?.message ?? err) } } : rest, opts);
       }
     } catch { /* the window then ends on its own */ }
   };
@@ -92,8 +98,10 @@ export function refreshFreshnessDetached({ repoRoot, home, now = new Date(), env
       // the repository holds it open on Windows after the hook has returned (a removal there failed with EPERM).
       detached: true, stdio: 'ignore', windowsHide: true, env: childEnv, cwd: SCRIPTS,
     });
-  } catch (e) { undo(); throw e; }
-  child?.on?.('error', undo);
+  // A throw records why too (G-5 of 20261124-030759-m3s9-remediation-3-review-b): undo() with no error took the start
+  // back in silence, the one spelling of a failed start the G-2 fix did not reach.
+  } catch (e) { undo(e ?? new Error('the refresh could not start')); throw e; }
+  child?.on?.('error', (e) => undo(e ?? new Error('the refresh could not start')));
   child?.unref?.();
   return true;
 }
@@ -127,6 +135,11 @@ export function checkFreshness({ force = false, all = false, cacheOnly = false, 
   // The table first, so a refused runtime is named in every answer (G-8 of 20261105-163851-crsf-d1-review).
   const { sel, runtime, refusal, key } = chosenTable({ repoRoot, declared, contract });
   const said = refusal ? [refusal] : [];
+  // A refresh that could not start is said until a check runs, which writes a cache without it (G-2).
+  const failed = cache?.refresh_error;
+  if (failed && typeof failed.message === 'string') {
+    said.push(`CLI freshness refresh could not start on ${failed.at ?? 'an earlier turn'}: ${failed.message}; the CLIs are not being checked, and a later turn retries.`);
+  }
   // A turn start reads the cache only: the version queries take seconds, and a turn must not wait on the network.
   if (cacheOnly && !cache) return said;
   let overrides = [];

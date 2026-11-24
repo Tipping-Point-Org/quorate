@@ -19,22 +19,14 @@ import { validateGlob, matchesAnyGlob } from '../../scripts/lib/contract-glob.mj
 import { CONTRACT_VERSION_KEYS } from '../../scripts/lib/contract-version.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-function findNewRun(here, repo) {
-  const candidates = [
-    path.join(here, '..', '..', 'scripts', 'new-run.mjs'),
-    path.join(here, '..', 'scripts', 'new-run.mjs'),
-    path.join(here, '..', 'skills', 'quorate', 'scripts', 'new-run.mjs'),
-    path.join(here, '..', 'skills', 'scripts', 'new-run.mjs'),
-    path.join(repo, 'scripts', 'new-run.mjs'),
-    path.join(repo, '.claude', 'scripts', 'new-run.mjs'),
-    path.join(repo, '.claude', 'skills', 'quorate', 'scripts', 'new-run.mjs'),
-    path.join(repo, '.claude', 'skills', 'scripts', 'new-run.mjs'),
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
-  }
-  return path.join(here, '..', 'scripts', 'new-run.mjs');
-}
+// THE FRAMEWORK BESIDE THIS HOOK, AND ONLY IT (G-2 of 20261122-232627-m3s7-b4-review): the search went on to the reviewed
+// repository's own scripts/new-run.mjs, so a consumer's io/contract-reader.mjs ran inside the operator's pre-commit hook.
+// The hook's static imports already come from ../../scripts; the reader comes from the same place.
+const FRAMEWORK_SCRIPTS = path.join(HERE, '..', '..', 'scripts');
+// AND ONLY WHEN IT IS THE ENGINE (G-1 of 20261123-003125-m3s7-b4-remediation-review-b): the plugin manifest at the
+// framework root is the marker, as checks.mjs requires before it runs anything from beside itself. A copy of this hook
+// whose ../.. is not a quorate checkout loads nothing and says so.
+const IS_FRAMEWORK = fs.existsSync(path.join(FRAMEWORK_SCRIPTS, '..', '.claude-plugin', 'plugin.json'));
 
 // Output goes to stderr, which on Windows may be a legacy-codepage console. Keep it readable
 // there rather than emitting mojibake for the sake of a section sign.
@@ -48,8 +40,6 @@ function sh(cmd, argv, cwd) {
 const root = sh('git', ['rev-parse', '--show-toplevel'], process.cwd());
 if (!root) process.exit(0); // not a repo: nothing to remind about
 
-const NEW_RUN = findNewRun(HERE, root);
-
 const staged = (sh('git', ['diff', '--cached', '--name-only'], root) ?? '')
   .split('\n')
   .map((s) => s.trim().replace(/\\/g, '/'))
@@ -61,10 +51,16 @@ if (!staged.length) process.exit(0);
 // non-blocking reminder: a copy without the reader, or a contract it cannot read, falls through to the no-contract path.
 let contract = {};
 {
-  const reader = path.join(path.dirname(NEW_RUN), 'io', 'contract-reader.mjs');
-  if (fs.existsSync(reader)) {
+  const reader = path.join(FRAMEWORK_SCRIPTS, 'io', 'contract-reader.mjs');
+  if (!IS_FRAMEWORK) {
+    process.stderr.write(`doc-sync-check: ${path.dirname(FRAMEWORK_SCRIPTS)} carries no .claude-plugin/plugin.json, so it is `
+      + 'not a quorate checkout; no contract reader is loaded from it and nothing is checked\n');
+  } else if (fs.existsSync(reader)) {
     const { readContract } = await import(pathToFileURL(reader).href);
     contract = readContract({ repoRoot: root }).contract ?? {};
+  } else {
+    // SAID, NOT SILENT (G-4): a copy of the hook without its framework would otherwise remind no one, with no trace.
+    process.stderr.write(`doc-sync-check: no contract reader at ${reader}, so the contract is not read and nothing is checked\n`);
   }
 }
 // EITHER SPELLING OF THE VERSION KEY (G-1 of 20261001-022902-contract-glob-grammar-review). This tested
@@ -128,18 +124,23 @@ if (changelog && stagedSrc.length && !staged.includes(changelog)) {
 // Resolve "<role> §N" against the document that role names, and a bare "§N" against the file it
 // appears in. A renumbered heading silently breaks these everywhere at once, which is exactly
 // the class of error nobody finds by reading.
+// THE BYTES THE COMMIT HOLDS (G-6): every document is read from the index (`git show :<path>`), not the working tree, so
+// an edit made after staging neither raises nor hides a reference. null when the index does not hold it.
+const indexText = (rel) => {
+  const r = spawnSync('git', ['show', `:${rel}`], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26 });
+  return r.status === 0 ? r.stdout : null;
+};
 const headingCache = new Map();
+const unreadable = new Set();
 function headingNumbers(rel) {
   if (headingCache.has(rel)) return headingCache.get(rel);
   const nums = new Set();
-  try {
-    const text = fs.readFileSync(path.join(root, rel), 'utf8');
-    for (const line of text.split('\n')) {
-      const m = /^#{1,6}\s+([0-9]+(?:\.[0-9]+)*)/.exec(line);
-      if (m) nums.add(m[1]);
-    }
-  } catch {
-    /* unreadable: treated as "cannot verify", not as broken */
+  const text = indexText(rel);
+  if (text == null) unreadable.add(rel);   // named below, not skipped in silence (G-5)
+  for (const line of (text ?? '').split('\n')) {
+    // A heading may carry the section sign itself, `## §2 Two` (G-5).
+    const m = /^#{1,6}\s+§?\s*([0-9]+(?:\.[0-9]+)*)/.exec(line);
+    if (m) nums.add(m[1]);
   }
   headingCache.set(rel, nums);
   return nums;
@@ -157,12 +158,8 @@ const roleAliases = {
 
 const broken = new Set();
 for (const d of stagedDocs) {
-  let text;
-  try {
-    text = fs.readFileSync(path.join(root, d), 'utf8');
-  } catch {
-    continue;
-  }
+  const text = indexText(d);
+  if (text == null) continue;   // staged as deleted: nothing of it is committed
   for (const m of text.matchAll(/(spec|specification|arch|architecture|plan|roadmap|implementation)?\.?\s*§\s*([0-9]+(?:\.[0-9]+)*)/gi)) {
     const role = (m[1] ?? '').toLowerCase();
     const num = m[2];
@@ -177,6 +174,9 @@ for (const d of stagedDocs) {
 }
 if (broken.size) {
   reminders.push('Possibly broken cross-references:\n      ' + [...broken].sort().join('\n      '));
+}
+if (unreadable.size) {
+  reminders.push(`Cross-references not checked: could not read ${[...unreadable].sort().join(', ')} in the index.`);
 }
 
 // ---------------------------------------------------------------------------- emit

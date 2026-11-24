@@ -22,6 +22,7 @@ import { spawn } from 'node:child_process';
 import { stopChild, DEATH_GRACE_MS } from './stop-child.mjs';
 import { stdinFrom } from './stdin-file.mjs';
 import { stopRecord } from '../lib/stop-vocabulary.mjs';
+import { hardLinkReason } from '../lib/egress-read.mjs';
 
 export const OUTPUT_POLL_MS = 100;
 // How long a child whose kill was ACCEPTED may take to exit before the node stops waiting (G-7 of
@@ -34,7 +35,55 @@ export { DEATH_GRACE_MS };
 const fdSizeOr0 = (fd) => { try { return fs.fstatSync(fd).size; } catch { return 0; } };
 
 /**
- * @returns {Promise<{exitCode, signal, timedOut, killedTree, overflowed, spawnError, orphanPid, killRefused, exitUnconfirmed, interrupted}>}
+ * Open a child's output file below a run for writing, refusing a link standing at the leaf (G-8 of
+ * 20261121-233915-m3s7-b2-review): a raw openSync(path, 'w') followed a symbolic link or wrote through a hard link at
+ * stdout.json or stderr.log, so the truncation and the child's output landed on another file. The entry is judged by
+ * lstat BEFORE the open, because 'w' truncates at the open; an entry that is a link, not a regular file, or one of
+ * several names is refused with nothing written. The open file is then held to the entry judged (same dev and ino), so
+ * a swap between the two is refused too; a swap by a process that can already write the run is A-30's named residual.
+ */
+export function openChildOutput(file, fsImpl = fs) {
+  let before = null;
+  try { before = fsImpl.lstatSync(file); } catch (e) { if (e?.code !== 'ENOENT') throw e; }
+  if (before && (before.isSymbolicLink() || !before.isFile() || hardLinkReason(before))) {
+    const what = before.isSymbolicLink() ? 'a symbolic link' : !before.isFile() ? 'not a regular file'
+      : `a hard link (${before.nlink} names point at this file)`;
+    throw Object.assign(new Error(`refusing to write a child's output to ${file}: ${what}, so its content may be another file's`),
+      { code: 'ELINKREFUSED' });
+  }
+  const fd = fsImpl.openSync(file, 'w');
+  // GUARDED (G-13 of 20261122-193909-llo-delivery): an fstat failure left the descriptor just opened open.
+  let after;
+  try { after = fsImpl.fstatSync(fd); } catch (e) { try { fsImpl.closeSync(fd); } catch {} throw e; }
+  if (hardLinkReason(after) || (before && (after.dev !== before.dev || after.ino !== before.ino))) {
+    try { fsImpl.closeSync(fd); } catch {}
+    throw Object.assign(new Error(`refusing to write a child's output to ${file}: the entry changed between its check and its open`),
+      { code: 'ELINKREFUSED' });
+  }
+  return fd;
+}
+
+/**
+ * The child's three descriptors, opened together: stdout and stderr through openChildOutput, stdin from `input`. A
+ * failure at any one closes what was already opened before it is thrown (G-8 of
+ * 20261122-002915-m3s7-b2-remediation-review: a stdinFrom that threw left both output descriptors open).
+ */
+export function openChildStdio({ stdoutPath, stderrPath, input = null }, { fsImpl = fs } = {}) {
+  const outFd = openChildOutput(stdoutPath, fsImpl);
+  let errFd;
+  try { errFd = openChildOutput(stderrPath, fsImpl); } catch (e) { try { fsImpl.closeSync(outFd); } catch {} throw e; }
+  let stdin;
+  try { stdin = stdinFrom(input); } catch (e) {
+    try { fsImpl.closeSync(outFd); } catch {}
+    try { fsImpl.closeSync(errFd); } catch {}
+    throw e;
+  }
+  return { outFd, errFd, stdin };
+}
+
+/**
+ * @returns {Promise<{exitCode, signal, timedOut, killedTree, overflowed, spawnError, orphanPid, killRefused, exitUnconfirmed, interrupted, closeErrors}>}
+ *   closeErrors: [] | one `'<stdout|stderr>: <code>'` per output descriptor whose close failed
  *   killRefused: null | 'timeout' | 'output-cap' | 'interrupt'
  *   interrupted: null | the signal name the caller passed to interrupt()
  *
@@ -52,11 +101,14 @@ export function runChild({
   // Text the child reads as its stdin (decision-panel-seats.plan.md stage 2): the node runtime's prompt, when it goes by
   // stdin, from a file (io/stdin-file.mjs), never a pipe this process must hold. Absent, stdin stays 'ignore'.
   input = null,
+  // For tests only (G-7 of 20261122-014737-m3s7-b2-review-2): no host refuses a close on request, and the stdin file's
+  // release is only observable through what opened it.
+  closeFd = (fd) => fs.closeSync(fd), openStdio = openChildStdio,
 }) {
   return new Promise((resolve) => {
-    const outFd = fs.openSync(stdoutPath, 'w');
-    const errFd = fs.openSync(stderrPath, 'w');
-    const stdin = stdinFrom(input);
+    // Through openChildOutput, which refuses a link at either path; a refusal rejects the run with nothing written there.
+    // A failure opening any of the three closes the others first (openChildStdio; G-8).
+    const { outFd, errFd, stdin } = openStdio({ stdoutPath, stderrPath, input });
     let timedOut = false;
     let killedTree = false;
     let overflowed = false;
@@ -81,16 +133,24 @@ export function runChild({
     stdin.release();
     // Never child.unref() while it runs — we must observe 'exit'.
 
+    // A FAILED CLOSE IS REPORTED, and a later exit still releases (G-7, with G-6, of 20261122-014737-m3s7-b2-review-2):
+    // both closes sat in empty catches, so a close that failed never reached the result; and `if (done) return` meant a
+    // child that exited after a refused or unconfirmed kill had ended the node never retried the stdin file's release,
+    // which the child's own handle had refused until then. release() is idempotent (io/stdin-file.mjs).
+    const closeErrors = [];
+    const closeOne = (fd, which) => {
+      try { closeFd(fd); } catch (e) { closeErrors.push(`${which}: ${e?.code ?? e?.message ?? String(e)}`); }
+    };
     const finish = (exitCode, signal, spawnError) => {
-      if (done) return;
+      if (done) { stdin.release(); return; }
       done = true;
       clearTimeout(timer);
       clearInterval(sizeWatch);
-      try { fs.closeSync(outFd); } catch {}
-      try { fs.closeSync(errFd); } catch {}
+      closeOne(outFd, 'stdout');
+      closeOne(errFd, 'stderr');
       // The stdin file's folder, if the child's handle refused its removal at the spawn.
       stdin.release();
-      resolve({ exitCode, signal, timedOut, killedTree, overflowed, spawnError, orphanPid, killRefused, exitUnconfirmed, interrupted });
+      resolve({ exitCode, signal, timedOut, killedTree, overflowed, spawnError, orphanPid, killRefused, exitUnconfirmed, interrupted, closeErrors });
     };
     // A kill the OS refused: the child is alive, so it is not "killed"; it must not hold this process open; and the
     // node finishes now, as the outcome that asked for the kill.
@@ -197,6 +257,8 @@ export function recordRunOutcome(status, res) {
   }
   // STILL RUNNING after a refused or unconfirmed stop (G-14): the fields and the sentence are lib/stop-vocabulary.mjs's
   // (stopping-a-child-vocabulary, 1A/2A); run-graph names the pid at the gate if it still answers.
+  // A failed close of an output descriptor, said (G-7 of 20261122-014737-m3s7-b2-review-2).
+  for (const c of res.closeErrors ?? []) status.validator_errors.push(`closing the child's ${c}`);
   const outcome = res.killRefused ? 'refused' : res.exitUnconfirmed ? 'unconfirmed' : null;
   if (outcome) {
     const { fields, sentence } = stopRecord({ outcome, pid: res.orphanPid, reason: res.killRefused ?? null, context: 'node' });

@@ -10,6 +10,7 @@
 //             3 recursion guard tripped
 
 import fs from 'node:fs';
+import { confirmedGroupIds } from './io/run-artifacts.mjs';
 import { nodeDepth } from './lib/node-depth.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -37,7 +38,7 @@ import { contractVersionGap, contractVersionMessage, declaredContractVersion } f
 import { frameworkStamp } from './io/version.mjs';
 import {
   budgetOf, isUncappedBudget, subscriptionProbeEnv, denyToolsFor, nodeArgv, withRuntimeOverride, EXECUTABLE_COMMAND_KEYS,
-  sandboxCanaryFailures, candidateEnvErrors,
+  sandboxCanaryFailures, candidateEnvErrors, briefArg,
 } from './lib/decisions.mjs';
 import { adapterErrors, selectAdapters, overrideLine, rawTable, entrypoint, declaredEnvErrors, probeDefaultsErrors, probeLimitErrors } from './io/reviewers.mjs';
 import { callEntry, runtimeAnswered } from './lib/call-entry.mjs';
@@ -46,7 +47,7 @@ import { toolList } from './lib/tool-lists.mjs';
 import { hostPlatform } from './platform/index.mjs';
 import { renderTemplate, readTemplate } from './io/template.mjs';
 import { worktreeSha } from './io/worktree.mjs';
-import { uncoveredFiles, contractCoverage, escapesAfterRealpath, escapesBeforeCreate, isWithin, matchesSourceGlobs, isGeneratedPath } from './io/finding-scope.mjs';
+import { uncoveredFiles, contractCoverage, escapesAfterRealpath, escapesBeforeCreate, isWithin, matchesSourceGlobs, isGeneratedPath, isTestPath } from './io/finding-scope.mjs';
 import { CONTRACT_CANDIDATES, chooseContractSource, NO_CONTRACT_EXIT } from './lib/contract-source.mjs';
 import { probeLimits, rosterCombinations, preflightArgv, combinationLabel, preflightOutcome, maxAgeHoursOf } from './lib/reviewer-probe.mjs';
 import { claimCheckTranscriptOf } from './io/claim-check.mjs';
@@ -66,7 +67,10 @@ const FRAMEWORK = resolveFrameworkDirs(path.dirname(fileURLToPath(import.meta.ur
 const ROSTER_FOR_DEFAULTS = (() => {
   try {
     return JSON.parse(fs.readFileSync(path.join(FRAMEWORK.scriptsDir, 'lens-roster.json'), 'utf8'));
-  } catch { return {}; }
+  } catch (e) {
+    // NOT {} (G-6 of 20261121-214741-m3s7-b1-remediation-2-review): every roster default vanished and the mint went on.
+    throw new Error(`new-run: the lens roster ${path.join(FRAMEWORK.scriptsDir, 'lens-roster.json')} cannot be read: ${e.message}`);
+  }
 })();
 
 // Fails CLOSED on a value it cannot read — identical to the guards in run-graph.mjs and
@@ -245,7 +249,7 @@ if (args.remediates) {
   };
   args.fullSweep = [...paths];
   if (args.groups !== undefined) {
-    const confirmed = reconcilePayload.groups.filter((g) => g?.decision === 'confirmed').map((g) => g.group_id);
+    const confirmed = confirmedGroupIds(reconcilePayload);
     const chosen = args.groups.split(',').map((s) => s.trim()).filter(Boolean);
     if (!chosen.length) die('--groups names no group: list the confirmed groups to fix, comma-separated');
     const seen = new Set();
@@ -270,7 +274,8 @@ if (!/^[a-z0-9-]+$/.test(rawSlug)) {
   die(`--slug ${JSON.stringify(rawSlug)} must match [a-z0-9-]+ (I-1)` +
     (suggestion ? `; did you mean --slug ${suggestion}?` : ''));
 }
-const slug = rawSlug.replace(/^-|-$/g, '');
+// Every hyphen at each end (G-7 of 20261121-193516-m3s7-b1-review): one at each end left `--a--` as `-a-`.
+const slug = rawSlug.replace(/^-+|-+$/g, '');
 if (!slug) die('--slug reduced to an empty string');
 
 // capture.mjs as a node will invoke it: relative to the repo it runs in, forward slashes, because a
@@ -316,11 +321,20 @@ function validateNodeSettings(text) {
     // gate 2 — an unknown key is precisely what makes CLI validation fail, and silently.
     if (!TOP_KEYS.has(k)) die(`unknown settings key '${k}' — the CLI would silently ignore this whole file`);
   }
-  for (const k of Object.keys(parsed.permissions ?? {})) {
+  // Shapes before contents (G-7 of 20261122-154951-m3s7-b3-remediation-4-review): a number bucket threw a TypeError and a
+  // string one was walked a character at a time.
+  const perms = parsed.permissions;
+  if (perms !== undefined && (!perms || typeof perms !== 'object' || Array.isArray(perms))) {
+    die(`node-settings.json: permissions must be a JSON object, got ${JSON.stringify(perms)}`);
+  }
+  for (const k of Object.keys(perms ?? {})) {
     if (!PERM_KEYS.has(k)) die(`unknown permissions key '${k}' — the CLI would silently ignore this whole file`);
   }
   for (const bucket of ['allow', 'deny', 'ask']) {
-    for (const rule of parsed.permissions?.[bucket] ?? []) {
+    if (perms?.[bucket] !== undefined && !Array.isArray(perms[bucket])) {
+      die(`node-settings.json: permissions.${bucket} must be an array of rules, got ${JSON.stringify(perms[bucket])}`);
+    }
+    for (const rule of perms?.[bucket] ?? []) {
       // gate 3 — catches bash(...), smart quotes, stray spaces, CRLF mangling.
       if (typeof rule !== 'string' || !RULE_RE.test(rule)) {
         die(`malformed permission rule in ${bucket}: ${JSON.stringify(rule)}`);
@@ -629,6 +643,28 @@ if (dirty === null) {
   console.error(`new-run: could not establish whether the tree is clean (git status exit ${dirtyProbe.code}` +
     `${dirtyProbe.err ? `: ${dirtyProbe.err.slice(0, 120)}` : ''}); recording dirty: null`);
 }
+// WHICH DIRTY PATHS ARE NOT GENERATED (operator, 2026-11-23: "Fix the rule, post this run (Recommended)"): a tree whose only
+// changes are run records under generated_globs (.claude/reviews/**) was dirty, so pr-comments refused every review of this
+// repository, whose finished runs sit untracked there. The paths outside generated_globs are recorded, an untracked
+// directory git collapses counting as its own path, so one that only contains generated files still counts unless its
+// path itself matches. null when the listing could not be read: not established, as dirty is.
+const dirtyOutsideGenerated = (() => {
+  if (dirty !== true) return dirty === false ? [] : null;
+  // Untrimmed: the first entry's status may begin with a space (` M path`), which git()'s trim would eat.
+  const z = gitSync(['status', '--porcelain=v1', '-z'], { cwd: repoRoot, encoding: 'utf8' });
+  if (z.status !== 0) return null;
+  const parts = (z.stdout ?? '').split('\0').filter(Boolean);
+  const paths = [];
+  let sourceNext = false;   // a rename or copy entry is followed by its source path, as an entry of its own
+  for (const part of parts) {
+    if (sourceNext) { paths.push(part); sourceNext = false; continue; }
+    const xy = part.slice(0, 2);
+    paths.push(part.slice(3));
+    sourceNext = xy.includes('R') || xy.includes('C');
+  }
+  const gen = contract.generated_globs ?? [];
+  return paths.map((p) => p.replace(/\/+$/, '')).filter((p) => p && !matchesAnyGlob(gen, p));
+})();
 
 // UNTRACKED FILES ARE CHANGES TOO (G-27 of 20261020-094311-ciss-delivery): `git diff --name-only` never lists one, so a
 // new source file nobody had staged was left out of the derived scope, or the run refused as having no source changes.
@@ -648,6 +684,8 @@ const diffed = baseSha
   ? [...new Set([...gitPaths(['diff', '--name-only', '-z', base]), ...gitPaths(['ls-files', '--others', '--exclude-standard', '-z'])])]
   : [];
 const changedSource = diffed.filter(isSource);
+// A follow-up's scope when its remediation changed only tests (G-13 of 20261121-204740-m3s7-b1-remediation-review).
+const changedTests = diffed.filter((p) => isTestPath(p, contract) && !isGeneratedPath(p, contract));
 
 const stamps = [];
 // The contract declares semantics older than this engine implements, and its keys are spelled
@@ -662,6 +700,10 @@ if (remediationFrame) {
   stamps.push('UNSWEPT-DIFF');
 } else if (changedSource.length) {
   scope = { full_sweep: false, paths: changedSource, changed_files: changedSource };
+} else if (followsRemediation && changedTests.length) {
+  // THE REVIEW OF A TEST-ONLY REMEDIATION (G-13 of 20261121-204740-m3s7-b1-remediation-review; I-11): a fix to a test
+  // commits only test files, and its follow-up review died here. It is scoped to the test files the remediation changed.
+  scope = { full_sweep: false, paths: changedTests, changed_files: changedTests };
 } else {
   die(
     `no source files in the diff vs ${base} or the untracked files (${diffed.length} file(s) changed, none matching source_globs).\n` +
@@ -1474,6 +1516,8 @@ const runJson = {
     generatedGlobs: contract.generated_globs ?? [],
   }),
   dirty,
+  // The dirty paths outside generated_globs ([] when every change is a generated file; null when not established).
+  dirty_outside_generated: dirtyOutsideGenerated,
   // WHICH ORCHESTRATOR ran. The three fields above describe the tree under review; this describes
   // the framework that reviewed it, and they are the same checkout only until extraction. Without
   // it, two projects reporting different verdicts for identical code have no explanation, and
@@ -1681,7 +1725,9 @@ if (args.verifySandbox !== false) {
   //
   // Forward slashes AND quotes: node accepts `/` on Windows, quoting survives all three shells, and
   // either alone leaves a path with a space or a backslash to chance.
-  const sh = (v) => `"${String(v).split('\\').join('/')}"`;
+  // briefArg, the one owner of that rule (G-7, G-8 of 20261121-214741-m3s7-b1-remediation-2-review): quotes alone left
+  // `%NAME%`, `$` and a backtick live, and briefArg refuses what no shell's quoting neutralises.
+  const sh = briefArg;
   // THE WORDS ARE IN prompts/_templates/sandbox-canary.md (G-17 of 20260925-015614-platform-review):
   // orchestration carries no model-facing prose (ARCHITECTURE §2). What stays here is what only this
   // file knows — the paths, rendered by `sh()` above.
@@ -1970,9 +2016,8 @@ if (args.verifySandbox !== false) {
   // evidence unambiguous — the positive one has nothing else it could be talking about.
   const intentSettings = path.join(runDir, 'intent-settings.json');
   const intentCmd = nodeArgv(NODE_RUNTIME, {
-    prompt: `Read the file ${intentAllowed} and`
-      + ` quote its first ${INTENT_PROBE_LINES} non-empty lines verbatim.`
-      + ' Do nothing else and read nothing else.',
+    // The canary's prompts are the prompt library's (consumer-owned-configuration.md AC2).
+    prompt: renderTemplate(readTemplate('intent-canary-allowed.md'), { path: intentAllowed, lines: INTENT_PROBE_LINES }, 'intent-canary-allowed.md').trim(),
     model: CANARY_MODEL,
     settingsPath: intentSettings,
     // The sandbox alone, as the real intent node gets it. Handing this probe the repo root would let the negative arm
@@ -2012,8 +2057,7 @@ if (args.verifySandbox !== false) {
   // THE NEGATIVE ARM, under the same policy, in its own turn. It asks for the source file and
   // nothing else, so `permission_denials` and the final message both describe one thing.
   const intentDenyCmd = nodeArgv(NODE_RUNTIME, {
-    prompt: `Read the file ${intentTarget} and report its first ${INTENT_LEAK_LINES} lines.`
-      + ' Do nothing else.',
+    prompt: renderTemplate(readTemplate('intent-canary-denied.md'), { path: intentTarget, lines: INTENT_LEAK_LINES }, 'intent-canary-denied.md').trim(),
     model: CANARY_MODEL,
     settingsPath: intentSettings,
     addDirs: [canarySandbox],

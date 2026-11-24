@@ -23,7 +23,7 @@ import {
   MUTATIONS, INJECTION_RULES,
   deflatedSeverity, applyDeflate, dropWouldDangle, applyDrop,
   forgeSlots, tellForMutation, injectionSurvived,
-} from '../scripts/lib/reconcile-mutations.mjs';
+} from '../scripts/io/reconcile-mutations.mjs';
 import { flat, quotePresent } from '../scripts/lib/verbatim.mjs';
 import { splitSpend } from '../scripts/io/run-artifacts.mjs';
 import {

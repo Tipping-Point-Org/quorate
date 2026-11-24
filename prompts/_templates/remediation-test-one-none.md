@@ -1,0 +1,1 @@
+test_one: none declared — the evidence gate admits only test_one captures, so a group with a red cannot commit in this project; a group commits only when its claim is not expressible as a test (red "", with its no_red reason). Fix and report the others with their files: the commit check names the missing key, and the operator declares commands.test_one

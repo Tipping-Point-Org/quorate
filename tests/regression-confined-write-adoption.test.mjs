@@ -128,6 +128,9 @@ const LINES = {
     [/writeTextAtomic\(path\.join\(reviewsDir, 'latest\.txt'\)/, 1, 'the reviews folder\'s latest-run pointer'],
   ],
   'scripts/preflight.mjs': [
+    // Made before the link check, as new-run makes it (G-16 of 20261121-193516-m3s7-b1-review): escapesBeforeCreate
+    // resolves the container, so it must exist first.
+    [/fs\.mkdirSync\(allowed\.container, \{ recursive: true \}\)/, 1, 'the reviews container under the engine\'s home'],
     [/fs\.mkdirSync\(path\.dirname\(runDir\), \{ recursive: true \}\)/, 1, 'the reviews root the seed run is made in'],
     [/fs\.mkdirSync\(runDir\);/, 1, 'the seed run, claimed exclusively; the owner is rooted here'],
     [/fs\.rmSync\(runDir, \{ recursive: true, force: true \}\)/, 1, 'the seed run removed whole when the checks end'],
@@ -147,18 +150,19 @@ const LINES = {
     [/fs\.rmdirSync\(schemaDir\)/, 1, 'and removed'],
   ],
   'scripts/io/preflight-cache.mjs': [
-    [/fs\.mkdirSync\(path\.dirname\(p\), \{ recursive: true \}\)/, 1, 'the pre-flight cache under the reviews root'],
-    [/fs\.rmSync\(dest, \{ recursive: true, force: true \}\)/, 1, 'the cache\'s own evidence folder, replaced'],
-    [/fs\.mkdirSync\(dest, \{ recursive: true \}\)/, 1, 'a folder of the cache a run\'s evidence is copied into'],
-    [/fs\.writeFileSync\(path\.join\(dest, name\), owner\.read\(/, 1, 'a run\'s evidence file, read through its owner (run-dir-reads stage 3), written INTO the cache'],
-    [/writeJsonAtomic\(p, \{ schema_version: 1, input_sha256: hash/, 1, 'the cache entry'],
-    [/fs\.rmSync\(preflightCachePath\(reviewsDir, hash\)/, 1, 'a cache entry evicted'],
-    [/fs\.rmSync\(preflightEvidenceDir\(reviewsDir, hash\)/, 1, 'its evidence evicted'],
+    // Every other write of the cache goes through the reviews folder's owner since G-4 of
+    // 20261122-204359-llo-remediation-review: the folder, the staged evidence, the entry and each eviction.
+    [/fs\.mkdirSync\(path\.resolve\(reviewsDir\), \{ recursive: true \}\)/, 1, 'the reviews folder itself, the owner\'s root, made when missing (a link there is refused by the owner)'],
+    // Injectable since G-3 of 20261122-214154-llo-remediation-2-review, so a test can fail the rename: the default is the
+    // one raw rename, and writePreflightCache calls it only on names cache.resolve checked (the old evidence aside, the
+    // staged copy into place, and the aside put back after a failed rename).
+    [/rename = \(a, b\) => fs\.renameSync\(a, b\)/, 1, 'the staged evidence folder renamed into place (and the old one aside and back), every name checked by the owner, which renames files only (G-5 of 20261122-204359-llo-remediation-review)'],
     [/fs\.utimesSync\(preflightCachePath\(reviewsDir, hash\), now, now\)/, 1, 'a cache entry\'s recency, for the size cap\'s eviction order'],
   ],
   'scripts/io/run-child.mjs': [
-    [/fs\.openSync\(stdoutPath, 'w'\)/, 1, 'the child\'s stdout, at a name spawn-node checked through the owner (the stated residual)'],
-    [/fs\.openSync\(stderrPath, 'w'\)/, 1, 'the child\'s stderr, likewise'],
+    // openChildOutput (G-8 of 20261121-233915-m3s7-b2-review): the child's stdout and stderr, each entry lstat'ed and a
+    // link, a non-file or a second name refused before the open, the open file held to the entry judged.
+    [/fsImpl\.openSync\(file, 'w'\)/, 1, "openChildOutput's descriptor, after the leaf is judged no link"],
   ],
   'scripts/io/reviews-root.mjs': [
     [/hostFs\.mkdirSync\(dir, \{ recursive: true \}\)/, 1, 'a reviews folder, for its .gitignore'],

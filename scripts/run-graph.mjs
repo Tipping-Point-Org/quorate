@@ -26,7 +26,7 @@ import {
   isFanOutNode, unshadowedJudgmentLenses, secondOpinionSilent, panelSilent,
   verdictFloorFromFindings, raiseVerdict, capVerdict, SEVERITY_RUNGS, isGroupId, NODE_KIND, authModeFor,
   stampCaps, CAPPING_STAMPS, effectiveDocRoles, gateCompleteness, FAN_OUT_NARROWED_STAMP,
-  narrowedFanOut, briefArg, measuredUsd, blockingSilence, adjudicationFloor, admitSpend, judgmentPins,
+  narrowedFanOut, briefArg, briefHead, measuredUsd, blockingSilence, adjudicationFloor, admitSpend, judgmentPins,
 } from './lib/decisions.mjs';
 import {
   admitRun, callerRepoRoot, quorateHome, repoRunRoots, armsRoot, archivePlan, panelMirrorExclusions, ensureReviewsIgnore, reviewsIgnoreWarning, reviewsIgnoreGaps, archiveRun, archiveStagedRun, archiveEvidenceEntry, evidenceIgnoredByGit, evidenceWillBeIgnored,
@@ -85,6 +85,7 @@ import { parseArgv, ArgvError } from './lib/argv.mjs';
 import { ARGV_SPECS } from './lib/argv-specs.mjs';
 import { runtimeBinArg, runtimeBinArgv } from './io/runtime-bin.mjs';
 import { matchesGlob } from './lib/contract-glob.mjs';
+import { checkSchema, fitToSchema } from './lib/compatibility.mjs';
 import {
   RECONCILE_MAX_GROUPS, RECONCILE_BATCH_FLOOR_MINUTES, reconcileBatches, mergeReconcilePayloads, batchFraction, batchShare, batchCharge,
   validateBatchReply, checkRootLinks, coverageGaps, RECONCILE_ARTIFACTS, reaskGroupsFile, reaskAttempts, mergeReask, reaskOutcome, notLaunchedAttempt, lastUsedReport, knownCost, knownDuration, reaskWhy, launchedBatches, batchLoopState, batchGroupsFile, reaskResumeStart,
@@ -309,6 +310,8 @@ const contract = runJson.contract ?? {};
 const commands = contract.commands ?? {};
 const review = contract.review ?? {};
 const roster = JSON.parse(fs.readFileSync(path.join(scriptsDir, 'lens-roster.json'), 'utf8'));
+// THE SCHEMA EVERY GATE IS CHECKED AGAINST BEFORE IT IS WRITTEN (gate-schema-at-writer.plan.md stage 2; GS-D1 A).
+const GATE_SCHEMA = JSON.parse(fs.readFileSync(path.join(scriptsDir, 'gate.schema.json'), 'utf8'));
 // WHERE THE ENGINE KEEPS ITS STATE, handed to every external-review child (G-12 of 20261010-063310-reviewer-preflight-r6);
 // lib/decisions.mjs's engineLocationEnv owns which keys and why.
 const ENGINE_LOCATION = engineLocationEnv(process.env);
@@ -600,7 +603,8 @@ const DOCTRINE_DIR = [
 
 const DOCTRINE_PATH = DOCTRINE_DIR
   ? `${path.relative(repoRoot, DOCTRINE_DIR).split(path.sep).join('/') || '.'}/disk-first-protocol.md`
-  : '(doctrine not found — say so in not_checked[] rather than inventing a path)';
+  // An instruction to the node, so it lives with the other prompt text (consumer-owned-configuration.md AC2).
+  : readTemplate('doctrine-not-found.md').trim();
 
 function writeJson(p, obj) {
   // Durable JSON, as the one home for it writes it (io/atomic.mjs, G-10): a temporary file and a rename, now through the
@@ -613,6 +617,9 @@ function writeJson(p, obj) {
 // vendors wrote — a finding about a leaked credential tends to quote it. Machine data (run.json, expected.json,
 // checks.json) and evidence/ (gitignored) are written raw; tests/regression-ledger-trust-boundaries-writes
 // names those targets, so a raw write of anything else fails there until it is classified.
+// How many `<slug>-<n>.inferred.md` names request recovery tries before it refuses (G-22 of
+// 20261121-193516-m3s7-b1-review).
+const INFERRED_REQUEST_MAX_SUFFIX = 1000;
 function writeTracked(p, text) {
   runOwner.replace(belowRun(p), redactClaim(text));
 }
@@ -1041,7 +1048,9 @@ function writeBrief(e) {
     // silently. Empty when the project has no profile, so a brief gains nothing by the mechanism
     // existing.
     project_profile: profileSection({ repoRoot, nodeId: e.node_id }).text,
-    capture_rel: path.relative(repoRoot, path.join(scriptsDir, 'capture.mjs')).split(path.sep).join('/'),
+    // Through briefHead, the head rule's one owner (G-11 of 20261121-214741-m3s7-b1-remediation-2-review): unquoted, and
+    // refused when a shell would split or expand it.
+    capture_rel: briefHead(path.relative(repoRoot, path.join(scriptsDir, 'capture.mjs')).split(path.sep).join('/')),
     // THE OTHER §8 EXEMPTION, RESOLVED THE SAME WAY, because it was the only one that was not.
     //
     // Three things a node is pointed at live outside the reviewed tree: capture.mjs (resolved above
@@ -1076,7 +1085,9 @@ function writeBrief(e) {
     // that list carries both separator spellings and no quoted form. Quoting it made capture refuse
     // the detector outright — the mandatory §8 sweep rendered unrunnable, which is the inert
     // guarantee at its worst and precisely what the test below this slot exists to catch (G-3).
-    detector_abs: path.join(scriptsDir, 'find-inert-features.mjs').split(path.sep).join('/'),
+    // briefHead neither quotes nor changes it; it refuses a head a shell would act on (G-12 of
+    // 20261121-214741-m3s7-b1-remediation-2-review).
+    detector_abs: briefHead(path.join(scriptsDir, 'find-inert-features.mjs').split(path.sep).join('/')),
     // THE ONE THAT WAS ACTUALLY WRONG. An ARGUMENT, seen by no prefix rule, and the only path on
     // that command a POSIX shell could mangle into nonsense.
     run_dir: briefArg(runDir),
@@ -1637,14 +1648,6 @@ function renderRequestDoc(nodeId) {
     return null;
   }
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `${p.slug}.inferred.md`);
-  // Exclusive create (G-25): a later recovery reusing a slug must not silently overwrite a
-  // persisted request — including one a person approved and edited. On collision, suffix.
-  let finalFile = file;
-  for (let n = 2; fs.existsSync(finalFile); n++) {
-    finalFile = path.join(dir, `${p.slug}-${n}.inferred.md`);
-  }
-
   const body = [
     '---',
     `request: ${p.slug}`,
@@ -1685,8 +1688,25 @@ function renderRequestDoc(nodeId) {
     '',
   ].join('\n');
 
-  writeTracked(finalFile, body);
-  return finalFile;
+  // WRITTEN THROUGH AN OWNER OF THE REQUESTS DIRECTORY (G-23 of 20261121-193516-m3s7-b1-review): writeTracked confines
+  // every write below the run, so a request under <repo>/.claude/requests threw and recovery failed. Redacted as every
+  // tracked write is. Exclusive create (G-25): a later recovery reusing a slug must not silently overwrite a persisted
+  // request, including one a person approved and edited; on a taken name, suffix, up to a declared bound (G-22 of the
+  // same review), past which recovery refuses rather than probing forever.
+  const requestsOwner = confined(dir);
+  const text = redactClaim(body);
+  for (let n = 1; n <= INFERRED_REQUEST_MAX_SUFFIX; n++) {
+    const name = n === 1 ? `${p.slug}.inferred.md` : `${p.slug}-${n}.inferred.md`;
+    try {
+      requestsOwner.create([name], text);
+      return path.join(dir, name);
+    } catch (e) {
+      if (!(e.code === 'ECONFINED' && e.refusal === 'taken')) throw e;
+    }
+  }
+  console.error(`recovery: ${INFERRED_REQUEST_MAX_SUFFIX} inferred requests named ${p.slug} already exist — `
+    + 'refusing to write another');
+  return null;
 }
 
 // The newest request document, preferring one this run produced. `status: inferred` is accepted
@@ -1697,12 +1717,32 @@ function newestRequestDoc() {
   // repository into intent capture as the criteria this run is judged against.
   const dir = resolvedRequestsDir(repoRoot);
   if (!dir) return null;
-  const candidates = fs.readdirSync(dir)
-    .filter((f) => f.endsWith('.md'))
-    .map((f) => ({ f, abs: path.join(dir, f), mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime);
+  // EACH ENTRY LINK-AWARE (G-28 of 20261121-204740-m3s7-b1-remediation-review; I-3): the entries were stat'ed and read raw,
+  // so a symbolic or hard link under .claude/requests was followed and could become the request this run is judged
+  // against. An entry is placed by lstat, which follows nothing, and only a plain file is a candidate; its text is read
+  // through the egress owner, which refuses a link or a second name, and a refused entry is skipped and named.
+  const candidates = [];
+  for (const f of fs.readdirSync(dir)) {
+    if (!f.endsWith('.md')) continue;
+    const abs = path.join(dir, f);
+    let st;
+    // A vanished entry is skipped; any other failure is named (G-13 of 20261121-214741-m3s7-b1-remediation-2-review), so
+    // recovery choosing an older request says why.
+    try { st = fs.lstatSync(abs); } catch (e) {
+      if (e?.code !== 'ENOENT') console.error(`run-graph: request ${abs} skipped, it cannot be read (${e?.code ?? e?.message ?? e})`);
+      continue;
+    }
+    if (!st.isFile()) continue;
+    candidates.push({ f, abs, mtime: st.mtimeMs });
+  }
+  candidates.sort((a, b) => b.mtime - a.mtime);
   for (const c of candidates) {
-    const text = fs.readFileSync(c.abs, 'utf8');
+    let text;
+    try { text = egressReadFile(c.abs, 'utf8', { repoRoot }); } catch (e) {
+      if (!refusedOrAbsent(e)) throw e;
+      console.error(`recovery: request ${c.f} skipped — ${refusalWords(e)}`);
+      continue;
+    }
     const status = requestStatus(text);
     if (status === 'inferred' || status === 'approved') {
       return {
@@ -1780,6 +1820,43 @@ function readChecksJson() {
   }
   return checksResults(text);
 }
+// WHAT THE CONTRACT LEAVES UNCHECKED ON EVERY RUN, the one assembly (G-29 of 20261121-204740-m3s7-b1-remediation-review;
+// I-1): the empty command keys, the uncapped budget tiers and the undeclared static bundle. Both pre-flight failure exits
+// write the gate and leave before the gate-time assembly, so a failed pre-flight's not_checked[] omitted all three; they
+// call this too, and the gate-time site calls it once.
+function standingNotChecked() {
+  for (const k of EMPTY_KEY_CHECKS) {
+    if (!commands[k]) {
+      buckets.not_checked.push({
+        node_id: `commands.${k}`,
+        why: `empty in graph_contract — ${k} could not be run, and nothing in this run substitutes for it`,
+      });
+    }
+  }
+  // An uncapped budget tier is a run-level gap in exactly the same sense: the ceiling that would
+  // have bounded runaway spend was not enforced, by operator choice. Name it so the gate reader sees
+  // it beside the other not-checked entries rather than having to notice a missing guard.
+  for (const [k, cap] of [['per-node', BUDGET_NODE], ['per-barrier', BUDGET_BARRIER], ['per-run', BUDGET_RUN]]) {
+    if (!Number.isFinite(cap)) {
+      buckets.not_checked.push({
+        node_id: `budget.${k}`,
+        why: `uncapped by contract — no ${k} dollar ceiling was enforced on this run (UNCAPPED-BUDGET)`,
+      });
+    }
+  }
+  // NAMED EVEN WHEN ui.surface IS none (G-36). I-5 makes the rule uniform — "an empty contract key
+  // means the corresponding check is SKIPPED and named VERBATIM in not_checked[]" — and it lists
+  // ui.static_bundle among the keys it governs. Suppressing it here made one key's honesty conditional
+  // on another key's value, which is how a not_checked[] table stops being a complete list of what
+  // this run could not check.
+  if (!String(contract.ui?.static_bundle ?? '').trim()) {
+    buckets.not_checked.push({
+      node_id: 'ui.static_bundle',
+      why: 'not declared — ui-audit reviewed source only; no built bundle or shipped webview was inspected',
+    });
+  }
+}
+
 const runPreflight = (why, known = null) => {
   console.log(`== pre-flight barrier ==${why ? `  (${why})` : ''}`);
   // The list and the hash it was taken over, recorded together, so run-checks can tell the list is this hash's (G-8 of
@@ -1803,6 +1880,7 @@ const runPreflight = (why, known = null) => {
     // This exit is before the gate-time preflightNotChecked call, so its entries are added here or the machine-readable
     // not_checked[] omits the build the headline says did not finish (G-14 of 20261018-035437-co-delivery).
     for (const e of preflightNotChecked({ ...preflightOutcome, commands: contract.commands ?? {}, results })) buckets.not_checked.push(e);
+    standingNotChecked();   // G-29 of 20261121-204740-m3s7-b1-remediation-review
     const unfinished = barrier?.outcome && !['passed', 'failed'].includes(barrier.outcome);
     writeGate('BLOCKED', unfinished
       ? `pre-flight barrier did not run to completion (${barrier.outcome}${barrier.outcome_detail ? `: ${barrier.outcome_detail}` : ''}); nothing was spawned`
@@ -1923,6 +2001,7 @@ if (args.preflight === 'always') {
       for (const e of preflightNotChecked({ ...preflightOutcome, commands: contract.commands ?? {}, results: decision.entry.results })) {
         buckets.not_checked.push(e);
       }
+      standingNotChecked();   // G-29 of 20261121-204740-m3s7-b1-remediation-review
       console.error(`
 BARRIER FAILED: ${decision.entry.barrier_failed} (reused from ${decision.from}) — `
         + 'the inputs are unchanged since that result, so re-running it would fail identically.');
@@ -2504,6 +2583,9 @@ if (armSurface.stamp && (panelArms.length || mayAdjudicate)) {
   bestEffort(() => writeJson(queuePath, queue), (why) => console.error(`queue: ${queuePath} not written (${why}); the fan-out's waits go unrecorded`));
 }
 const panelPromise = runPool(panelArms, spawnPanelArm, CONCURRENCY, () => aborted);
+// Marked handled now (G-26 of 20261121-193516-m3s7-b1-review): it is awaited only after the lens fan-out, and a rejection
+// before then was unhandled, ending the orchestrator before the gate. `await panelPromise` below still sees it.
+panelPromise.catch(() => {});
 
 console.log(`\n== fan-out: ${toRun.length} lens(es), concurrency ${CONCURRENCY} ==`);
 // THE FAN-OUT'S LOOP LIVES IN lib/pool.mjs NOW (G-23, G-47). It stayed hand-rolled here because it
@@ -2729,14 +2811,24 @@ async function spawnPanelArm(arm) {
     return;
   }
 
+  // THROUGH THE EGRESS OWNER (G-12 of 20261112-054852-hl-remediation-3-review): these instructions go into the arm's
+  // vendor prompt, so a link or a second name is refused; rooted at the framework, as claim-check's checker is.
+  // READ BEFORE THE PROMPT IS BUILT, AND A REFUSAL STARTS NO ARM (G-30 of 20261121-204740-m3s7-b1-remediation-review; I-4),
+  // as the brief above: read inline in the prompt's construction, a refusal escaped this function with no arm status.
+  let armSkill;
+  try { armSkill = egressReadFile(skillPath, 'utf8', { repoRoot: FRAMEWORK.frameworkRoot }); } catch (e) {
+    if (!refusedOrAbsent(e)) throw e;
+    writeStatusStub(arm.id, 'BLOCKED', { launched: false, source: arm.reviewer, shadows: arm.shadows, validator_errors: [`shadowed lens instructions refused: ${refusalWords(e)} stands at ${path.basename(path.dirname(skillPath))}/${path.basename(skillPath)}`] });
+    console.error(`panel: ${arm.id} not launched — ${refusalWords(e)} stands at ${skillPath}`);
+    return;
+  }
+
   const promptPath = path.join(nodesDir, `${arm.id}-prompt.md`);
   writeTracked(
     promptPath,
     buildArmShadowPrompt({
       lensId: arm.shadows,
-      // THROUGH THE EGRESS OWNER (G-12 of 20261112-054852-hl-remediation-3-review): these instructions go into the arm's
-      // vendor prompt, so a link or a second name is refused; rooted at the framework, as claim-check's checker is.
-      skillMarkdown: egressReadFile(skillPath, 'utf8', { repoRoot: FRAMEWORK.frameworkRoot }),
+      skillMarkdown: armSkill,
       runBrief: armBrief,
       intentCriteria: armCriteria,
       // The roster owns whether this lens may cite intent; the prompt library is told, never left to
@@ -2819,6 +2911,7 @@ async function spawnPanelArm(arm) {
     // lived inline here until the tie-break spawned the same child without it (G-36 BLOCKER).
     (() => { const { env, passed } = reviewerEnv(arm.reviewer, process.env, {
         depth: 0, prefixes: envPrefixesOf(REVIEWER_TABLE[arm.reviewer]), names: envNamesOf(REVIEWER_TABLE[arm.reviewer]),
+        caseFold: hostPlatform().caseInsensitiveEnv,
       }); armEnvPassed = passed;
       return { cwd: repoRoot, env: { ...env, ...ENGINE_LOCATION }, ...hostPlatform().proc.killableSpawnOptions() }; })(),
     // Backstop only: external-review.mjs enforces --timeout-minutes itself. Give the parent a
@@ -2862,8 +2955,11 @@ async function spawnPanelArm(arm) {
   // the verification run caught the import with no call. Applied for real, grep-verified.
   const probe = classifyPanelProbe(env, arm.reviewer);
   if (probe.state !== 'reachable') {
-    writeStatusStub(arm.id, armUnreachableState(probe), { // BLOCKED for a refused prompt file (G-5 of 20261115-045745-pbr-1b-remediation-5-review)
-      launched: true, started_at: started, reviewer_answered: false, source: arm.reviewer, shadows: arm.shadows,
+    // BLOCKED for a refused prompt file (G-5 of 20261115-045745-pbr-1b-remediation-5-review), and then NOT LAUNCHED (G-31 of
+    // 20261121-204740-m3s7-b1-remediation-review; I-4): external-review refused the prompt before any reviewer ran.
+    const unreachable = armUnreachableState(probe);
+    writeStatusStub(arm.id, unreachable, {
+      launched: unreachable !== 'BLOCKED', started_at: started, reviewer_answered: false, source: arm.reviewer, shadows: arm.shadows,
       ...capturedStatusFields(r), ...armProcess,
       // The vendor call's entry (runtime-call-telemetry.plan.md stage 3), not answered: the probe classified it unreachable.
       call: markAnswered(env?.call ?? null, false),
@@ -3158,7 +3254,7 @@ for (const c of contextRefusals) {
 // re-ask, once its loop ends, adds the `reask` record to that status and writes the merged payload over that payload.
 async function reconcileBatchLoop(groups, { evidenceDir, brief, groupsFile, note, label, startedAt, budgetLeft, nameMissing,
   nodeId = 'reconcile', payloadPath = path.join(runDir, 'evidence', 'reconcile', 'payload.json'), beforeFirstLaunch = null }) {
-  const { batches: batchList, splitFiles } = reconcileBatches(groups);
+  const { batches: batchList, splitFiles } = reconcileBatches(groups, RECONCILE_MAX_GROUPS);
   const n = batchList.length;
   runDirOf(evidenceDir);
   const evidencePayload = payloadPath;
@@ -3231,6 +3327,10 @@ async function reconcileBatchLoop(groups, { evidenceDir, brief, groupsFile, note
           node_id: nodeId,
           why: `root-cause link cleared: ${c.from} -> ${c.to} (${lbl} did not judge ${c.to})`,
         });
+      }
+      // A symptom left with no root is recorded confirmed and named (G-7 of 20261121-204740-m3s7-b1-remediation-review).
+      for (const id of links.orphaned) {
+        buckets.not_checked.push({ node_id: nodeId, why: `symptom ${id} has no root-cause group ${lbl} judged; recorded confirmed` });
       }
     }
     writeJson(path.join(evidenceDir, `batch-${i + 1}-status.json`), {
@@ -3322,14 +3422,18 @@ function checkReconcileLinks() {
   const evidencePayload = path.join(runDir, 'evidence', 'reconcile', 'payload.json');
   if (!runHas(evidencePayload)) return;
   const p = JSON.parse(runRead(evidencePayload));
-  const { rows, cleared } = checkRootLinks(p.groups ?? []);
-  if (!cleared.length) return;
+  const { rows, cleared, orphaned } = checkRootLinks(p.groups ?? []);
+  if (!cleared.length && !orphaned.length) return;
   writeJson(evidencePayload, { ...p, groups: rows });
   for (const c of cleared) {
     buckets.not_checked.push({
       node_id: 'reconcile',
       why: `root-cause link cleared: ${c.from} -> ${c.to} (not a group the same reply judged)`,
     });
+  }
+  // A symptom left with no root is recorded confirmed and named (G-7 of 20261121-204740-m3s7-b1-remediation-review).
+  for (const id of orphaned) {
+    buckets.not_checked.push({ node_id: 'reconcile', why: `symptom ${id} has no root-cause group the same reply judged; recorded confirmed` });
   }
 }
 
@@ -3366,7 +3470,8 @@ async function reaskMissing(st, writeReconcileBrief, barrierStartedAt) {
   // The loop partitions the group set itself and returns the partition (G-5 of 20261024-024945-rrs-delivery).
   console.log(`\n== barrier: reconcile re-ask (${missing.length} group(s) the reply left out: ${missing.join(', ')}) ==`);
   const evidenceReaskDir = path.join(runDir, 'evidence', 'reconcile-reask');
-  // ITS OWN NODE, `reconcile-reask` (RR-D1 A): its brief, status, report and payload are its own, so no batch writes the
+  // ITS OWN NODE, `reconcile-reask` (RR-D1 A): its brief, status and payload are its own (it writes no report, so the
+  // attempt's report_sha256 is null: G-15 of 20261121-214741-m3s7-b1-remediation-2-review), so no batch writes the
   // first reply's and there is nothing to back up or restore (the bookkeeping G-10, G-12, G-8 and G-9 were about). After
   // the loop the first reply's status gains the `reask` record, and its payload is replaced by the merged one when the
   // re-ask judged a group (G-4 of 20261024-080423-rrr-remediation-2-review: this said they were never written).
@@ -3534,15 +3639,9 @@ function collectFindings() {
   return all;
 }
 
-// Sorted before grouping so the result is a function of the findings, not of the order they were
-// read in. The anchor is whichever finding arrives first, so an unsorted pass could group the
-// same inputs differently on a re-run — a reconciler judging one grouping could not reproduce it.
-const findings = collectFindings().sort(
-  (a, b) =>
-    String(a.file).localeCompare(String(b.file)) ||
-    (Number(a.line) || 0) - (Number(b.line) || 0) ||
-    String(a.node_id).localeCompare(String(b.node_id)),
-);
+// Sorted before grouping, so the result is a function of the findings and not of the order they were read in: by
+// groupFindings, the one owner of that order (G-16 of 20261121-214741-m3s7-b1-remediation-2-review).
+const findings = collectFindings();
 
 // THE GROUPING RULE IS lib/decisions.mjs's groupFindings (G-7 of 20261115-002137-pbr-remediation-2-review), a pure
 // decision tested there: same file, within PROXIMITY_LINES of the group's anchor, a file's last group the only one in
@@ -3609,25 +3708,8 @@ for (const e of expected) {
 // hits in gate.json and gate.md while appearing in run.json, the briefs and the reports. The gate
 // is the artifact a reader consults to learn what a run did not cover, so a gap the contract
 // declares out loud belonged there first.
-for (const k of EMPTY_KEY_CHECKS) {
-  if (!commands[k]) {
-    buckets.not_checked.push({
-      node_id: `commands.${k}`,
-      why: `empty in graph_contract — ${k} could not be run, and nothing in this run substitutes for it`,
-    });
-  }
-}
-// An uncapped budget tier is a run-level gap in exactly the same sense: the ceiling that would
-// have bounded runaway spend was not enforced, by operator choice. Name it so the gate reader sees
-// it beside the other not-checked entries rather than having to notice a missing guard.
-for (const [k, cap] of [['per-node', BUDGET_NODE], ['per-barrier', BUDGET_BARRIER], ['per-run', BUDGET_RUN]]) {
-  if (!Number.isFinite(cap)) {
-    buckets.not_checked.push({
-      node_id: `budget.${k}`,
-      why: `uncapped by contract — no ${k} dollar ceiling was enforced on this run (UNCAPPED-BUDGET)`,
-    });
-  }
-}
+// The entries themselves are standingNotChecked's, which the pre-flight's failure exits add too.
+standingNotChecked();
 
 // A judgment lens with no second family reviewing beside it is ONE opinion, however confidently
 // stated. The roster asserted in a note that every judgment lens had an arm while ui-audit had
@@ -3671,17 +3753,7 @@ if (review.external_panel === true) {
     });
   }
 }
-// NAMED EVEN WHEN ui.surface IS none (G-36). I-5 makes the rule uniform — "an empty contract key
-// means the corresponding check is SKIPPED and named VERBATIM in not_checked[]" — and it lists
-// ui.static_bundle among the keys it governs. Suppressing it here made one key's honesty conditional
-// on another key's value, which is how a not_checked[] table stops being a complete list of what
-// this run could not check.
-if (!String(contract.ui?.static_bundle ?? '').trim()) {
-  buckets.not_checked.push({
-    node_id: 'ui.static_bundle',
-    why: 'not declared — ui-audit reviewed source only; no built bundle or shipped webview was inspected',
-  });
-}
+// ui.static_bundle's entry is standingNotChecked's (above), named even when ui.surface is none (G-36).
 
 if (runJson.request?.status === 'inferred') {
   buckets.not_checked.push({
@@ -3858,7 +3930,7 @@ if (groupsOut.length && skillInstalled('reconcile') && reconcileReusable) {
   // story-pipeline produced 156: the reconciler judged 80 and 76 went unjudged. Each batch keeps its files' groups
   // together and runs under the SAME reconcile node, one after another; their payloads merge into the one
   // evidence/reconcile/payload.json and status file every reader already uses, so nothing downstream changes.
-  const { batches: reconcileBatchList, splitFiles } = reconcileBatches(groupsOut);
+  const { batches: reconcileBatchList, splitFiles } = reconcileBatches(groupsOut, RECONCILE_MAX_GROUPS);
   reconcileBatched = reconcileBatchList.length > 1;
   let st;
   const barrierStartedAt = Date.now();   // the re-ask gets what is left of the barrier's time
@@ -4432,6 +4504,7 @@ if (!args.skipPanel && review.external_panel === true) {
         const tbLimits = limitsFor.get(judge.reviewer);
         const { env: tbEnv, passed: tbPassed } = reviewerEnv(judge.reviewer, process.env, {
           depth: 0, prefixes: envPrefixesOf(REVIEWER_TABLE[judge.reviewer]), names: envNamesOf(REVIEWER_TABLE[judge.reviewer]),
+          caseFold: hostPlatform().caseInsensitiveEnv,
         });
         // A JUDGE WITH A STAKE IN THE DISPUTE IT IS JUDGING. Every panel arm runs on codex, so a
         // codex judge voting on a group one of those arms raised is voting on its own family's
@@ -4596,6 +4669,7 @@ if (!args.skipPanel && review.external_panel === true) {
         // external spawn sites was taught to keep its diagnostics and the other was not.
         const tbEnvelope = (() => { try { return JSON.parse(r.stdout); } catch { return null; } })();
         const tbProbe = classifyPanelProbe(tbEnvelope, judge.reviewer);
+        const tbState = tbProbe.state === 'reachable' ? 'OK' : armUnreachableState(tbProbe);
         // Written BESIDE the vendor's raw log, in the directory git ignores, and only on failure.
         // The status file this run also writes is tracked, so it gets the path and not the bytes.
         if (tbProbe.state !== 'reachable') {
@@ -4624,7 +4698,9 @@ if (!args.skipPanel && review.external_panel === true) {
           // exited 0 for every answer (and exits 5 now only for a failed preflight, whose envelope
           // names the tie-breaker), so `r.status === 0` recorded a missing/refusing agy as OK and a
           // disputed group as externally ruled when nothing ruled (G-33).
-          state: tbProbe.state === 'reachable' ? 'OK' : 'DEGRADED',
+          // A REFUSED OR ABSENT PROMPT IS BLOCKED, as for the arms (G-34 of 20261121-204740-m3s7-b1-remediation-review; I-4):
+          // every unreachable judge was DEGRADED, so a judge whose prompt was refused read as a reviewer that failed.
+          state: tbState,
           reviewer_answered: tbProbe.state === 'reachable',
           // WHY, in the artifact, whenever it is not OK. Named `validator_errors` because that is
           // the key the arms already use for the same thing, and the gate's "Lens did not report"
@@ -4694,7 +4770,7 @@ if (!args.skipPanel && review.external_panel === true) {
           // G-35: the DECLARED id, so a judge is named the way every other roster entry is.
           judge_id: judgeId,
           auth_mode: authModeFor(NODE_KIND.adjudication), env_passed: tbPassed,
-          launched: true, started_at: tbStartedAt, ended_at: new Date().toISOString(),
+          launched: tbState !== 'BLOCKED', started_at: tbStartedAt, ended_at: new Date().toISOString(),
           // The exit code, which was also discarded. external-review prints an envelope for every
           // answer it has and exits 0, or 5 when the judge failed its preflight and was never called;
           // any other non-zero status means it refused its arguments before reaching a reviewer, and
@@ -5319,6 +5395,34 @@ function writeGate(forced, reason) {
     total_cost_usd: Number(spentSoFar().toFixed(4)),
     reviewer_overrides: REVIEWER_OVERRIDES,
   };
+  // CHECKED WHERE IT IS WRITTEN (gate-schema-at-writer.plan.md stage 2; GS-D1 A, GS-D2 A, GS-D4 A). The schema was held
+  // only by tests that build gates, so whatever no test built drifted from it in five reviews running (the design's
+  // table). Strict: a field the schema does not declare is an error too, so the schema cannot fall behind its writer.
+  // A gate that fails is BLOCKED, the errors named and stamped GATE-SCHEMA, and that gate is checked again.
+  const schemaErrors = checkSchema(GATE_SCHEMA, gateJson, { strict: true });
+  if (schemaErrors.length) {
+    const SHOWN = 8;
+    const named = schemaErrors.slice(0, SHOWN).join('; ') + (schemaErrors.length > SHOWN ? `; and ${schemaErrors.length - SHOWN} more` : '');
+    gate = 'BLOCKED';
+    reason = `gate.json does not match scripts/gate.schema.json, so it is not written as a verdict: ${named}`;
+    if (!stamps.includes('GATE-SCHEMA')) stamps.push('GATE-SCHEMA');
+    Object.assign(gateJson, { gate, reason, stamps });
+    // Still failing (a field mistyped stays mistyped, at the top or nested): the gate is fitted to the schema, so what is
+    // written holds only declared fields, each one that validated kept and each that did not at its least value, and the
+    // run says so on stderr. It never writes a gate that passed no check (I-6; G-7 of 20261124-131313-gsw-delivery: only
+    // undeclared top-level keys were dropped, and the result was written whether or not it validated).
+    const again = checkSchema(GATE_SCHEMA, gateJson, { strict: true });
+    if (again.length) {
+      const fitted = fitToSchema(GATE_SCHEMA, gateJson);
+      const left = checkSchema(GATE_SCHEMA, fitted ?? {}, { strict: true });
+      if (left.length || !fitted || fitted.gate !== 'BLOCKED') {
+        throw new Error(`run-graph: the BLOCKED gate cannot be fitted to gate.schema.json, so gate.json is not written: ${(left.length ? left : again).slice(0, SHOWN).join('; ')}`);
+      }
+      for (const k of Object.keys(gateJson)) delete gateJson[k];
+      Object.assign(gateJson, fitted);
+      console.error(`run-graph: the BLOCKED gate still did not match gate.schema.json, so only the fields it declares are written, each that failed at its least value: ${again.slice(0, SHOWN).join('; ')}${again.length > SHOWN ? `; and ${again.length - SHOWN} more` : ''}`);
+    }
+  }
   writeTrackedJson(path.join(runDir, 'gate.json'), gateJson);
 
   // WHICH KIND OF ANSWER THIS IS, ON THE SAME LINE AS THE ANSWER.

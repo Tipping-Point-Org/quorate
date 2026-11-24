@@ -196,6 +196,12 @@ test('G-14: a barrier that could not start is named in the BLOCKED gate\'s not_c
   const entry = (gate.buckets?.not_checked ?? []).find((e) => (e.node_id ?? e.item) === 'commands.build');
   assert.ok(entry, `the build did not run to completion and not_checked[] does not name it: ${JSON.stringify(gate.buckets?.not_checked)}`);
   assert.match(entry.why, /did not run to completion \(could-not-start/);
+  // AND THE STANDING ENTRIES (G-29 of 20261121-204740-m3s7-b1-remediation-review; I-1): the empty command keys and the
+  // undeclared static bundle were assembled only at the gate-time site this exit never reaches.
+  const nc = gate.buckets?.not_checked ?? [];
+  assert.ok(nc.some((e) => e.node_id === 'ui.static_bundle'), `a failed pre-flight omits ui.static_bundle: ${JSON.stringify(nc)}`);
+  assert.ok(nc.some((e) => /^commands\./.test(e.node_id ?? '') && /empty in graph_contract/.test(e.why ?? '')),
+    `a failed pre-flight omits the empty command keys: ${JSON.stringify(nc)}`);
 });
 
 // Both only observable inside a review run (nothing is cached when a check does not finish), so pinned at the source.

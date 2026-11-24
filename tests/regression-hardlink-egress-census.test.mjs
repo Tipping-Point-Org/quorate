@@ -15,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
-import { REPO_ROOT } from './helpers.mjs';
+import { REPO_ROOT, makeLink } from './helpers.mjs';
 
 const read = (f) => fs.readFileSync(path.join(REPO_ROOT, f), 'utf8');
 
@@ -40,7 +40,8 @@ const SITES = [
   ['scripts/io/transcript-copy.mjs', /egressReadLines\(abs, [\s\S]*?\}, undefined, \{ repoRoot: opts\.repoRoot \}\)/, 'the transcript\'s redacted copy, to the cross-family checker'],
   // G-12 of 20261112-054852-hl-remediation-3-review: the external arm's lens instructions go into its vendor's prompt; they
   // were named below as a raw read. Rooted at the framework, as claim-check's checker instructions are.
-  ['scripts/run-graph.mjs', /skillMarkdown: egressReadFile\(skillPath, 'utf8', \{ repoRoot: FRAMEWORK\.frameworkRoot \}\),/, 'the external arm\'s lens instructions, to its vendor'],
+  // Read before the prompt is built, its refusal caught, since G-30 of 20261121-204740-m3s7-b1-remediation-review.
+  ['scripts/run-graph.mjs', /try \{ armSkill = egressReadFile\(skillPath, 'utf8', \{ repoRoot: FRAMEWORK\.frameworkRoot \}\); \}/, 'the external arm\'s lens instructions, to its vendor'],
   // G-8, G-7 and G-6 of 20261114-195905-m2-pred1-remediation-2-review: the arm's other prompt inputs and its census copy.
   // G-10 of 20261112-054852-hl-remediation-3-review: every prompt template goes into a node's, a reviewer's, a seat's or a
   // checker's prompt, so it is read through the owner, rooted at the templates' folder.
@@ -78,7 +79,7 @@ const RAW = /\b(readFileSync|copyFileSync|createReadStream|cpSync)\(/;
 const NAMED = [
   ['scripts/external-review.mjs', "const roster = JSON.parse(fs.readFileSync(path.join(HERE, 'lens-roster.json')", 'the engine\'s roster, read locally'],
   ['scripts/external-review.mjs', "const text = fs.readFileSync(p, 'utf8');", 'the probe\'s check that its surface is an empty git repository: read locally, sent nowhere'],
-  ['scripts/external-review.mjs', "return fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';", 'the vendor\'s own answer file, coming back, not going out'],
+  ['scripts/external-review.mjs', "try { return fs.readFileSync(f, 'utf8'); } catch { return ''; }", 'the vendor\'s own answer file, coming back, not going out'],
   ['scripts/spawn-subagent.mjs', 'const roster = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), \'lens-roster.json\')', 'the engine\'s roster, read locally'],
   ['scripts/decide.mjs', "try { roster = JSON.parse(fs.readFileSync(path.join(SCRIPTS, 'lens-roster.json')", 'the engine\'s roster, read locally'],
   ['scripts/claim-check.mjs', "result = JSON.parse(fs.readFileSync(path.join(dir, 'result.json')", 'the checker\'s answer, coming back'],
@@ -88,7 +89,8 @@ const NAMED = [
   ['scripts/claim-check.mjs', 'if (copy) { egress(path.dirname(copy.path)).stat([path.basename(copy.path)]); fs.copyFileSync(copy.path,', 'this process\'s own redacted copy, checked by the egress owner first'],
   ['scripts/claim-check.mjs', "try { out = JSON.parse(fs.readFileSync(armOut, 'utf8')); } catch { /* no output: no entry */ }", 'the arm\'s answer, coming back'],
   ['scripts/claim-check.mjs', "try { out = JSON.parse(fs.readFileSync(armOut, 'utf8')); } catch { /* named below */ }", 'the arm\'s answer, coming back'],
-  ['scripts/run-graph.mjs', "const roster = JSON.parse(fs.readFileSync(path.join(scriptsDir, 'lens-roster.json')", 'the engine\'s roster, read locally'],
+  ['scripts/run-graph.mjs', "const GATE_SCHEMA = JSON.parse(fs.readFileSync(path.join(scriptsDir, 'gate.schema.json')", 'the engine\'s gate schema, read locally to check the gate before it is written'],
+  ['scripts/run-graph.mjs', "const roster = JSON.parse(fs.readFileSync(path.join(scriptsDir, 'lens-roster.json')",'the engine\'s roster, read locally'],
   ['scripts/run-graph.mjs', "const actualSha = resolvedReq ? crypto.createHash('sha256').update(fs.readFileSync(resolvedReq, 'utf8'))", 'the request\'s hash, checked against the one frozen at mint: read locally'],
   ['scripts/run-graph.mjs', "const text = fs.readFileSync(c.abs, 'utf8');", 'a request\'s status, read locally to choose it'],
   // G-16 of 20261112-063354-hl-remediation-4-review: spawn-node.mjs and new-run.mjs left the whole-file baseline, each
@@ -238,7 +240,9 @@ test('the arms\' snapshot still refuses a hard-linked file, as it did before the
   fs.writeFileSync(outside, 'not the repository\'s\n');
   let linked = null;
   const r = buildArmsSurface({ repoRoot: repo, headCommit: head, baseCommit: head, dir: path.join(tmp, 'surface'), maxBytes: null,
-    beforeAssert: (dir) => { try { fs.linkSync(outside, path.join(dir, 'second-name.txt')); linked = true; } catch { linked = false; } return { ok: true }; } });
+    beforeAssert: (dir) => { linked = makeLink(t, { target: outside, at: path.join(dir, 'second-name.txt'), type: 'hard' }) !== null; return { ok: true }; } });
+  // The skip is said twice on purpose: by makeLink, the one place a link failure is caught (regression-link-failures-not-silent),
+  // and at the guard for the silent-return census (regression-no-silent-test-return). Each census reads its own place.
   if (linked === false) { t.skip('this filesystem made no hard link'); return; }
   assert.equal(linked, true, `the build never reached its final check: ${r.why}`);
   assert.equal(r.ok, false, 'a hard-linked file in the arms\' surface was accepted');

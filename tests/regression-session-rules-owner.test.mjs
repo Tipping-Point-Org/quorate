@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { STOP_REASONS, WAIT, guardDecision } from '../scripts/lib/stop-record.mjs';
+import { STOP_REASONS, WAIT, guardDecision } from '../scripts/io/stop-record.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');

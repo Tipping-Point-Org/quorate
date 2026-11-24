@@ -26,6 +26,21 @@ test('stage 1: a read call loses secret-shaped names, the runtime auth, the run 
   for (const k of ['PATH', 'HOME', 'GIT_AUTHOR_NAME', 'GIT_COMMITTER_EMAIL']) assert.equal(env[k], SOURCE[k], `${k} was lost`);
 });
 
+// G-4 of 20261124-140633-gsw-remediation-review-b: GIT_CONFIG_PARAMETERS and GIT_CONFIG_VALUE_<n> can carry an
+// http.extraheader Authorization header, and SECRET_NAME matches neither, so a read-only git (and the diff, filter and
+// fsmonitor helpers it starts) inherited them. A read call needs none of git's environment config; the whole tuple goes,
+// in every case spelling, so no half-tuple is left for git to reject. The commit keeps its tuple (the test below).
+test('G-4: a read call loses git\'s environment config, the whole tuple, in any case', () => {
+  const env = gitEnvFor({ PATH: '/bin', GIT_CONFIG_PARAMETERS: "'http.extraheader=Authorization: Bearer t'",
+    GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraheader', GIT_CONFIG_VALUE_0: 'Authorization: Bearer t',
+    Git_Config_Value_1: 'Authorization: Bearer u', GIT_CONFIG_GLOBAL: '/g' });
+  for (const k of ['GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_0', 'GIT_CONFIG_VALUE_0', 'Git_Config_Value_1']) {
+    assert.equal(k in env, false, `${k} reached a read-only git`);
+  }
+  assert.equal(env.GIT_CONFIG_GLOBAL, '/g', 'a file name, which carries no value, was lost');
+  assert.equal(env.PATH, '/bin');
+});
+
 test('stage 1: a commit keeps the agent socket and the identity, and loses the same secrets', () => {
   const env = gitEnvFor(SOURCE, { commit: true });
   for (const k of GONE) assert.equal(k in env, false, `${k} reached the commit's hooks`);

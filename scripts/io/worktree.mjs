@@ -216,12 +216,36 @@ const LISTING_MAX_BUFFER = 1 << 30;
 const gitListing = (args, opts = {}) =>
   gitSync(args, { encoding: 'utf8', maxBuffer: LISTING_MAX_BUFFER, ...opts });
 
-export function copyTrackedInto(srcRoot, destDir, { listingMaxBuffer = LISTING_MAX_BUFFER } = {}) {
-  const r = gitListing(['ls-files', '-s', '-z'], { cwd: srcRoot, maxBuffer: listingMaxBuffer });
+// `lstat` is a parameter so a test can make a standing file answer EACCES, which no host does on request (G-10).
+// `listFiles` and `writeStamp` likewise (G-9, G-10 of 20261122-014737-m3s7-b2-review-2): no Windows or macOS file system
+// holds a non-UTF-8 name, and no host refuses one write on request.
+const listTracked = (srcRoot, maxBuffer) =>
+  gitListing(['ls-files', '-s', '-z'], { cwd: srcRoot, encoding: 'buffer', maxBuffer });
+const fatalUtf8 = new TextDecoder('utf-8', { fatal: true });
+export function copyTrackedInto(srcRoot, destDir, {
+  listingMaxBuffer = LISTING_MAX_BUFFER, lstat = (p, o) => fs.lstatSync(p, o),
+  listFiles = listTracked, writeStamp = (file, text) => fs.writeFileSync(file, text),
+} = {}) {
+  // RAW BYTES, decoded strictly (G-9 of 20261122-014737-m3s7-b2-review-2): decoding the listing as UTF-8 turned a
+  // non-UTF-8 tracked name into U+FFFD, a name that is not the file's. Such a name is refused by name, never mangled.
+  const r = listFiles(srcRoot, listingMaxBuffer);
   if (r.status !== 0) {
-    return { ok: false, why: `git ls-files failed: ${(r.stderr || '').trim().slice(0, 200)}` };
+    return { ok: false, why: `git ls-files failed: ${String(r.stderr ?? '').trim().slice(0, 200)}` };
   }
-  const staged = r.stdout.split(String.fromCharCode(0)).filter(Boolean)
+  const raw = Buffer.isBuffer(r.stdout) ? r.stdout : Buffer.from(String(r.stdout ?? ''), 'utf8');
+  const lines = [];
+  let start = 0;
+  for (let i = 0; i <= raw.length; i += 1) {
+    if (i < raw.length && raw[i] !== 0) continue;
+    if (i > start) {
+      const bytes = raw.subarray(start, i);
+      try { lines.push(fatalUtf8.decode(bytes)); } catch {
+        return { ok: false, why: `a tracked name is not UTF-8 and cannot be copied by name: ${bytes.toString('latin1').slice(0, 200)}` };
+      }
+    }
+    start = i + 1;
+  }
+  const staged = lines
     .map((line) => /^(\d+) \w+ \d\t([\s\S]+)$/.exec(line)).filter(Boolean).map((m) => ({ mode: m[1], rel: m[2] }));
   if (!staged.length) return { ok: false, why: 'no tracked files at the source' };
   // THE SNAPSHOT'S RULE, ON THIS ROUTE TOO (arms-read-surface criterion 8): the same decision the arms'
@@ -236,7 +260,12 @@ export function copyTrackedInto(srcRoot, destDir, { listingMaxBuffer = LISTING_M
     if (mode === '160000') continue;   // a submodule of the framework itself: nothing to copy
     const from = path.join(srcRoot, rel);
     let st = null; let real = null;
-    try { st = fs.lstatSync(from, { bigint: true }); } catch { continue; }   // deleted in the working tree
+    // Deleted in the working tree is ENOENT or ENOTDIR, and only that is skipped (G-10 of
+    // 20261122-002915-m3s7-b2-remediation-review): any other failure is a file that stands and could not be judged.
+    try { st = lstat(from, { bigint: true }); } catch (e) {
+      if (e?.code === 'ENOENT' || e?.code === 'ENOTDIR') continue;
+      return { ok: false, why: `reading ${rel}: ${e?.message ?? e}` };
+    }
     try { real = fs.realpathSync(from); } catch { /* unresolvable: judged as such */ }
     entries.push({ path: rel, mode: st.isSymbolicLink() ? '120000' : mode, real, dev: String(st.dev), ino: String(st.ino), nlink: String(st.nlink) });
   }
@@ -267,15 +296,21 @@ export function copyTrackedInto(srcRoot, destDir, { listingMaxBuffer = LISTING_M
   // A marker file rather than a smarter probe: "is this directory its own git root" cannot separate
   // a copy from the LEGACY vendored-in-tree layout, where the enclosing commit genuinely is the
   // framework's version. The copier knows which case it is, so it says so.
+  // A stamp that could not be WRITTEN fails the copy (G-10 of 20261122-014737-m3s7-b2-review-2): swallowed, the copy
+  // said ok with no stamp, and the copy's version then answers with the enclosing repository's commit. A commit git
+  // cannot name degrades to 'unknown' inside a written stamp, which is the honest direction.
   try {
     const head = gitListing(['-C', srcRoot, 'rev-parse', 'HEAD']);
     const porcelain = gitListing(['-C', srcRoot, 'status', '--porcelain', '--', '.']);
-    fs.writeFileSync(path.join(destDir, SOURCE_STAMP), `${JSON.stringify({
+    writeStamp(path.join(destDir, SOURCE_STAMP), `${JSON.stringify({
       commit: head.status === 0 ? head.stdout.trim() : 'unknown',
       dirty: porcelain.status === 0 ? porcelain.stdout.trim().length > 0 : null,
-      copied_from: srcRoot,
+      // NO `copied_from` (G-10 of 20261121-233915-m3s7-b2-review): the source checkout's absolute path, in a file the
+      // external reviewers read, disclosed the operator's local path to the panel's vendors, and no reader used it.
       copied_at: new Date().toISOString(),
     }, null, 2)}\n`);
-  } catch { /* the copy stands; the stamp degrades to unknown, which is the honest direction */ }
+  } catch (e) {
+    return { ok: false, why: `writing ${SOURCE_STAMP}: ${e?.message ?? e}` };
+  }
   return { ok: true, copied, refused };
 }

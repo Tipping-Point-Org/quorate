@@ -12,12 +12,12 @@ import { commitEnvFor, commandEnvFor } from '../scripts/lib/decisions.mjs';
 const SOURCE = {
   PATH: '/bin', HOME: '/h', GIT_AUTHOR_NAME: 'x', GIT_COMMITTER_EMAIL: 'c@x', GIT_DIR: '.git', SSH_AUTH_SOCK: '/tmp/agent.sock',
   GITHUB_TOKEN: 'ghp', AWS_SECRET_ACCESS_KEY: 'aws', DATABASE_URL: 'pg://', QUORATE_RUN_ID: 'r',
-  ANTHROPIC_API_KEY: 'a', CLAUDE_CODE_OAUTH_TOKEN: 'o',
+  ANTHROPIC_API_KEY: 'a', CLAUDE_CODE_OAUTH_TOKEN: 'o', ANTHROPIC_AUTH_TOKEN: 't', // the auth token too (G-45 of 20261122-232627-m3s7-b4-review)
 };
 
 test('AC1: the commit path drops secret-shaped names, the runtime auth and the run pin; keeps what git needs', () => {
   const env = commitEnvFor(SOURCE);
-  for (const k of ['GITHUB_TOKEN', 'AWS_SECRET_ACCESS_KEY', 'DATABASE_URL', 'QUORATE_RUN_ID', 'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN']) {
+  for (const k of ['GITHUB_TOKEN', 'AWS_SECRET_ACCESS_KEY', 'DATABASE_URL', 'QUORATE_RUN_ID', 'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_AUTH_TOKEN']) {
     assert.equal(k in env, false, `${k} reached the commit's hooks`);
   }
   for (const k of ['PATH', 'HOME', 'GIT_AUTHOR_NAME', 'GIT_COMMITTER_EMAIL', 'GIT_DIR', 'SSH_AUTH_SOCK']) assert.equal(env[k], SOURCE[k], `${k} was lost`);

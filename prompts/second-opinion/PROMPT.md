@@ -73,11 +73,11 @@ have to be inferred from the absence of names.
 ### When arms did run
 
 Arms shadow a lens — same scope, same brief, and the shadowed lens's own criteria — spawned
-serially AFTER the lens fan-out completes (overlapping them is named future work), and appear as
+alongside the lens fan-out, overlapping it, and held at the same barrier; they appear as
 nodes whose id begins `panel-`, with `source` naming the reviewer. Their findings are already in the groups you
 are reading. Your job here is **not** to re-read the code: it is to check that `reconcile` weighed
-them correctly, and in particular that it did not treat two Claude lenses agreeing as equivalent to
-a lens and a different model family agreeing.
+them correctly, and in particular that it did not treat two lenses agreeing (every lens runs on the node
+runtime, so they share its model family) as equivalent to a lens and a different model family agreeing.
 
 ### The adjudication panel runs in the orchestrator, not here
 
@@ -96,7 +96,7 @@ contradictions rather than coverage asymmetries, and say so.
 
 **There is no tie-breaker, and no majority of three** (G-4). This section described a mechanism the
 engine stopped running: every judge votes as a first-order judge, the merge is arithmetic, and a
-strict plurality decides. A 1-1 split is recorded **undecided** — a tie between two judges IS the
+strict plurality decides. A 1-1 split is recorded `outcome: tied` — a tie between two judges IS the
 finding, not something to break by asking one more — and an absent judge is coverage 0, never a vote
 against. Whatever this node was handed about the merge rule, the rule is the one in
 `scripts/lib/adjudication.mjs`, which the brief the judges receive is rendered from.
@@ -106,8 +106,9 @@ Four rules, all of which story-pipeline learned the hard way:
 1. **The judges get the disputed finding, never the whole review.** A judge handed everything
    re-reviews everything, which is one more opinion rather than an adjudication.
 2. **Silence is not a tie.** A finding only one node raised is not disputed however asymmetric it
-   looks, and `reconcile` should not have marked it — if it did, say so. The orchestrator now checks
-   this too: a flagged group without a lens AND an arm is reported and no judge is asked.
+   looks, and `reconcile` should not have marked it — if it did, say so. The orchestrator does not
+   check this for you: it sends every flagged group to the judges and only reports whether a lens
+   and an arm are both among its findings.
 3. **Disagreement is reported, not resolved.** Say who disagreed and how far apart they were; a
    merged number with no per-judge counts hides which way the instrument moved.
 4. **Label every claim with its source** — `[lens]`, and the vendor name for an arm or a judge — and
@@ -117,8 +118,10 @@ If a judge is unavailable, `external-review.mjs` still returns an envelope namin
 merge counts it as absent rather than as a vote. Report the dispute as unresolved with both positions
 intact: an incomplete panel is a gap in the adjudication, not a licence to pick a side.
 
-`shared/external-reviewers.md` supplies the roster, the arm's severity ceiling, and the model
-policy — and where that file and `CLAUDE.md` disagree on model policy, **the shared file wins**.
+`shared/external-reviewers.md` supplies the arm's severity ceiling and the model policy the settings
+follow. The models that run are the settings' — the contract's `review.models`, and `lens-roster.json`
+for an arm or a judge — and where the policy and those settings disagree, the settings are what runs:
+report the disagreement as a defect in one of them, never apply the policy over the settings.
 
 ## Output
 

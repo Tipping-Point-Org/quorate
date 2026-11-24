@@ -32,7 +32,13 @@ test('G-2: a stop field set where it does not apply is named', async () => {
 
 test('G-2 / G-8: the contract names the inapplicable-field check', () => {
   const row = read('shared/claude-md-contract.md').split('\n').find((l) => l.startsWith('| `remediation/PROMPT.md`')) ?? '';
-  assert.match(row, /a `fixed` or `declined` group with a `stop_reason`/, 'the payload row does not name the check');
+  // A POINTER, NOT A COPY (G-17 of 20261122-055431-m3s7-b3-remediation-2-review): the row listed the combinations its owner
+  // states, so it names the owner and the checker instead. Updated by hand on the operator's word ("I update the test to
+  // the pointer (Recommended)"); this assertion pinned the restated list.
+  assert.match(row, /owned by `prompts\/remediation\/PROMPT\.md` \(Your output\) and checked by `stopReasonChecks`/,
+    'the payload row does not name the owner and the check');
+  assert.match(row, /refuses a field set where it does not apply/, 'the payload row does not say the check refuses');
+  assert.doesNotMatch(row, /a `fixed` or `declined` group with a `stop_reason`/, 'the row restates its owner again');
 });
 
 test('G-7: the contract says an inherited request whose bytes changed is refused', () => {

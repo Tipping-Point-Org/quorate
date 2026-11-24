@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { stopMarker, guardDecision, summary, STOP_REASONS, stopFailureEvent, stopGuardDeclared } from '../scripts/lib/stop-record.mjs';
+import { stopMarker, guardDecision, summary, STOP_REASONS, stopFailureEvent, stopGuardDeclared } from '../scripts/io/stop-record.mjs';
 import { quotaOf, resetTextOf } from '../scripts/lib/quota.mjs';
 import { spawnSync } from 'node:child_process';
 import { REPO_ROOT, sessionHookEnv, runScript, withTempDir, seedReviewerProbe } from './helpers.mjs';

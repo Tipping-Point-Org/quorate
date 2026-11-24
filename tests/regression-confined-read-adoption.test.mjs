@@ -124,9 +124,11 @@ const OUTSIDE = {
     ["realpathSync(wanted); } catch {", 1, "the repository and a --cwd inside it: the second read on that line (G-16)"],
   ],
   'scripts/lib/run-artifacts.mjs': [
-    ["readJson(owner, segments) {", 1, "its own owner-read helper, declared"],
+    ["readJson(owner, segments, { parse = null } = {}) {", 1, "its own owner-read helper, declared"],
     ["readJson(ownerOf(run, io), segs);", 2, "a run's record, read through the owner (ownerOf; run-dir-reads stage 3)"],
-    ["readJson(ownerOf(run, io), ['run.json']);", 1, "run.json, read through the owner"],
+    // Bounded by readRunJson, the one owner of the run.json bound (G-3 of 20261124-160743-gsw-remediation-2-review-b; G-9
+    // of 20261124-170802-gsw-remediation-3-review-b).
+    ["readJson(ownerOf(run, io), ['run.json'], { parse: readRunJson });", 1, "run.json, read through the owner, bounded"],
     ["readJson(owner, parts);", 1, "a run's record, read through the owner"],
     ["readRunRecord(run, { io } = {}) {", 1, "readRunRecord declared; it reads through the owner"],
     ["readRunRecord(owner, { io });", 1, "run.json, read through the owner"],
@@ -151,8 +153,8 @@ const OUTSIDE = {
   // 20261102-220302-rbr-remediation-5-review), so no raw read is left.
   'scripts/usage-report.mjs': [],
   'scripts/external-review.mjs': [
-    ["existsSync(f) ? fs.readFileSync(f, 'utf8') : '';", 1, "the adapter's answer file in a temporary folder, when there is no evidence sink; with one, it is read through the sink's owner"],
-    ["readFileSync(f, 'utf8') : '';", 1, "the same answer file, read after the probe on that line (G-16)"],
+    // Guarded rather than probed first (G-7 of 20261122-044843-m3s7-b3-remediation-review): one read, its failure ''.
+    ["readFileSync(f, 'utf8'); } catch { return ''; }", 1, "the adapter's answer file in a temporary folder, when there is no evidence sink; with one, it is read through the sink's owner"],
     ["readFileSync(path.join(HERE, 'lens-roster.json'), 'utf8'));", 1, "the roster beside the engine"],
     ["realpathSync.native(outDir);   // native: the JS one keeps", 1, "the --out folder and the run root compared at admission, before the owner exists"],
     ["realpathSync.native(lexicalRoot);", 1, "the --out folder and the run root compared at admission, before the owner exists"],
@@ -199,7 +201,8 @@ const OUTSIDE = {
     ["cpSync(c.runDir, copy, { recursive: true, filter: (from) => {", 1, "a preserved run copied whole into the bench's own copy, its root refused as a link above and a link below refused by the filter"],
     ["lstatSync(from);", 1, "each entry of the preserved run, looked at by the copy's filter: refused when a link, never followed, and named when a hard link (usage-report-followup.plan.md stage 1)"],
     ["readRunRecord(c.runDir);", 2, "lib/run-artifacts' readRunRecord, which reads the preserved run through its owner, for --candidate and for the seed"],
-    ["readFileSync(path.join(copy, 'run.json'), 'utf8'));", 1, "the bench's own staged copy of a preserved run, rewritten for its worktree (R-D4 A)"],
+    // The staged copy's run.json is read through readRunJson and a confined owner since G-5 of
+    // 20261124-170802-gsw-remediation-3-review-b, so it is no longer a raw read named here.
     ["readFileSync(reconciledPath, 'utf8')", 3, "the bench's own staged copy of a preserved run (R-D4 A)"],
     ["readFileSync(payloadPathEarly, 'utf8'));", 1, "the bench's own staged copy of a preserved run (R-D4 A)"],
     ["readFileSync(fgPath, 'utf8')),", 2, "the bench's own staged copy of a preserved run (R-D4 A)"],
@@ -231,7 +234,6 @@ const OUTSIDE = {
   'scripts/io/preflight-cache.mjs': [
     ["existsSync(p)) files.add(p);", 1, "the repository's input files hashed for the pre-flight"],
     ["existsSync(sub) && isOwnRepo(sub) ? listRepo(sub, `${prefix}${g}/`, depth + 1) :", 1, "the repository's input files hashed for the pre-flight"],
-    ["readFileSync(preflightCachePath(reviewsDir, hash), 'utf8'));", 1, "the pre-flight cache under the engine's home"],
     ["lstatSync(p);", 2, "the pre-flight cache's size, under the engine's home / the cached evidence being restored, under the engine's home"],
     ["readdirSync(p).reduce((sum, name) => sum + sizeOf(path.join(p, name)), 0);", 1, "the pre-flight cache's size, under the engine's home"],
     ["existsSync(dir)) return [];", 1, "the pre-flight cache's entries, under the engine's home"],
@@ -252,8 +254,10 @@ const OUTSIDE = {
     ["realpathSync.native(p); } catch { return path.resolve(p); } };", 1, "a run's parent folder and the archive folder compared (inArchive), not below a run"],
   ],
   'scripts/io/run-child.mjs': [
-    ["openSync(stdoutPath, 'w');", 1, "an openSync that WRITES: a child's stdout capture"],
-    ["openSync(stderrPath, 'w');", 1, "an openSync that WRITES: a child's stderr capture"],
+    // openChildOutput (G-8 of 20261121-233915-m3s7-b2-review): the child's stdout and stderr, each leaf judged before
+    // the open, so a link standing there is refused rather than written through.
+    ["lstatSync(file); } catch (e) { if (e?.code !== 'ENOENT') throw e; }", 1, "openChildOutput: the output leaf lstat'ed, so a link or a second name is refused before 'w' truncates"],
+    ["openSync(file, 'w');", 1, "an openSync that WRITES: a child's stdout or stderr capture, after its leaf is judged no link"],
   ],
   'scripts/lib/decision-panel.mjs': [
     ["realpathSync(root);", 1, "seatBasis: the repository's real path, to tell a cited artifact from a link to one (G-14 of 20261102-231209-rbr-remediation-6-review)"],
@@ -261,12 +265,12 @@ const OUTSIDE = {
   ],
   'scripts/lib/finding-scope.mjs': [
     ["readFileSync(p, 'utf8');", 1, "a repository file a lens cites"],
-    ["realpathSync(dir);", 3, "a link detector: it lstats and lists without following, to report the first link (firstLinkLeaving) / a link detector (firstLinkInto) / a link detector (firstLinkOnto)"],
-    ["readdirSync(d)) {", 3, "a link detector (firstLinkLeaving) / a link detector (firstLinkInto) / a link detector (firstLinkOnto)"],
-    ["lstatSync(full);", 3, "a link detector (firstLinkLeaving) / a link detector (firstLinkInto) / a link detector (firstLinkOnto)"],
-    ["realpathSync(full); } catch { continue; }", 3, "a link detector (firstLinkLeaving): where a found link resolves / a link detector (firstLinkInto): where a found link resolves / a link detector (firstLinkOnto): where a found link resolves"],
-    ["realpathSync(into);", 1, "a link detector (firstLinkInto): the directory links are judged against"],
-    ["realpathSync(onto); } catch { realOnto = absolute(onto, 'firstLinkOnto: onto'); ", 1, "a link detector (firstLinkOnto): the directory links are judged against"],
+    ["realpathSync(dir);", 1, "firstLeadingOut, the one link-leaving owner (link-leaving-owner.plan.md stage 1): the directory it walks, resolved"],
+    ["readdirSync(d);", 1, "firstLeadingOut: it lists without following, an unlistable entry reported as leading out (LL-D3 A)"],
+    ["lstatSync(full); } catch { return { path: rel(full), kind: 'unreadable' }; }", 1, "firstLeadingOut: each entry lstat'ed, never followed; an unreadable one leads out (LL-D3 A)"],
+    ["realpathSync(full); } catch { return { path: rel(full), kind: 'dangling' }; }", 1, "firstLeadingOut: where a found link resolves; a dangling one leads out"],
+    ["realpathSync(m.into);", 1, "firstLeadingOut ({ into }): the directory links are judged against"],
+    ["realpathSync(m.onto); } catch { realOnto = absolute(m.onto, 'firstLeadingOut: onto'); ", 1, "firstLeadingOut ({ onto }): the directory links are judged against"],
     ["realpathSync(root);", 1, "escapesAfterRealpath: containment of a repository file a lens cites"],
     ["realpathSync(abs);", 1, "escapesAfterRealpath: containment of a repository file a lens cites"],
     ["existsSync(at)) return escapesAfterRealpath(root, at, io);", 1, "a repository file a lens cites"],
@@ -302,7 +306,6 @@ const OUTSIDE = {
     ["existsSync(path.join(repo, p))) hashes[p] = 'absent';", 1, "a repository file hashed"],
     // G-7 of 20261107-203720-co-remediation-3-review: --replay-node keeps the mode of the repository file it replaces.
     ["statSync(path.join(repo, ...segs)).mode & 0o777 : null;", 1, "--replay-node: the mode of the candidate's repository file it replaces, so an exec bit is kept"],
-    ["readdirSync(root, { withFileTypes: true }); } catch (e) {", 1, "the reviews folders listed for runs of this repository, each admitted before it is read; an error other than ENOENT is named as an incomplete census (G-12 of 20261105-163851-crsf-d1-review)"],
     ["readFileSync(path.join(FRAMEWORK.scriptsDir, 'lens-roster.json'), 'utf8'));", 1, "the roster beside the engine"],
     ["realpathSync.native(path.resolve(String(p))); } catch { return null; } };", 1, "--replay-node: the run and repository a replay record names, resolved to compare with the admitted ones (repair-bench-replay.plan.md, BR-D2 A)"],
     // The --replay-node folder itself is checked by the owner, which checks its root (G-10 of
@@ -310,6 +313,7 @@ const OUTSIDE = {
   ],
   'scripts/run-graph.mjs': [
     ["readFileSync(path.join(scriptsDir, 'lens-roster.json'), 'utf8'));", 1, "the roster beside the engine"],
+    ["readFileSync(path.join(scriptsDir, 'gate.schema.json'), 'utf8'));", 1, "the gate schema beside the engine, every gate checked against it before it is written (gate-schema-at-writer.plan.md)"],
     ["existsSync(abs)) {", 1, "a repository file"],
     ["existsSync(path.join(d, 'disk-first-protocol.md'))) ?? null;", 1, "the engine's doctrine folder"],
     ["existsSync(shared)) {", 1, "the engine's doctrine folder"],
@@ -319,10 +323,13 @@ const OUTSIDE = {
     ["readFileSync(resolvedReq, 'utf8')).digest('hex') : null;", 1, "the declared request"],
     ["existsSync(reqAbs)", 1, "the declared request"],
     ["existsSync(snapDir)) console.log(`   declared docs snapshotted to ${path.relativ", 1, "display: whether the declared docs were snapshotted, printed (R-D4 A)"],
-    ["existsSync(finalFile); n++) {", 1, "the requests folder, for a free name for an inferred request"],
+    // A free name for an inferred request is found by the requests folder's owner's exclusive create since G-23 of
+    // 20261121-193516-m3s7-b1-review; the raw existsSync probe is gone.
     ["readdirSync(dir)", 1, "the requests folder"],
-    ["statSync(path.join(dir, f)).mtimeMs }))", 1, "the requests folder"],
-    ["readFileSync(c.abs, 'utf8');", 1, "the requests folder"],
+    // Placed by lstat, which follows nothing, and read through the egress owner (G-28 of
+    // 20261121-204740-m3s7-b1-remediation-review); a failure other than a vanished entry is named (G-13 of
+    // 20261121-214741-m3s7-b1-remediation-2-review).
+    ["lstatSync(abs); } catch (e) {", 1, "the requests folder: an entry placed without following it"],
     ["existsSync(path.join(destFramework, 'scripts', 'find-inert-features.mjs'));", 1, "the framework copied into the arms' directory"],
     ["existsSync(path.join(destFramework, ...r.split('/'))));", 2, "the framework copied into the arms' directory"],
     ["existsSync(path.join(scriptsDir, 'external-review.mjs'))) return [];", 1, "the engine's own scripts"],
@@ -335,6 +342,7 @@ const OUTSIDE = {
     ["existsSync(settingsPath);", 1, "a --settings file the caller named outside the run; one below the run is asked of its owner (policyPresent)"],
     ["existsSync(abs) && fs.statSync(abs).isDirectory();", 1, "an intent --add-dir outside the run (a repository root); one below the run is stat'ed through its owner"],
     ["statSync(abs).isDirectory();", 1, "the same --add-dir, stat'ed after the probe on that line (G-16)"],
+    ["realpathSync.native(abs); } catch { /* absent: no real path to ask about */ }", 1, "the --add-dir's real path, only to ask whether it is below the run when its spelling is a short name (CI run 45109110896); the floor is then read through the owner"],
     ["readFileSync(p)).digest('hex');", 1, "sha256File of a policy file the caller named outside the run; below the run it reads through the owner"],
     ["existsSync(givenRunDir)) die(`run dir does not exist: ${givenRunDir} (create it ", 1, "the run root, before admission"],
     ["statSync(d);", 1, "the run root, before admission"],

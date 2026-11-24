@@ -14,6 +14,7 @@ import {
   appendStopEvent, readStopEvents, sessionDir, STOP_READ_MAX_SESSIONS, STOP_SWEEP_INTERVAL_MS,
 } from '../scripts/io/stop-log.mjs';
 import { stopLogPath } from '../scripts/io/stop-log.mjs';
+import { makeLink } from './helpers.mjs';
 
 function withRepo(t) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'srb-home-'));
@@ -105,7 +106,7 @@ test('BI-D2: the sweep marker is read through the owner, a link at it refused, n
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'srb-outside-'));
   t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
   fs.writeFileSync(path.join(outside, 'x'), String(Date.now()));
-  try { fs.symlinkSync(path.join(outside, 'x'), mark); } catch (e) { t.skip(`no symlinks here (${e.code})`); return; }
+  if (!makeLink(t, { target: path.join(outside, 'x'), at: mark, type: 'file' })) { t.skip('no symlinks here'); return; }
   assert.throws(() => appendStopEvent(repo, { at: 2, event: 'start', session: 'b' }, { home, retentionDays: 30 }));
   assert.equal(fs.readFileSync(path.join(outside, 'x'), 'utf8').length > 0, true);
 });

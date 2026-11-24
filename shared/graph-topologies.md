@@ -40,7 +40,7 @@ as "nothing to report". Enumerate *expectations* instead, and treat a missing re
 finding about the run.
 
 **Adjudication panel.** Several judges of *different families* vote independently on one fixed
-item, and the merge is arithmetic: a strict plurality decides, a tie is recorded **undecided**, and
+item, and the merge is arithmetic: a strict plurality decides, a tie is recorded `outcome: tied` (`scripts/lib/adjudication.mjs` owns the outcomes), and
 an absent judge is coverage 0 rather than a vote against. Use it where the question is small, fixed,
 and answerable from what you hand the judges — and where you need to know how reliable the answer is,
 not just what it is.

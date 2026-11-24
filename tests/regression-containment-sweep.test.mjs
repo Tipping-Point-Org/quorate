@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { runScript } from './helpers.mjs';
+import { runScript, makeLink as makeLinkOwned } from './helpers.mjs';
 import { findingOutOfScope } from '../scripts/lib/finding-scope.mjs';
 import { worktreeSha } from '../scripts/io/worktree.mjs';
 
@@ -22,10 +22,6 @@ const REPO_ROOT = path.join(import.meta.dirname, '..');
 // `git add -A`, run by another test at the same time, saw files appear and vanish and failed with "unable to index
 // file" (exit 128), twice. `.sandbox/` is the gitignored scratch area CLAUDE.md names.
 const SCRATCH = (() => { const d = path.join(REPO_ROOT, '.sandbox'); fs.mkdirSync(d, { recursive: true }); return d; })();
-const tryLink = (target, at, type) => {
-  try { fs.symlinkSync(target, at, type); return true; } catch { return false; }
-};
-
 /**
  * A link this platform will actually let us create, or null.
  *
@@ -40,10 +36,11 @@ const tryLink = (target, at, type) => {
  * target's bytes — which is the exact branch G-27 fixed. So the check runs unprivileged instead of
  * being skipped, and the skip is kept only for a platform that offers neither.
  */
-function makeLink(targetFile, targetDir, at) {
-  if (tryLink(targetFile, at, 'file')) return { kind: 'file symlink', target: targetFile };
-  if (tryLink(targetDir, at, 'junction')) return { kind: 'directory junction', target: targetDir };
-  return null;
+function makeLink(t, targetFile, targetDir, at) {
+  // Given the test context, so a failure is answered by the one owner (tests/helpers.mjs makeLink; silent-platform-skips.md):
+  // a junction named as the fallback, or a skip naming why, in which case the dereference regression is UNCHECKED here
+  // rather than passing. A `return false` from a helper was the silent shape the census refuses.
+  return makeLinkOwned(t, { target: targetFile, at, type: 'file', fallback: { dir: targetDir } });
 }
 
 // A GENERATED-GLOB MATCH IS A PATH MATCH, not a character-prefix match. `.claude/reviews/**` also
@@ -91,12 +88,8 @@ test('the worktree hash records a link by where it points, never by what it poin
     fs.writeFileSync(outside, 'first\n');
 
     const at = path.join(root, 'src', 'link.txt');
-    const link = makeLink(outside, outsideDir, at);
-    if (!link) {
-      t.skip('this platform permits neither a file symlink nor a directory junction, so the '
-        + 'dereference regression is UNCHECKED here rather than passing');
-      return;
-    }
+    const link = makeLink(t, outside, outsideDir, at);
+    if (!link) { t.skip('no link can be made here (makeLink said why)'); return; }
     t.diagnostic(`link kind exercised: ${link.kind}`);
 
     const before = worktreeSha({ repoRoot: root, paths: ['src'] });
@@ -110,7 +103,7 @@ test('the worktree hash records a link by where it points, never by what it poin
     const elsewhereDir = path.join(root, 'elsewhere');
     fs.mkdirSync(elsewhereDir);
     fs.writeFileSync(path.join(elsewhereDir, 'x.txt'), 'x\n');
-    assert.ok(makeLink(path.join(elsewhereDir, 'x.txt'), elsewhereDir, at), 're-linking must succeed');
+    assert.ok(makeLink(t, path.join(elsewhereDir, 'x.txt'), elsewhereDir, at), 're-linking must succeed');
     assert.notEqual(worktreeSha({ repoRoot: root, paths: ['src'] }), before,
       'the link itself is part of the tree, so re-pointing it IS the tree moving');
   } finally {
@@ -235,7 +228,7 @@ test('an excerpt may only be taken from declared, non-generated source', async (
 // exactly the case that matters: a nonexistent directory BENEATH an in-repository junction pointing
 // out of the tree. `reviews_dir` passed validation and mkdirSync then wrote every artifact of every
 // run outside the repository under review.
-test('a path that does not exist yet is contained through its nearest existing ancestor', async () => {
+test('a path that does not exist yet is contained through its nearest existing ancestor', async (t) => {
   const { escapesBeforeCreate } = await import('../scripts/io/finding-scope.mjs');
   const root = fs.mkdtempSync(path.join(SCRATCH, '.tmp-precreate-'));
   try {
@@ -245,7 +238,9 @@ test('a path that does not exist yet is contained through its nearest existing a
       assert.equal(escapesBeforeCreate(root, path.join(root, 'reviews', 'run-1')), false);
 
       const link = path.join(root, 'escape');
-      const linked = tryLink(outside, link, 'junction') || tryLink(outside, link, 'dir');
+      // A junction (a directory symlink where junctions do not exist); where neither can be made, makeLink skips: the
+      // escape through a link is unchecked.
+      const linked = makeLinkOwned(t, { target: outside, at: link, type: 'junction' });
       if (linked) {
         // The defect: neither the link nor anything under it needs to exist for mkdirSync to
         // follow it. The old guard saw a nonexistent path and skipped the check entirely.
@@ -282,7 +277,9 @@ test('a request outside the repository is refused before it is read', () => {
   const read = fn.indexOf('const text = fs.readFileSync(abs');
   assert.ok(guard !== -1 && read !== -1 && guard < read,
     'the containment check must precede the read, not explain it afterwards');
-  assert.ok(fn.indexOf('escapesAfterRealpath(repoRoot, abs)') < read,
+  // Found, not merely earlier: a missing anchor is -1, which is less than any read (G-42 of 20261122-232627-m3s7-b4-review).
+  const linkCheck = fn.indexOf('escapesAfterRealpath(repoRoot, abs)');
+  assert.ok(linkCheck !== -1 && linkCheck < read,
     'and the link check too — a lexical test passes for a link that points out of the tree');
 });
 
@@ -334,7 +331,12 @@ test('the containment roots come from git worktree list, not from a git director
   const src = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'external-review.mjs'), 'utf8');
   const block = src.slice(src.indexOf('if (outDir) {'), src.indexOf('let runId ='));
 
-  assert.match(block, /'worktree', 'list', '--porcelain'/);
+  // The block takes its roots from gitWorktreeRoots, their one owner (G-17 of 20261122-035227-m3s7-b3-review), and the
+  // owner is what asks `git worktree list`.
+  assert.match(block, /const roots = gitWorktreeRoots\(\);/);
+  const owner = src.slice(src.indexOf('function gitWorktreeRoots()'), src.indexOf('const earlyAdmission'));
+  assert.match(owner, /'worktree', 'list', '--porcelain'/);
+  assert.ok(!/\['rev-parse', '--git-common-dir'\]/.test(owner), 'the owner takes a git directory for a root');
   // On the CALL, not the prose: the comment above it explains what it replaced, and an earlier
   // version of this assertion failed on that explanation.
   assert.ok(!/\['rev-parse', '--git-common-dir'\]/.test(block),

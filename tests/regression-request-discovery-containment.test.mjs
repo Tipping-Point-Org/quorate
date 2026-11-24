@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { runScript } from './helpers.mjs';
+import { runScript, makeLink } from './helpers.mjs';
 
 const put = (root, rel, text = '') => {
   const abs = path.join(root, rel);
@@ -35,9 +35,8 @@ test('regression: an approved request linked from outside the repository is not 
 
   // A file link where the platform allows one; a directory junction (no privilege needed on Windows) otherwise.
   const link = path.join(repo, '.claude', 'requests', 'outside.md');
-  try { fs.symlinkSync(path.join(base, 'outside', 'approved.md'), link, 'file'); } catch {
-    try { fs.symlinkSync(path.join(base, 'outside'), link, 'junction'); } catch { t.skip('no link can be created here'); return; }
-  }
+  const made = makeLink(t, { target: path.join(base, 'outside', 'approved.md'), at: link, type: 'file', fallback: { dir: path.join(base, 'outside') } });
+  if (!made) { t.skip('no link can be created here'); return; }
 
   const mint = runScript('new-run.mjs', ['--dry-run', '--repo-root', repo, '--no-verify-sandbox', '--full-sweep', 'src'], { cwd: repo });
   assert.doesNotMatch(mint.output, /EISDIR|approved requests in|outside\.md/, mint.output.slice(-1500));

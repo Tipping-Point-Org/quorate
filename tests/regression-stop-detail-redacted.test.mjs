@@ -4,7 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { guardDecision } from '../scripts/lib/stop-record.mjs';
+import { guardDecision } from '../scripts/io/stop-record.mjs';
 
 const KEY = `{'${'api' + '_key'}': 'Zq8Pw2LmX9'}`;
 

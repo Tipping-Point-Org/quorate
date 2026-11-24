@@ -88,7 +88,7 @@
       "degraded_ceiling": "RISK",
       "degraded_not_checked": {
         "item": "doc_roles.architecture",
-        "reason": "not declared in graph_contract; reviewed against observed conventions only"
+        "reason": "not declared in graph_contract; reviewed against observed conventions and the non-waivable invariants, with no architecture document to cite"
       },
       "invokable": true,
       "invokable_why": "reads the change against doc_roles.architecture. Self-contained, and the case that prompted this: checking one adapter's boundaries after scaffolding it."
@@ -451,6 +451,8 @@
     "judgment": "opus",
     "mechanical": "sonnet"
   },
+  "$lens_models_refused": "THE MODELS A LENS MAY NOT RUN ON (shared/external-reviewers.md, Model policy: never a cheap reviewer for a verification node). spawn-node refuses a node of any mode whose resolved model contains one of these, case-insensitively, and refuses every node when this list cannot be read or is not a non-empty list of names (G-7 and G-11 of 20261123-020742-m3s7-b4-remediation-3-review). It held the one name as a literal (G-6 of 20261123-011514-m3s7-b4-remediation-2-review), provider vocabulary in the generic orchestrator; a runtime with other model names adds its own here.",
+  "lens_models_refused": ["haiku"],
   "basis_ceilings": {
     "convention": {
       "severity_ceiling": "MEDIUM",

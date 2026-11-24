@@ -17,6 +17,8 @@
 // disagreement, 2 refused or could not run. The report goes to stdout as JSON, and to --out when given.
 import fs from 'node:fs';
 import { parseArgv, ArgvError } from './lib/argv.mjs';
+import { renderTemplate } from './lib/template.mjs';
+import { readTemplate } from './io/template.mjs';
 import { ARGV_SPECS, runtimeCommand } from './lib/argv-specs.mjs';
 import { runtimeBinArg, runtimeBinArgv } from './io/runtime-bin.mjs';
 import { nodeDepth } from './lib/node-depth.mjs';
@@ -138,8 +140,8 @@ function probeForm(dir, settingsPath, form) {
     const copies = fs.existsSync(snap.dir) ? fs.readdirSync(snap.dir).sort() : [];
     const expectedDocs = DOCS.filter((f) => matchesGlob(form.glob, f)).sort();
     const ask = [...copies.map((c) => path.join(snap.dir, c)), path.join(dir, form.inside), path.join(dir, form.outside)];
-    const prompt = `Use the Read tool on each of these files, one call each, and nothing else. Then report, for each path, `
-      + `whether the read succeeded or was refused, and its first line if it succeeded.\n${ask.join('\n')}`;
+    // The prompt is the prompt library's (consumer-owned-configuration.md AC2), filled with the paths to ask for.
+    const prompt = renderTemplate(readTemplate('intent-grant-probe.md'), { paths: ask.join('\n') }, 'intent-grant-probe.md').replace(/\n+$/, '');
     // The prompt on stdin, as nodeArgv returns it (decision-panel-seats.plan.md stage 2; DP-D1 A).
     const { cmd, argv, input } = withRuntimeOverride(nodeArgv(RUNTIME, {
       prompt, model, settingsPath, sandboxed: true, addDirs: [sandbox], denyTools: denyToolsFor('intent', RUNTIME),

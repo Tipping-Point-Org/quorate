@@ -17,9 +17,9 @@ marketplace. Consuming projects mount it at `.claude/skills/quorate/`, where its
 
 | Path | What it is |
 |---|---|
-| `scripts/` | The orchestration engine: `new-run`, `run-graph`, `spawn-node`, `capture`, `run-checks`, `external-review`, `find-inert-features`, `check-syntax`, `check-reviewers` (every external reviewer's preflight, on demand), `check-intent-grant` (the live probe of what the runtime grants the intent node), `spawn-subagent` (a skill's Claude subagent at the contract's model and effort, which a session's own subagent tool cannot set), `decide` (a question with options answered by the decision panel instead of the operator, when `review.decision_panel` is on: three seats of different families, blind, by majority, with capped rounds and a moderator; reserved decisions refused; each decision recorded under `.claude/decisions/`), `check-plan-verdict` (the caller's check that a plan-review verdict reports the settings it was pinned to), `run-session` (a long run on one approved plan: its state under the engine's home, printed into the session by its `SessionStart` hook and at each turn start, and the daily check of which CLIs are due an update, reported and never applied; `shared/session-rules.md`, "A long run"), `resume-run` (the line that reopens a run's session after a crash or a reboot, from the runtime adapter's `resume_argv`), `claim-check` (a report's claims checked before it is sent: `--check` runs the checker, of the other family when the panel is on, and the rules step grades its answer), `remediate` (runs the remediation node in a remediation run that `new-run --remediates` minted, then commits each cluster the node reports, and archives the run when it ends), `archive-run` (moves an ended run left staged into `.claude/reviews`), `publish` (one release snapshot for the public mirror: the tracked files of one commit minus `publish/manifest.json`'s exclusions, scanned for machine-local paths, the operator's identity from a gitignored local file, placeholder markers and secrets, run on its own, then committed into a local clone of the public repository as a given identity; never pushed, ROADMAP D2), `check-counted-facts`, `check-install`, `check-secrets` (the secret scan CI runs, as `hooks.secret_scan` declares it), `gen-gitleaks-config` (writes the push scan's rules from the one definition of the secret shapes), `gen-rule-text` (writes every marked rule region in the documents from its one owner, and with `--check` names a stale region or a restatement outside one), `bench-lenses`, `bench-second-opinion`, `bench-admit`, `bench-repair-pass` (the repair pass replayed on this repository's own refused remediations, in a worktree, committing nothing: `remediation-repair-pass.plan.md` stage 4), `findings-ledger`, `code-index` (the code index: runs each declared extractor, keeps its facts in a cache under the engine's home that every reader re-checks, and answers seven kinds of question, `shared/code-index.md`), `stop-log` (what the session's stop record adds up to, as `shared/session-rules.md` defines it, beside the baseline `autonomous-run-pauses.md` was built on), `stop-guard` (Claude Code's `Stop`, `UserPromptSubmit` and `StopFailure` hook, declared in `.claude/settings.json`: the stopping half of `shared/session-rules.md`, which owns what it records and refuses), `command-log` (the `PreToolUse` hook on the Bash and PowerShell tools: every command logged before it runs, secrets of known shapes masked (best-effort), a folder per session; with `--after`, the `PostToolUse` and `PostToolUseFailure` hook: its outcome and duration; `--summary` lists failed, slow and unfinished commands), `telemetry` (`report` adds up the records finished runs, claim checks, subagent spawns, bench runs and, in the developer's own checkout, suite runs write, best-effort, each figure beside its sample size, with each run's time and where it went; `backfill` writes records for runs that predate the writers; `shared/telemetry.md`), and `preflight` — the pre-flight as a thing the operator runs, because the half of it that belongs at install time has to be reachable by a command. Plus two tools for the build log, which is documentation rather than engine: `extract-sessions` (dated digests from the raw Claude Code transcripts) and `check-quotes` (every quotation on the page must exist verbatim in those digests). |
+| `scripts/` | The orchestration engine: `new-run`, `run-graph`, `spawn-node`, `capture`, `run-checks`, `external-review`, `find-inert-features`, `check-syntax`, `check-reviewers` (every external reviewer's preflight, on demand), `check-intent-grant` (the live probe of what the runtime grants the intent node), `spawn-subagent` (a skill's Claude subagent at the contract's model and effort, which a session's own subagent tool cannot set), `decide` (a question with options answered by the decision panel instead of the operator, when `review.decision_panel` is on: three seats of different families, blind, by majority, with capped rounds and a moderator; reserved decisions refused; each decision recorded under `.claude/decisions/`), `pr-comments` (a finished review's confirmed findings posted to a pull request as one GitHub review, through `gh`: a dry run unless `--post`; `scripts/lib/pr-comments.mjs` owns what is posted), `check-plan-verdict` (the caller's check that a plan-review verdict reports the settings it was pinned to), `run-session` (a long run on one approved plan: its state under the engine's home, printed into the session by its `SessionStart` hook and at each turn start, and the daily check of which CLIs are due an update, reported and never applied; `shared/session-rules.md`, "A long run"), `resume-run` (the line that reopens a run's session after a crash or a reboot, from the runtime adapter's `resume_argv`), `claim-check` (a report's claims checked before it is sent: `--check` runs the checker, of the other family when the panel is on, and the rules step grades its answer), `remediate` (runs the remediation node in a remediation run that `new-run --remediates` minted, then commits each cluster the node reports, and archives the run when it ends), `archive-run` (moves an ended run left staged into `.claude/reviews`), `publish` (one release snapshot for the public mirror: the tracked files of one commit minus `publish/manifest.json`'s exclusions, scanned for machine-local paths, the operator's identity from a gitignored local file, placeholder markers and secrets, run on its own, then committed into a local clone of the public repository as a given identity; never pushed, ROADMAP D2), `check-counted-facts`, `check-install`, `check-secrets` (the secret scan CI runs, as `hooks.secret_scan` declares it), `gen-gitleaks-config` (writes the push scan's rules from the one definition of the secret shapes), `gen-rule-text` (writes every marked rule region in the documents from its one owner, and with `--check` names a stale region or a restatement outside one), `bench-lenses`, `bench-second-opinion`, `bench-admit`, `bench-repair-pass` (the repair pass replayed on this repository's own refused remediations, in a worktree, committing nothing), `findings-ledger`, `code-index` (the code index: runs each declared extractor, keeps its facts in a cache under the engine's home that every reader re-checks, and answers seven kinds of question, `shared/code-index.md`), `stop-log` (what the session's stop record adds up to, as `shared/session-rules.md` defines it, beside the baseline its stopping rules were built on), `stop-guard` (Claude Code's `Stop`, `UserPromptSubmit` and `StopFailure` hook, declared in `.claude/settings.json`: the stopping half of `shared/session-rules.md`, which owns what it records and refuses), `command-log` (the `PreToolUse` hook on the Bash and PowerShell tools: every command logged before it runs, secrets of known shapes masked (best-effort), a folder per session; with `--after`, the `PostToolUse` and `PostToolUseFailure` hook: its outcome and duration; `--summary` lists failed, slow and unfinished commands), `telemetry` (`report` adds up the records finished runs, claim checks, subagent spawns, bench runs and, in the developer's own checkout, suite runs write, best-effort, each figure beside its sample size, with each run's time and where it went; `backfill` writes records for runs that predate the writers; `shared/telemetry.md`), and `preflight` — the pre-flight as a thing the operator runs, because the half of it that belongs at install time has to be reachable by a command. Plus two tools for the build log, which is documentation rather than engine: `extract-sessions` (dated digests from the raw Claude Code transcripts) and `check-quotes` (every quotation on the page must exist verbatim in those digests). |
 | `blog/` | Not in this repository: the project's own build log stays private (ROADMAP D4). `extract-sessions` and `check-quotes` ship as the tools that keep its quotations checked, and work for a log of your own. |
-| `scripts/lib/` | Pure decisions extracted so they can be tested — no I/O, no clock, no environment; a decision that must consult the disk takes the platform as `io` (ARCHITECTURE §2, enforced by a test): caps, envelope classification, budget accounting, self-location, external-reviewer argv and schemas, bench scoring, counted facts, the findings ledger, reconcile diffing, the external review prompts (shadow arm and tie-break), the framework version stamp, the pre-flight cache's freshness rule, the secret shapes that redaction and the push scan are both built from (with the case table that is their scope), and the bench's settings layer — which model and effort a benched position runs at, whether a candidate is inside the search space, and whether it may be adopted; and what happens to a process the run could not stop — killed only if the run still holds it, otherwise reported; and what a stop says — every status field and sentence for a stop outcome, in one place; and the entry every runtime call builds where it is made (`call-entry`), with the one rule for a model's family (`familyOfCall`, declared on the adapters); and the one shape of an adapter's tool lists, the refusal of any other, and the accessor every reader goes through (`tool-lists`). |
+| `scripts/lib/` | Pure decisions extracted so they can be tested — no I/O, no clock, no environment; a decision that must consult the disk takes the platform as `io` (ARCHITECTURE §2, enforced by a test): caps, envelope classification, budget accounting, self-location, external-reviewer argv and schemas, bench scoring, counted facts, the findings ledger, reconcile diffing, the external review prompts (shadow arm and tie-break), the framework version stamp, the pre-flight cache's freshness rule, the secret shapes that redaction and the push scan are both built from (with the case table that is their scope), and the bench's settings layer — which model and effort a benched position runs at, whether a candidate is inside the search space, and whether it may be adopted; and what happens to a process the run could not stop — killed only if the run still holds it, otherwise reported; and what a stop says — every status field and sentence for a stop outcome, in one place; and the entry every runtime call builds where it is made (`call-entry`), with the one rule for a model's family (`familyOfCall`, declared on the adapters); and the one shape of an adapter's tool lists, the refusal of any other, and the accessor every reader goes through (`tool-lists`); and how each set `scripts/compatibility.json` freezes for 1.x is read from its owner and held against it, and which deprecations a consumer still uses (`compatibility`; `shared/compatibility.md`). |
 | `scripts/io/` | The orchestration side's I/O: the modules whose purpose is I/O (atomic writes, worktrees, the caches, the glob walker, child processes), and one host-bound re-export per `lib/` module that takes `io`. Orchestration imports from here. |
 | `scripts/platform/` | Everything that differs by operating system, behind one interface. Its layout and rules are owned by ARCHITECTURE §2 (the Platform row). |
 | `prompts/_templates/` | The prompt fragments the engine ASSEMBLES rather than hands to a node: the run brief, the external-arm and tie-break prompts, the stamp notes, the stop guard's turn-start notices. Filled with `{{slot}}` by `lib/template.mjs` — no conditionals, no loops, so every decision stays in code and arrives pre-rendered. They lived as template literals inside `run-graph.mjs` and `lib/codex-prompts.mjs`, where a prompt author could not find them. |
@@ -28,7 +28,7 @@ marketplace. Consuming projects mount it at `.claude/skills/quorate/`, where its
 | `skills/` | The 12 skills a person actually invokes. Plugin convention — a plugin's own skills live here. |
 | `shared/` | Doctrine every skill cites: `disk-first-protocol.md` is the one to read first. |
 | `QUORATE.md` | Consumer onboarding: a project mounting this submodule references it from its own `CLAUDE.md` (`@.claude/skills/quorate/QUORATE.md`) to enable everything — setup, contract template, hooks, panel, usage. |
-| `tests/` | 4716 regression tests. Every one records the defect it exists to prevent. The count is verified against the tree on every push — see `scripts/check-counted-facts.mjs`. |
+| `tests/` | 5027 regression tests. Every one records the defect it exists to prevent. The count is verified against the tree on every push — see `scripts/check-counted-facts.mjs`. |
 | `.claude/hooks/` | Git hooks (`pre-commit`, `pre-push`) and their installer. **Not** Claude Code lifecycle hooks — a different mechanism. |
 
 ## Building
@@ -53,8 +53,11 @@ requires it, and a prose node that could never report `OK`.
 ```
 node scripts/new-run.mjs --dry-run                 # resolve the contract, spawn nothing
 node scripts/new-run.mjs --slug self --full-sweep scripts shared skills tests
-node scripts/run-graph.mjs --run-dir .claude/reviews/<run-id>
+node scripts/run-graph.mjs --run-dir <the run dir new-run printed>
 ```
+
+A run is staged under the engine's home while it runs and moved into `.claude/reviews/` when it ends
+(`review.reviews_dir`), so the run directory to pass is the one `new-run` prints, not a path under `.claude/reviews/`.
 
 A known-good checkout can review a broken one: the engine locates itself relative to itself, so
 `--repo-root <other-tree>` reviews that tree using *this* orchestrator.
@@ -155,8 +158,10 @@ a silent contamination:
   project never installed, and it does **not** touch the `graph_contract` block copied into the
   project's own `CLAUDE.md` — whose *meaning* can change underneath it. `budget_usd_per_node: ""`
   once meant `Number("") === 0`, a $0 cap that blocked every node; it now means uncapped. Same text,
-  opposite behaviour, no signal. Nothing on the consumer side records which version was installed,
-  so staleness is currently undetectable rather than merely unhandled.
+  opposite behaviour, no signal from the text itself. The contract's `graph_contract_version` is the signal: a run whose
+  contract declares an older version than the engine implements is stamped `CONTRACT-STALE`
+  (`shared/claude-md-contract.md`, `graph_contract_version`), and `check-install` reports the keys the mounted quorate
+  knows that the contract does not carry.
 
 - **Presence is not installation, and the arms' directory is where that bites.** The arms do not
   merely read the tree — `doc-consistency-review` and the codex arm shadowing it are ordered to run
@@ -222,8 +227,9 @@ accept them** (G-2): an arm's model and effort live in `scripts/lens-roster.json
 even about how an effort is spelled. Changing `review.models.judgment` moves every Claude lens and
 no arm. The **adjudicators** — a judge SET under `adjudicators`, not a tie-breaker — are pinned there
 for a third reason, stated in that file: an unpinned judge cannot promise it is a different family
-from the lenses it is deciding between, and each one declares its `family` because `reviewer` is only
-a transport. That file also records what pinning does NOT buy (G-1): neither shipped judge is
+from the lenses it is deciding between. A judge's family is its adapter's, declared once in `scripts/reviewers.json` and read by
+`familyOfCall` (`scripts/lib/reviewers.mjs`); a `family` the roster gives a judge is only checked against it. That file
+also records what pinning does NOT buy (G-1): neither shipped judge is
 neutral, because every panel arm runs on codex, so on a lens-versus-arm dispute the codex judge is a
 party to its own family's position. The merge labels that per judge rather than hiding it. This
 paragraph pointed at a `tie_breaker` key the roster no longer has, and implied a neutrality the file
@@ -258,7 +264,7 @@ commands:                 # exact, runnable from repo root; "" = not available
   typecheck: ""           # plain ESM, no TypeScript
   bench:     ""           # nothing measured; perf-audit is therefore static-risk-only
   run:       ""           # a library and a CLI, not a launchable app; feature-verify is SKIPPED
-  audit:     ""           # no package.json and no dependencies, so nothing to audit
+  audit:     ""           # no package.json and nothing installed (third_party/ is vendored and pinned byte for byte), so nothing to audit
   deny:      ""
   shell:     ""           # "" = launch argv-split with no shell
 source_globs:    ["scripts/**", "shared/**", "skills/**", "prompts/**", ".claude/hooks/**", "extractors/**", "bench/**/*.mjs", "publish/**"]
@@ -279,8 +285,8 @@ generated_globs: [".claude/reviews/**", "node_modules/**", "third_party/**"]
 # tests/regression-third-party-pinned.test.mjs rather than reviewed; it is a pre-flight input, since the suite
 # reads it and capture runs it.
 doc_roles:
-  # Declared so that arch-review runs against a specification: with the key empty it degrades to
-  # convention-only, capped at RISK, unable to cite architecture_doc and unable to FAIL. Declaring it
+  # Declared so that arch-review runs against a specification: with the key empty it is capped as
+  # shared/disk-first-protocol.md §7 states, and cannot cite architecture_doc. Declaring it
   # moves arch-review from degraded:true / RISK / [convention, invariant] to
   # degraded:false / no ceiling / [architecture_doc, invariant, convention].
   #
@@ -291,8 +297,9 @@ doc_roles:
   architecture: "ARCHITECTURE.md"
   roadmap:      "ROADMAP.md"   # M0 finish the remediation, M1 story-pipeline, M2 public 0.x, M3 v1
   spec:         ""
-  # Empty in a copy of quorate: no request is declared, so a review finds an approved request under
-  # .claude/requests/ or recovers one, as shared/claude-md-contract.md describes. Name the request your work
+  # Empty in a copy of quorate: no request is declared, so a review finds an approved request in your own
+  # .claude/requests/ (a folder you create; none ships) or recovers one, as shared/claude-md-contract.md
+  # describes. Name the request your work
   # answers here, or pass --request to new-run. (The development repository records here which request each
   # stretch of work was judged against; that history stays with its private design records.)
   request:      ""
@@ -333,7 +340,8 @@ review:
   # and several tests read skills/**. A narrower declaration would be a shorter list that was also
   # false, and a false input set is worse than an inferred one -- it claims proof it does not have.
   #
-  # There is no dependency manifest to name: this project has no package.json and no dependencies,
+  # There is no dependency manifest to name: this project has no package.json and installs nothing (third_party/ is
+  # vendored and pinned byte for byte, and named in preflight_inputs),
   # which is a property worth keeping and the reason the manifest heuristic finds nothing here.
   # One line: the contract parser reads a flow sequence on the key's own line and refuses a
   # continuation, which is a limit worth knowing before a longer list tempts someone to wrap it.
@@ -417,8 +425,8 @@ review:
   # moves every Claude lens and no arm, so a sweep carrying arms cannot measure it. A seed the lens MISSED
   # and an arm CAUGHT still scores as caught, which masks a regression in the direction that looks fine.
   #
-  #   opus/medium   7/7   7 fp   7,550,856 tok   18.2 node-min   $10.16
-  #   opus/low      7/7   1 fp   4,348,374 tok   10.1 node-min    $7.26
+  #   opus/medium   7/7   7 fp   7,537,298 tok   18.2 node-min   $10.16
+  #   opus/low      7/7   1 fp   4,345,509 tok   10.1 node-min    $7.26
   #
   # ADMITTED by DOMINANCE -- better or equal on tokens, wall-clock and false-positive candidates,
   # strictly better on all three, no seed lost. The cheaper setting produced LESS noise, which is the

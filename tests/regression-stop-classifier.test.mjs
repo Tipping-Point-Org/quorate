@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   stopMarker, asksWithOptions, classifyTurnEnd, guardDecision, turnStartSource, turns, summary,
-} from '../scripts/lib/stop-record.mjs';
+} from '../scripts/io/stop-record.mjs';
 
 const RUNNING = [{ id: 'b1', type: 'shell', status: 'running', command: 'node tests/run-all.mjs' }];
 

@@ -74,11 +74,12 @@ why (story-pipeline, 2026-10-06).
    ```
    node <framework-root>/scripts/claim-check.mjs <dir> --check [--transcript <session.jsonl>]
    ```
-   Pass `--transcript` when the draft attributes anything to the operator: this session's transcript (Claude Code keeps
-   it at `~/.claude/projects/<project>/<session-id>.jsonl`). Without it, an attribution cannot be checked and will not
+   Pass `--transcript` when the draft attributes anything to the operator: this session's transcript, wherever the session's
+   runtime keeps it (Claude Code, the default runtime, keeps it at `~/.claude/projects/<project>/<session-id>.jsonl`).
+   Without it, an attribution cannot be checked and will not
    stand. The script decides who checks (`.claude/requests/claim-check-cross-family.md`), writing `result.json` and
    `check.json`:
-   - **`review.external_panel` off:** a Claude checker, spawned through `scripts/spawn-subagent.mjs` at the contract's
+   - **`review.external_panel` off:** a checker on the run's own node runtime (Claude by default), spawned through `scripts/spawn-subagent.mjs` at the contract's
      `review.models.judgment` and `review.effort.judgment`, read-only. A session's own subagent tool takes a model but no
      effort, so it cannot pin the checker. The check is **same-family**, and `checked.md` says so.
    - **The panel on:** the checker of the other family, the roster's `claim_checker` (reviewer, model and effort,

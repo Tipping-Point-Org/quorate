@@ -17,19 +17,18 @@ import { egress, egressReadFile } from '../scripts/io/egress-read.mjs';
 import { copyIntoSeatDir } from '../scripts/io/seat-copies.mjs';
 import { confined } from '../scripts/io/confined-path.mjs';
 import { snapshotIntentDocs, createSnapshot } from '../scripts/io/doc-snapshot.mjs';
-import { REPO_ROOT, SCRIPTS_DIR, noRealReviewers } from './helpers.mjs';
+import { REPO_ROOT, SCRIPTS_DIR, noRealReviewers, makeLink } from './helpers.mjs';
 
 const tmp = (t, p) => { const d = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), p))); t.after(() => fs.rmSync(d, { recursive: true, force: true })); return d; };
-/** A second name for `existing` at `link`, or the reason none can be made here (the caller skips with it). */
-const hardLink = (existing, link) => { try { fs.linkSync(existing, link); return null; } catch (e) { return `this filesystem made no hard link (${e.code ?? e.message})`; } };
+/** A second name for `existing` at `link`: true, or false with `t` skipped saying why (the caller returns). */
+const hardLink = (t, existing, link) => makeLink(t, { target: existing, at: link, type: 'hard' }) !== null;
 const env = () => { const e = { ...process.env }; delete e.GRAPH_NODE_DEPTH; return e; };
 
 // ------------------------------------------------------------------------------------------------ the owner
 test('the owner refuses a hard-linked file, naming the path and its count; reads a single-named one; refuses a link', (t) => {
   const d = tmp(t, 'hl-owner-');
   fs.writeFileSync(path.join(d, 'secret.txt'), 'another file\'s content\n');
-  const why = hardLink(path.join(d, 'secret.txt'), path.join(d, 'draft.md'));
-  if (why) { t.skip(why); return; }
+  if (!hardLink(t, path.join(d, 'secret.txt'), path.join(d, 'draft.md'))) return;
   assert.equal(fs.statSync(path.join(d, 'draft.md')).nlink, 2, 'the platform reports no second name');
   assert.throws(() => egress(d).read(['draft.md']), (e) => e.code === 'ECONFINED' && e.refusal === 'hard-link'
     && e.message.includes(path.join(d, 'draft.md')) && /2 names/.test(e.message), 'a hard-linked file was read');
@@ -49,8 +48,7 @@ test('a seat copy refuses a hard-linked file, named with why, and copies nothing
   fs.mkdirSync(path.join(repo, 'docs'));
   fs.writeFileSync(path.join(repo, 'outside-the-question.txt'), 'not cited\n');
   fs.writeFileSync(path.join(repo, 'docs', 'ok.md'), 'ok\n');
-  const why = hardLink(path.join(repo, 'outside-the-question.txt'), path.join(repo, 'docs', 'cited.md'));
-  if (why) { t.skip(why); return; }
+  if (!hardLink(t, path.join(repo, 'outside-the-question.txt'), path.join(repo, 'docs', 'cited.md'))) return;
   const owner = confined(home);
   const segs = ['seat', '1'];
   owner.dir(segs);
@@ -70,8 +68,7 @@ test('the intent sandbox refuses a hard-linked document, recorded as a skip, and
   fs.mkdirSync(path.join(repo, 'src'));
   fs.writeFileSync(path.join(repo, 'src', 'impl.js'), 'export const secret = 1;\n');
   fs.writeFileSync(path.join(repo, 'docs', 'a.md'), '# a\n');
-  const why = hardLink(path.join(repo, 'src', 'impl.js'), path.join(repo, 'docs', 'b.md'));
-  if (why) { t.skip(why); return; }
+  if (!hardLink(t, path.join(repo, 'src', 'impl.js'), path.join(repo, 'docs', 'b.md'))) return;
   const snapDir = path.join(repo, '..', `${path.basename(repo)}-snap`);
   t.after(() => fs.rmSync(snapDir, { recursive: true, force: true }));
   const skips = [];
@@ -89,8 +86,7 @@ test('the intent sandbox refuses a hard-linked document, recorded as a skip, and
 test('spawn-subagent refuses a hard-linked prompt file, before anything is spawned', (t) => {
   const d = tmp(t, 'hl-subagent-');
   fs.writeFileSync(path.join(d, 'secret.txt'), 'not the prompt\n');
-  const why = hardLink(path.join(d, 'secret.txt'), path.join(d, 'p.md'));
-  if (why) { t.skip(why); return; }
+  if (!hardLink(t, path.join(d, 'secret.txt'), path.join(d, 'p.md'))) return;
   const bin = path.join(d, 'fake.mjs');
   fs.writeFileSync(bin, "import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';\nfs.writeFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'ran'), 'x');\n");
   const r = spawnSync(process.execPath, [path.join(SCRIPTS_DIR, 'spawn-subagent.mjs'), '--prompt-file', path.join(d, 'p.md'),
@@ -103,8 +99,7 @@ test('spawn-subagent refuses a hard-linked prompt file, before anything is spawn
 test('external-review refuses a hard-linked prompt file outside a run with its unavailable envelope, before any probe', (t) => {
   const d = tmp(t, 'hl-review-');
   fs.writeFileSync(path.join(d, 'secret.txt'), 'not the prompt\n');
-  const why = hardLink(path.join(d, 'secret.txt'), path.join(d, 'prompt.md'));
-  if (why) { t.skip(why); return; }
+  if (!hardLink(t, path.join(d, 'secret.txt'), path.join(d, 'prompt.md'))) return;
   const home = path.join(d, 'home');
   const ev = path.join(home, 'ev');
   fs.mkdirSync(ev, { recursive: true });
@@ -131,8 +126,7 @@ test('decide refuses a hard-linked --question file before any record is made', (
   spawnSync('git', ['init', '-q', '.'], { cwd: repo });
   spawnSync('git', ['-c', 'user.email=t@example.com', '-c', 'user.name=T', 'commit', '-q', '--allow-empty', '-m', 'init'], { cwd: repo });
   fs.writeFileSync(path.join(d, 'other.json'), JSON.stringify({ question: 'Which?', options: [{ label: 'A' }, { label: 'B' }], category: 'delegable' }));
-  const why = hardLink(path.join(d, 'other.json'), path.join(d, 'q.json'));
-  if (why) { t.skip(why); return; }
+  if (!hardLink(t, path.join(d, 'other.json'), path.join(d, 'q.json'))) return;
   const r = spawnSync(process.execPath, [path.join(SCRIPTS_DIR, 'decide.mjs'), '--repo-root', repo, '--question', path.join(d, 'q.json')],
     { cwd: repo, encoding: 'utf8', env: { ...env(), ...noRealReviewers(), QUORATE_HOME: path.join(d, 'home') } });
   assert.notEqual(r.status, 0, 'a hard-linked question reached the panel');
@@ -163,8 +157,7 @@ function claimFixture(t) {
 test('claim-check refuses a hard-linked draft through the owner, exit 2, before a checker starts', (t) => {
   const f = claimFixture(t);
   fs.writeFileSync(path.join(f.dir, 'secret.txt'), 'another file\n');
-  const why = hardLink(path.join(f.dir, 'secret.txt'), path.join(f.check, 'draft.md'));
-  if (why) { t.skip(why); return; }
+  if (!hardLink(t, path.join(f.dir, 'secret.txt'), path.join(f.check, 'draft.md'))) return;
   const r = f.run([]);
   assert.equal(r.status, 2, r.stderr);
   assert.match(r.stderr, /hard link/, r.stderr);
@@ -175,8 +168,7 @@ test('claim-check refuses a hard-linked --transcript, exit 2, before a checker s
   const f = claimFixture(t);
   fs.writeFileSync(path.join(f.check, 'draft.md'), 'The build passes.\n');
   fs.writeFileSync(path.join(f.dir, 'secret.jsonl'), `${JSON.stringify({ type: 'user', message: { content: 'x' } })}\n`);
-  const why = hardLink(path.join(f.dir, 'secret.jsonl'), path.join(f.dir, 'session.jsonl'));
-  if (why) { t.skip(why); return; }
+  if (!hardLink(t, path.join(f.dir, 'secret.jsonl'), path.join(f.dir, 'session.jsonl'))) return;
   const r = f.run(['--transcript', path.join(f.dir, 'session.jsonl')]);
   assert.equal(r.status, 2, r.stderr);
   assert.match(r.stderr, /hard link/, r.stderr);

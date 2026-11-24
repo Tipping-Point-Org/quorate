@@ -86,9 +86,8 @@ Slug is `[a-z0-9-]+`. Run ids sort lexically by time; do not invent another orde
                                external reviewer, the raw vendor response and any failure detail.
                                In an ARCHIVED run this directory is present only if git would ignore
                                it at the destination; otherwise it stays staged outside the
-                               repository and the gate's not-checked table says where — except
-                               for a run archived by `archive-run.mjs`, which says so on stderr
-                               only (claude-md-contract.md, `reviews_dir`)
+                               repository, and where that is said is owned by claude-md-contract.md
+                               (`reviews_dir`)
   evidence/remediation-runner/ a REMEDIATION run only: what the runner writes for itself — a rejected
                                commit's output, an earlier attempt's payload — never overwritten, and
                                never admitted as a fix's evidence (only evidence/remediation/ is)
@@ -236,7 +235,12 @@ for the state machine.
 
 ## §3 Evidence: the disk-first rule
 
-**Every finding above `LOW` cites an `evidence_path` produced during this run.**
+**Every finding above `LOW` from a node that runs in the run directory cites an `evidence_path` produced during this run.**
+
+An external arm's finding is not such a finding, by construction. An arm runs outside the run directory and its schema has no
+`evidence_path` (`scripts/lib/reviewer-schemas.mjs`); its raw log is the run's record of it, and in exchange it is capped
+at `MEDIUM`/`convention` and its verdict at `RISK` (`shared/external-reviewers.md`). A `MEDIUM` arm finding in a
+reconciled run therefore cites the arm's raw log, not a capture (G-22 of 20261121-233915-m3s7-b2-review).
 
 Evidence is produced by exactly one mechanism:
 
@@ -287,36 +291,10 @@ read-only over its working directory. While that directory was the repository ro
 cloud, and the decision above rested on a premise the panel had already broken. `generated_globs`
 did not help: it bounds what an arm may REPORT, not what it may read.
 
-Arms now read a directory built for them from a SNAPSHOT of the working state
-(`scripts/io/snapshot.mjs`; `.claude/requests/arms-read-surface.md`): the tracked files with their
-uncommitted changes, plus untracked files not ignored — what the lens reads, less what is left out below — taken into a
-throwaway index and object store, so the operator's own are never touched, and written as plain files
-into a fresh directory that is a repository of its own, holding a filtered stand-in for the base commit
-(`shared/external-reviewers.md`) so `git diff <base>` works for the arm as for the lens. `evidence/` is gitignored and a live run's own directory is excluded
-explicitly (G-21), so neither is in it. Whatever git would have taken from outside the repository — a
-symbolic link, a file reached through a linked directory, a hard link whose other links are outside —
-is left out of the directory and named in the gate, as is a file whose name is not valid UTF-8 or that
-changed between git capturing it and the check; the
-directory is then asserted to hold no link and no hard link. It replaced a `git worktree` checkout that was patched, mirrored and then searched for
-links leading out, a search that missed another kind of path in each of three review rounds.
-
-That is narrower than "closed by construction", and the difference is MEASURED now rather than
-suspected (G-32, doc-consistency-review, said this paragraph overclaimed). On 2026-09-26 a codex arm
-(codex-cli 0.155.1, on Windows, with the arms' own `--sandbox read-only --ephemeral`) read files
-outside its working directory by absolute and by relative path, including one in the directory that
-holds the staged runs. The read-only sandbox bounds writes, not reads. So the directory guarantees what
-it PRESENTS as the repository — nothing from outside reaches the arm as part of the repository — and
-nothing about what an arm that goes looking can open. That a codex arm can open a live run's staged
-artifacts is an open finding on the ledger (`scripts/lib/reviews-root.mjs`), not a closed one; agy, and
-codex on POSIX, were not probed.
-
-**There is no fallback to the repository root** (operator, 2026-09-26). When the directory cannot be
-built safely — the working state's changed and untracked files exceed `review.panel_snapshot_max_mb`,
-the snapshot cannot be taken, the finished directory holds a link, or the framework copied into it is
-incomplete — no external reviewer runs, arms and judges alike, and the run is stamped
-`PANEL-NO-SAFE-SURFACE` with the reason. The root was handed over before, stamped as a declared
-exposure; it is the operator's real tree, and every link check that kept missing a class of path was a
-check of that tree.
+Arms now read a directory built for them from a SNAPSHOT of the working state, not the repository root, so `evidence/`
+and a live run's own directory are not in it. **`shared/external-reviewers.md` owns that directory** ("Which directory
+that is"): what it holds and leaves out, what it guarantees and does not, and what happens when no safe one can be built.
+This section states none of it (G-23 of 20261121-233915-m3s7-b2-review and of 20261122-014737-m3s7-b2-review-2).
 
 **No `Grep` for a lens: content search goes through `git grep` under `capture.mjs`.** `Grep` returns
 file *content*, so granting it bare beside a path-scoped `Read` was a hole through that scoping — a
@@ -739,8 +717,10 @@ batch had run is `BLOCKED`, as the barrier is, and its record counts in `batches
 whose reply left groups out does the re-ask alone, re-running no lens, arm or whole reconcile, and renders
 `reconciled.md` again only when the re-ask judged a group, which is also when second-opinion runs again. A `--resume` of a
 run that already re-asked does not ask again: it reports the recorded attempt. On every
-barrier, batched or not, a root-cause link must name a group the same reply judged; a link that does not is cleared
-and named. A fresh reconcile first clears every artifact in `RECONCILE_ARTIFACTS`, so a resumed run never reuses a
+barrier, batched or not, a root-cause link must name a group the same reply judged, and a symptom's link must lead
+to a confirmed root: a link to itself, to a group decided `dropped` or `coincidence`, or into a cycle of symptoms
+that reaches no confirmed group is cleared and named like a link to nothing. A symptom whose link was never given
+or was cleared is confirmed, keeping its severity, and named (`checkRootLinks`, `scripts/lib/reconcile-batches.mjs`). A fresh reconcile first clears every artifact in `RECONCILE_ARTIFACTS`, so a resumed run never reuses a
 mix of attempts. The batches share one barrier budget and time: each is granted, of the budget still unspent and the
 time still left, the fraction its groups are of the groups left (so an 80-group batch beside a 2-group one gets 80/82,
 not half), but never less than a floor -- the smaller of 5 minutes and an even share per batch left -- so a 2-group
@@ -792,10 +772,11 @@ An `UNBENCHED` `perf-audit`: its verdict is capped at `RISK` and its findings at
 | `TESTS-THIN` | fewer than 5 tests reported **and the runner's output was recognised** | the stamp and its consequence are stated in every lens brief: a finding may not cite test coverage as mitigation in this run, because the suite is too thin to carry that weight. **Enforced by briefing, not by the validator** — see the enforcement table in §7. Nothing mechanical can tell "the tests cover this" from any other sentence a lens writes (G-46) |
 | `SKILLS-SHADOWED` | the consuming project ships skills whose names collide with the framework's, or a legacy `.claude/skills/shared` / `.claude/skills/scripts` engine directory on the doctrine-probe path | none on its own — nodes are spawned with `--inline-skill`, so the framework's own SKILL.md text reaches the model regardless. Recorded because that is an *ordering that happens to hold*, not a boundary, and a run that silently applied an older lens's criteria while reporting this one's would be very hard to notice. For any project quorate descends from, a shared ancestor is the likely case, not the edge case |
 | `CONSUMER-LENS` | the project declared one or more lenses of its own in `graph_contract.lenses`, instructed by files in the tree under review rather than by this framework | the findings are COVERAGE, not authority: basis `convention` only, verdict capped at `RISK`, never `required`, and structurally unable to raise a §6 invariant because the basis list becomes the envelope schema enum. Identical treatment to an external arm, for the identical reason — quorate cannot verify the evidence discipline of instructions it did not write. Recorded because an unrecorded participant in a verdict is the defect this protocol exists to prevent |
+| `GATE-SCHEMA` | the gate run-graph assembled did not match `scripts/gate.schema.json`, checked strictly where it is written (an undeclared field is an error too; `gate-schema-at-writer.plan.md`) | **gate `BLOCKED`**, its `reason` naming the schema errors: the gate is a claim about the RUN, and a gate its own schema refuses is not one a reader may rely on. What is written when the BLOCKED gate still fails its schema is owned by `shared/compatibility.md` (`gate.json`, *And at the writer*), which tells it once |
 | `TESTS-FAILING` | the declared `commands.test` RAN — reporting a countable number of tests — and returned non-zero; or it printed a failing count (`countFailures`, `lib/test-count.mjs`) however it ended, exit 0 included (G-25 of `20261020-094311-ciss-delivery`) | **gate `FAIL`, unconditionally.** The strongest effect any stamp has, and the table omitted it (G-38): a red test is deterministic, reproducible, and its failure mode is uncorrelated with any model's, so it FORCES the verdict rather than capping it. Without this the regression suite would be decorative — a resurfaced bug turns a test red and changes nothing anyone reads. The word RAN is load-bearing: see `TESTS-DID-NOT-RUN` |
 | `TESTS-DID-NOT-RUN` | the test command returned non-zero having reported an EXPLICIT ZERO tests — a collection error, a failed import, a missing dependency, or a runner that never started, in a format the counter could read — or its capture's outcome is `could-not-start` (a spawn error, or no log; `check-outcomes.plan.md`) with no failing count | caps like `UNTESTED` and is named in `not_checked[]`. It does NOT force the gate, and the distinction is not pedantry: it was one case until the first real consumer run, where pytest exited 2 with `ModuleNotFoundError: No module named 'storypipe'` and 224 collection errors. Zero tests executed, and the gate reported `FAIL` — telling a project its code was broken when no test had examined it, while every node was instructed to report "anything the failures conceal" about failures that did not exist |
 | `CONTRACT-STALE` | the project's `graph_contract:` version is LOWER than the version this engine implements | caps and is named in `not_checked[]`; the run proceeds. It is the one staleness nothing else can detect: `check-install` compares key PRESENCE, and the key-ratchet catches a key ADDED and forgotten — but a key whose spelling never changed and whose MEANING did is byte-identical in the consumer's file before and after the upgrade. It has happened: `budget_usd_per_node: ""` once meant a `$0` cap that blocked every node and now means uncapped. Stamped rather than refused, because breaking every consumer on a version bump punishes them for the upgrade they were told to perform, while silence is the defect being removed. A version ABOVE the engine's is fatal instead — a contract written for a newer engine may rely on meanings this one does not have |
-| `TESTS-TIMED-OUT` | `capture.mjs` KILLED the test command at its own deadline — it started and did not finish | caps and is named in `not_checked[]`; does not force the gate. Ranked above `TESTS-OUTCOME-UNKNOWN` because it is strictly more specific, and below `TESTS-FAILING` because a suite that printed failures and was *then* killed still failed — a printed FAILING count, not the total. This is the engine's own fact about its own action, which is why it can be reported at all when a runner's exit vocabulary cannot be: `capture` chose the deadline and sent the signal. It was absent (G-48), so a consumer suite slower than capture's ten-minute default — which is ordinary — was stamped `TESTS-DID-NOT-RUN` and the operator was told to check their install when the instruction they needed was to size the timeout. The flag comes from `spawnSync`'s `ETIMEDOUT`, not from exit 124: capture maps every null status to 124, including a spawn failure and a 64 MiB output overflow |
+| `TESTS-TIMED-OUT` | `capture.mjs` KILLED the test command at its own deadline — it started and did not finish | caps and is named in `not_checked[]`; does not force the gate. Ranked above `TESTS-OUTCOME-UNKNOWN` because it is strictly more specific, and below `TESTS-FAILING` because a suite that printed failures and was *then* killed still failed — a printed FAILING count, not the total. This is the engine's own fact about its own action, which is why it can be reported at all when a runner's exit vocabulary cannot be: `capture` chose the deadline and sent the signal. It was absent (G-48), so a consumer suite slower than capture's ten-minute default — which is ordinary — was stamped `TESTS-DID-NOT-RUN` and the operator was told to check their install when the instruction they needed was to size the timeout. The flag comes from the capture core's own `timedOut` (`spawnCapture`, which enforced the deadline), recorded as the log's `# timed-out:` header line that `run-checks` reads back, not from exit 124: capture writes 124 for a deadline and for a null status alike, so the code cannot tell them apart |
 | `TESTS-OUTCOME-UNKNOWN` | the test command returned non-zero and its output matched no known summary format, or it was stopped before it finished (a signal, or an output overflow: `incomplete`, `check-outcomes.plan.md`) without printing a failing count, so whether anything ran is UNKNOWN. A count of tests that all passed before it was stopped is not a failure: only a printed failing count (`countFailures`, `lib/test-count.mjs`) makes an unfinished suite `TESTS-FAILING` (G-3 of `20261018-035437-co-delivery`) | caps and is named in `not_checked[]`; asserts nothing in either direction. This row exists because the one above it originally covered this case too, on the premise that "a suite that ran and failed reports a count; one that could not be collected reports none" (G-32). That premise holds only for runners `lib/test-count.mjs` recognises — cargo, `node:test`, pytest. A red jest, vitest, mocha or go suite reports a count nothing here parses, so it was classified as never having run and **lost the forced `FAIL`, which is the one verdict that outranks every lens.** `countTests` states the governing rule in its own docstring — *unknown must mean unknown* — and the sibling `TESTS-UNCOUNTED` row below already applies it. The discriminator stays runner-independent, which is what must not be traded away to fix this: a count is evidence it ran, an explicit zero is evidence it did not, and null is the absence of evidence either way |
 | `PANEL-NO-SAFE-SURFACE` | the arms' directory could not be built safely — the working state over `review.panel_snapshot_max_mb`, a snapshot that could not be taken, a finished directory holding a link, or an incomplete framework | none on its own; `PASS` permitted. No external reviewer ran: every arm is recorded `SKIPPED` and no dispute was adjudicated. The repository root is never handed over instead — there is no fallback (arms-read-surface; §3 owns the reasoning) |
 | `TESTS-UNCOUNTED` | the test command ran, but its output matched no known summary format | the count is unknown, so `TESTS-THIN` does NOT fire — an unrecognised runner must not be stamped as an empty suite. Recorded so the gap is visible: a reader learns the suite's weight was never established, rather than being told it is thin. Adding a format to `lib/test-count.mjs` is the fix; guessing from a loose pattern is not, because a regex broad enough to catch every runner also catches prose in a failure message and inflates the count |

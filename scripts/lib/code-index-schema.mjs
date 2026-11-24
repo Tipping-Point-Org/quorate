@@ -149,6 +149,10 @@ function rowErrors(table, row, where, processed) {
   for (const e of fieldsErrors(ROW, row, where)) errors.push(e === `${where}: span is missing` ? `${where}: no span` : e);
   if (processed && typeof row.path === 'string' && !processed.has(row.path)) errors.push(rule('rows-in-processed-files', `${where}: ${row.path} is not a processed file`));
   errors.push(...fieldsErrors(TABLE_FIELDS[table], row, where));
+  // default-or-default-text
+  if (table === 'definitions' && 'default' in row && 'default_text' in row) {
+    errors.push(rule('default-or-default-text', `${where}: a definition gives both default (${JSON.stringify(row.default)}) and default_text (${JSON.stringify(row.default_text)}); a literal is default, anything else default_text`));
+  }
   // unresolved-names-no-target and resolved-names-its-target
   if (table === 'calls' || table === 'constructions') {
     const target = table === 'calls' ? 'callee' : 'type';

@@ -35,7 +35,9 @@ test('with commands.test_one declared, a full-suite red is refused without blami
 test('nothing tells a node with no test_one that full-suite captures are its red and green', () => {
   const brief = read('scripts/remediate.mjs');
   assert.doesNotMatch(brief, /your red and green are captures of the full test command/);
-  assert.match(brief, /test_one: none declared[\s\S]{0,300}not expressible as a test/);
+  // The words are the prompt library's (consumer-owned-configuration.md AC2), and remediate.mjs uses them.
+  assert.match(read('prompts/_templates/remediation-test-one-none.md'), /test_one: none declared[\s\S]{0,300}not expressible as a test/);
+  assert.match(brief, /briefLine\('remediation-test-one-none\.md'/);
   assert.doesNotMatch(read('shared/claude-md-contract.md'), /checks a fix with the full suite, red then green/);
   assert.doesNotMatch(read('prompts/remediation/PROMPT.md'), /only when it says none is declared do you capture the full test command/);
 });

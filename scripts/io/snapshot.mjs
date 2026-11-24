@@ -25,6 +25,7 @@ import path from 'node:path';
 import { judgeSnapshotEntries, SYMLINK_MODE, gitFailureWhy, vanishedDuringAdd, ADD_ATTEMPTS } from '../lib/snapshot-surface.mjs';
 import { isWithin } from '../lib/finding-scope.mjs';
 import { gitSync } from './git.mjs';
+import { hardLinkReason } from '../lib/egress-read.mjs';
 
 const BIG = 1 << 30;   // no listing this builder runs may fail on output size (criterion 2)
 const REGULAR_FILE_MODES = new Set(['100644', '100755']);
@@ -365,7 +366,7 @@ export function buildArmsSurface({ repoRoot, headCommit, baseCommit, dir, exclud
       const p = path.join(d, e.name);
       if (e.isSymbolicLink()) bad.push(`${p} is a link`);
       else if (e.isDirectory()) walk(p);
-      else if (fs.lstatSync(p, { bigint: true }).nlink > 1n) bad.push(`${p} is a hard link`);
+      else if (hardLinkReason(fs.lstatSync(p, { bigint: true }))) bad.push(`${p} is a hard link`);   // the one single-path rule
     } };
     walk(dir);
     if (bad.length) return fail(`the finished directory holds what it must not: ${bad.slice(0, 3).join('; ')}`);

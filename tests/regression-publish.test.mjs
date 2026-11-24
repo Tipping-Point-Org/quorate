@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { runScript, REPO_ROOT, publishedForm } from './helpers.mjs';
+import { runScript, REPO_ROOT, publishedForm, makeLink } from './helpers.mjs';
 import { planSnapshot, changelogEntry, parseIdentity, validateManifest, contractDrift, scanText, applyAllowances, lineSha256, publicContractText, validateLocalPatterns } from '../scripts/lib/publish.mjs';
 import * as lib from '../scripts/lib/publish.mjs';
 import { contractBlocks } from '../scripts/lib/contract-source.mjs';
@@ -17,14 +17,57 @@ import { parseContractYaml } from '../scripts/lib/contract-yaml.mjs';
 const git = (cwd, ...a) => spawnSync('git', a, { cwd, encoding: 'utf8' });
 const id = (cwd) => { git(cwd, 'config', 'user.email', 'fixture@example.invalid'); git(cwd, 'config', 'user.name', 'fixture'); };
 // A stand-in for gitleaks that finds nothing: the scan's own refusal is tested against the real binary, below.
-const CLEAN_SCANNER = JSON.stringify([process.execPath, '-e', 'process.exit(0)']);
+const CLEAN_SCANNER = 'process.exit(0);';
 // Built at run time: this file ships, and the marker written out here would stop the publish of this repository itself.
 const MARKER = ['PUBLISH', 'PLACEHOLDER'].join('-');
 // A stand-in that reports one finding in src/fixture-secret.js, as gitleaks' JSON report does, and exits 99.
-const FINDING_SCANNER = JSON.stringify([process.execPath, '-e', [
+const FINDING_SCANNER = [
   'const a = process.argv; const p = a[a.indexOf("--report-path") + 1]; const d = a[a.indexOf("dir") + 1];',
   'require("fs").writeFileSync(p, JSON.stringify([{ File: require("path").join(d, "src", "fixture-secret.js"), StartLine: 1, RuleID: "generic-api-key" }]));',
-  'process.exit(99);'].join(' ')]);
+  'process.exit(99);'].join(' ');
+
+// THE STAND-IN IS gitleaks ON PATH (G-11 of 20261122-144505-m3s7-b3-remediation-3-review; operator: "Fake gitleaks on
+// PATH, drop the override (Recommended)"). publish obeyed QUORATE_PUBLISH_GITLEAKS on a real publish too, so an inherited
+// value replaced the release's secret scan; it reads no override now, and a test puts a fake gitleaks first on PATH.
+// publish spawns `gitleaks` with no shell, so on Windows the fake must be an .exe: a copy of node named gitleaks.exe,
+// running the body through a NODE_OPTIONS preload that does nothing in any other node process.
+const PATH_KEY = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
+let nodeAsGitleaks = null;
+function fakeGitleaks(t, binDir, body) {
+  fs.mkdirSync(binDir, { recursive: true });
+  const fake = path.join(binDir, 'fake-gitleaks.cjs');
+  fs.writeFileSync(fake, `${body}\n`);
+  const env = { [PATH_KEY]: `${binDir}${path.delimiter}${process.env[PATH_KEY] ?? ''}` };
+  if (process.platform === 'win32') {
+    // One copy of node named gitleaks.exe, in its own directory put first on PATH; each call's body comes from its own
+    // preload, so the .exe is never linked or copied per call.
+    if (!nodeAsGitleaks) {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'q-publish-gitleaks-'));
+      nodeAsGitleaks = path.join(dir, 'gitleaks.exe');
+      fs.copyFileSync(process.execPath, nodeAsGitleaks);
+      process.on('exit', () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ } });
+    }
+    env[PATH_KEY] = `${path.dirname(nodeAsGitleaks)}${path.delimiter}${env[PATH_KEY]}`;
+    const preload = path.join(binDir, 'preload.cjs');
+    fs.writeFileSync(preload, [
+      'if (require("path").basename(process.execPath).toLowerCase() === "gitleaks.exe") {',
+      '  process.argv[1] = require("path").basename(process.argv[1]);',
+      `  require(${JSON.stringify(fake)});`,
+      '  process.exit(process.exitCode ?? 0);',
+      '}', ''].join('\n'));
+    env.NODE_OPTIONS = `${process.env.NODE_OPTIONS ?? ''} --require "${preload.replace(/\\/g, '/')}"`.trim();
+  } else {
+    const shim = path.join(binDir, 'gitleaks');
+    fs.writeFileSync(shim, `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/fake-gitleaks.cjs" "$@"\n`);
+    fs.chmodSync(shim, 0o755);
+  }
+  return env;
+}
+// This PATH without every directory holding a gitleaks: no scanner, fake or real, and git still runs.
+function pathWithoutGitleaks() {
+  const has = (d) => ['gitleaks', 'gitleaks.exe'].some((n) => { try { return fs.statSync(path.join(d, n)).isFile(); } catch { return false; } });
+  return { [PATH_KEY]: String(process.env[PATH_KEY] ?? '').split(path.delimiter).filter((d) => d && !has(d)).join(path.delimiter) };
+}
 
 const contract = (request) => ['```yaml', 'graph_contract_version: 6', 'project: fixture', 'commands:', '  build: ""',
   '  test: ""', 'source_globs: ["src/**"]', 'doc_paths: []', 'doc_roles:', `  request: "${request}"`, '```', ''].join('\n');
@@ -63,8 +106,10 @@ function fixture(t, { files = {}, manifest = {}, local = { patterns: [{ name: 'o
   git(out, 'init', '-q'); id(out);
   fs.writeFileSync(path.join(out, 'stale.txt'), 'from an earlier release\n');
   git(out, 'add', '-A'); git(out, 'commit', '-qm', 'earlier release');
-  const publish = (extra = [], env = {}) => runScript('publish.mjs', ['--repo-root', repo, '--ref', 'HEAD', ...extra],
-    { cwd: repo, env: { QUORATE_PUBLISH_GITLEAKS: CLEAN_SCANNER, ...env } });
+  // `scanner` is the fake gitleaks' body, put first on PATH; null puts none there, so PATH's own gitleaks, if any, runs.
+  let bins = 0;
+  const publish = (extra = [], { scanner = CLEAN_SCANNER, ...env } = {}) => runScript('publish.mjs', ['--repo-root', repo, '--ref', 'HEAD', ...extra],
+    { cwd: repo, env: { ...(scanner === null ? {} : fakeGitleaks(t, path.join(base, `bin-${bins++}`), scanner)), ...env } });
   const commit = (extra = []) => publish(['--out', out, '--identity', 'New Account <123+newacct@users.noreply.github.com>', ...extra]);
   return { repo, out, publish, commit };
 }
@@ -78,6 +123,44 @@ test('a clean snapshot is committed into the public clone: exclusions gone, earl
   assert.ok(!fs.existsSync(path.join(f.out, 'stale.txt')), "the earlier release's file survived the snapshot");
   assert.equal(git(f.out, 'rev-list', '--count', 'HEAD').stdout.trim(), '2');
   assert.match(r.output, /not pushed/);
+
+  // G-13 of 20261122-144505-m3s7-b3-remediation-3-review, both halves. A file the source tracks although its own
+  // .gitignore matches it ships, and `git add -A` left it out of the public commit.
+  const forced = fixture(t, { files: { '.gitignore': '.claude/publish.local.json\nbuild/\n' } });
+  fs.mkdirSync(path.join(forced.repo, 'build'), { recursive: true });
+  fs.writeFileSync(path.join(forced.repo, 'build', 'keep.txt'), 'tracked though ignored\n');
+  git(forced.repo, 'add', '-f', 'build/keep.txt'); git(forced.repo, 'commit', '-qm', 'a tracked, ignored file');
+  const rf = forced.commit();
+  assert.equal(rf.status, 0, rf.output);
+  assert.equal(git(forced.out, 'ls-files', 'build/keep.txt').stdout.trim(), 'build/keep.txt', 'a shipped file was left out of the commit');
+  // An ignored file in --out at a path that ships was overwritten: the clean check never sees it, and no rollback
+  // restores it.
+  const ignored = fixture(t);
+  fs.appendFileSync(path.join(ignored.out, '.git', 'info', 'exclude'), 'src/a.js\n');
+  fs.mkdirSync(path.join(ignored.out, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(ignored.out, 'src', 'a.js'), 'the operator\'s own bytes\n');
+  const ri = ignored.commit();
+  assert.equal(ri.status, 1, ri.output);
+  assert.match(ri.output, /ignored file in --out at a path that ships: src\/a\.js/);
+  assert.equal(fs.readFileSync(path.join(ignored.out, 'src', 'a.js'), 'utf8'), 'the operator\'s own bytes\n', 'an ignored file was overwritten');
+});
+
+// G-10 of 20261122-154951-m3s7-b3-remediation-4-review (panel-codex-code, panel-codex-security): the forced add passed
+// shipped names to git as pathspecs, so a shipped name holding glob magic (`[ab].txt`, legal on every platform) matched
+// an ignored file of the operator's in --out, which then entered the public commit.
+test('a shipped name with pathspec magic adds only itself, never an ignored file it would match (G-10)', (t) => {
+  const f = fixture(t, { files: { '.gitignore': '.claude/publish.local.json\nbuild/\n' } });
+  fs.mkdirSync(path.join(f.repo, 'build'), { recursive: true });
+  fs.writeFileSync(path.join(f.repo, 'build', '[ab].txt'), 'shipped, tracked though ignored\n');
+  git(f.repo, 'add', '-f', 'build/[ab].txt'); git(f.repo, 'commit', '-qm', 'a tracked, ignored file with a glob name');
+  assert.equal(git(f.repo, 'ls-files', '--', ':(literal)build/[ab].txt').stdout.trim(), 'build/[ab].txt');
+  fs.appendFileSync(path.join(f.out, '.git', 'info', 'exclude'), 'build/\n');
+  fs.mkdirSync(path.join(f.out, 'build'), { recursive: true });
+  fs.writeFileSync(path.join(f.out, 'build', 'a.txt'), 'the operator\'s own, ignored\n');
+  const r = f.commit();
+  assert.equal(r.status, 0, r.output);
+  assert.equal(git(f.out, 'ls-files', '--', ':(literal)build/[ab].txt').stdout.trim(), 'build/[ab].txt', 'the shipped file was left out');
+  assert.equal(git(f.out, 'ls-files', '--', ':(literal)build/a.txt').stdout.trim(), '', 'an ignored file of the operator\'s was committed');
 });
 
 // M2 stage 9c (2026-11-19): 2a669ba0 passed every publish check and failed the public CI's secret scan, which runs the
@@ -119,6 +202,46 @@ test('a failing public scan whose record cannot be written still undoes the comm
   assert.equal(git(failing.out, 'status', '--porcelain').stdout, '', 'the rejected snapshot was left in the working tree');
   assert.match(r.output, /the commit was undone/);
   assert.match(r.output, /could not be recorded/, 'the failed record was not said');
+});
+
+// G-13 of 20261122-055431-m3s7-b3-remediation-2-review: --out's tracked files were deleted and the snapshot copied before
+// any way back existed, so a copy that failed (here an ignored directory standing where a shipped file goes) left the
+// earlier release deleted and the snapshot half written.
+test('a copy into --out that fails before the commit leaves --out at its earlier release', (t) => {
+  const f = fixture(t);
+  // An ignored FILE where a shipped directory goes: an ignored file at a shipped path itself is refused before anything
+  // changes (G-13 of 20261122-144505-m3s7-b3-remediation-3-review), so the copy's own failure is made one level up.
+  fs.writeFileSync(path.join(f.out, '.gitignore'), '/src\n');
+  git(f.out, 'add', '-A'); git(f.out, 'commit', '-qm', 'ignore a file');
+  fs.writeFileSync(path.join(f.out, 'src'), 'ignored, the operator\'s\n');
+  const before = git(f.out, 'rev-parse', 'HEAD').stdout.trim();
+  const r = f.commit();
+  assert.equal(r.status, 1, r.output);
+  assert.equal(git(f.out, 'rev-parse', 'HEAD').stdout.trim(), before, 'a failed copy moved HEAD');
+  assert.ok(fs.existsSync(path.join(f.out, 'stale.txt')), "the earlier release's file was left deleted");
+  assert.ok(!fs.existsSync(path.join(f.out, 'VERSION')), 'the half-written snapshot was left in --out');
+  assert.equal(git(f.out, 'status', '--porcelain').stdout, '', '--out was left changed');
+  assert.equal(fs.readFileSync(path.join(f.out, 'src'), 'utf8'), 'ignored, the operator\'s\n', "an ignored file of the operator's was changed");
+  assert.match(r.output, /--out is back at/);
+});
+
+// G-14 of 20261122-055431-m3s7-b3-remediation-2-review: after the commit, any readable HEAD was taken as the publish
+// commit, so a post-commit hook that moved HEAD elsewhere had the scan and the success line name the wrong commit.
+test('a HEAD moved off the publish commit after it is made fails the publish, never reported as committed', (t) => {
+  const f = fixture(t);
+  // The earlier release carries a passing scan too, so the scan run on the wrong commit passes as it would on the right one.
+  fs.mkdirSync(path.join(f.out, 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(f.out, 'scripts', 'check-secrets.mjs'), 'process.exit(0);\n');
+  git(f.out, 'add', '-A'); git(f.out, 'commit', '-qm', 'earlier release with its scan');
+  const hooks = path.join(f.out, '.git', 'hooks');
+  fs.mkdirSync(hooks, { recursive: true });
+  fs.writeFileSync(path.join(hooks, 'post-commit'), '#!/bin/sh\ngit checkout -q -b moved HEAD~1\n', { mode: 0o755 });
+  const before = git(f.out, 'rev-parse', 'HEAD').stdout.trim();
+  const r = f.commit();
+  assert.equal(git(f.out, 'rev-parse', 'HEAD').stdout.trim(), before, 'the fixture hook did not move HEAD');
+  assert.equal(r.status, 1, r.output);
+  assert.doesNotMatch(r.output, /publish: committed/, 'a commit HEAD does not name was reported as published');
+  assert.match(r.output, /is not the publish commit/);
 });
 
 test('a snapshot without scripts/check-secrets.mjs is refused before --out is touched', (t) => {
@@ -241,7 +364,7 @@ test('the snapshot\'s checks and the secret scanner get no run pin, runtime auth
   const FAKE_AUTH = ['fixture', 'auth'].join('-');
   const FAKE_TOKEN = ['fixture', 'token'].join('-');
   const env = { QUORATE_RUN_ID: 'r-fixture', ANTHROPIC_API_KEY: FAKE_AUTH, FIXTURE_SECRET_TOKEN: FAKE_TOKEN,
-    QUORATE_PUBLISH_GITLEAKS: JSON.stringify([process.execPath, '-e', `${leaks} process.exit(0);`]) };
+    scanner: `${leaks} process.exit(0);` };
   const r = f.publish(['--dry-run'], env);
   assert.doesNotMatch(r.output, /^LEAKED /m, r.output);
   assert.equal(r.status, 0, r.output);
@@ -259,7 +382,7 @@ test('the secret scan honours no .gitleaksignore: not the shipped one, not the w
     'const ip = a[i + 1]; const f = fs.existsSync(ip) && fs.statSync(ip).isDirectory() ? p.join(ip, ".gitleaksignore") : ip;',
     'if (fs.existsSync(f)) { console.log("HONOURED " + f); process.exit(1); }',
     'process.exit(0);'].join(' ');
-  const r = f.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: JSON.stringify([process.execPath, '-e', probe]) });
+  const r = f.publish(['--dry-run', '--no-suite'], { scanner: probe });
   assert.doesNotMatch(r.output, /^HONOURED /m, r.output);
   assert.equal(r.status, 0, r.output);
 });
@@ -294,10 +417,17 @@ test('the published contract may differ from the private one only in doc_roles.r
   assert.match(r2.output, /differs from the private one at project/);
 });
 
-test('a scanner override is said; a missing scanner refuses', (t) => {
+// G-11 of 20261122-144505-m3s7-b3-remediation-3-review: QUORATE_PUBLISH_GITLEAKS was obeyed on a committing publish, so an
+// inherited value ran in place of the release's secret scan and could pass it. The scanner is gitleaks on PATH, always.
+test('no environment variable replaces the secret scanner, on a commit or a dry run; a missing scanner refuses', (t) => {
   const f = fixture(t);
-  assert.match(f.publish(['--dry-run', '--no-suite']).output, /OVERRIDDEN by QUORATE_PUBLISH_GITLEAKS/);
-  const r = f.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: JSON.stringify(['no-such-scanner-q7x']) });
+  const override = JSON.stringify([process.execPath, '-e', 'console.log("OVERRIDE RAN"); process.exit(0);']);
+  for (const extra of [['--dry-run', '--no-suite'], ['--out', f.out, '--identity', 'New Account <123+newacct@users.noreply.github.com>']]) {
+    const o = f.publish(extra, { scanner: 'console.log("FAKE GITLEAKS RAN"); process.exit(0);', QUORATE_PUBLISH_GITLEAKS: override });
+    assert.doesNotMatch(o.output, /OVERRIDE RAN|OVERRIDDEN/, o.output);
+    assert.match(o.output, /FAKE GITLEAKS RAN/, o.output);
+  }
+  const r = f.publish(['--dry-run', '--no-suite'], { scanner: null, QUORATE_PUBLISH_GITLEAKS: override, ...pathWithoutGitleaks() });
   assert.equal(r.status, 1, r.output);
   assert.match(r.output, /never runs without the secret scan/);
 });
@@ -307,7 +437,7 @@ test('a planted secret fails the real gitleaks scan', { skip: hasGitleaks ? fals
   // Built at run time, so this file never carries a secret-shaped literal for the repository's own scan to find.
   const token = ['gh', 'p_', 'R8xQ2vLm9TbK4wZs7NcJ1hYd6FgP3aUe5Vk0'].join('');
   const f = fixture(t, { files: { 'src/config.js': `export const token = "${token}";\n` } });
-  const r = f.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: '' });
+  const r = f.publish(['--dry-run', '--no-suite'], { scanner: null });
   assert.equal(r.status, 1, r.output);
   assert.match(r.output, /gitleaks: a secret was found/);
 });
@@ -340,13 +470,13 @@ test('an allowance that matches nothing is stale and refuses the publish', (t) =
 // refuses whatever the public CI's scan would refuse.
 test('a gitleaks finding always refuses the publish, and the manifest cannot allow one', (t) => {
   const finding = fixture(t, { files: { 'src/fixture-secret.js': 'planted\n' } });
-  const r = finding.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: FINDING_SCANNER });
+  const r = finding.publish(['--dry-run', '--no-suite'], { scanner: FINDING_SCANNER });
   assert.equal(r.status, 1, r.output);
   assert.match(r.output, /src\/fixture-secret\.js:1 gitleaks:generic-api-key/);
   const allow = [{ path: 'src/fixture-secret.js', pattern: 'gitleaks:generic-api-key', line_sha256: lineSha256('planted'), reason: 'a test plants it' }];
   assert.match(validateManifest({ version: 1, allow }).error, /a gitleaks finding, which is never allowed/);
   const allowed = fixture(t, { files: { 'src/fixture-secret.js': 'planted\n' }, manifest: { allow } });
-  const r2 = allowed.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: FINDING_SCANNER });
+  const r2 = allowed.publish(['--dry-run', '--no-suite'], { scanner: FINDING_SCANNER });
   assert.equal(r2.status, 1, r2.output);
   assert.doesNotMatch(r2.output, /every finding allowed by the manifest/);
 });
@@ -410,6 +540,20 @@ test('--write-public-contract writes the generated file, and a publish then pass
   const mw = runScript('publish.mjs', ['--write-public-contract', '--repo-root', moved.repo], { cwd: moved.repo });
   assert.equal(mw.status, 0, mw.output);
   assert.ok(fs.existsSync(path.join(moved.repo, 'pub', 'C.public.md')), `--write-public-contract ignored the manifest's path:\n${mw.output}`);
+});
+
+// G-33 of 20261122-035227-m3s7-b3-review: the published contract's path was refused when absolute or with '..', but a link
+// or junction below the repository was written through, so a target such as linked/CLAUDE.md truncated a file outside it.
+test('--write-public-contract does not write through a link or junction below the repository', (t) => {
+  const f = fixture(t, { files: { 'CLAUDE.md': privateClaude('current') }, manifest: { replace: { 'CLAUDE.md': 'linked/CLAUDE.md' } } });
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-outside-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(outside, 'CLAUDE.md'), 'UNRELATED FILE\n');
+  if (!makeLink(t, { target: outside, at: path.join(f.repo, 'linked'), type: process.platform === 'win32' ? 'junction' : 'dir' })) return;
+  const w = runScript('publish.mjs', ['--write-public-contract', '--repo-root', f.repo], { cwd: f.repo });
+  fs.rmSync(path.join(f.repo, 'linked'), { recursive: false, force: true });
+  assert.equal(fs.readFileSync(path.join(outside, 'CLAUDE.md'), 'utf8'), 'UNRELATED FILE\n', 'a file outside the repository was overwritten');
+  assert.notEqual(w.status, 0, w.output);
 });
 
 // The decisions, directly.
@@ -511,10 +655,9 @@ test('a publish of a commit that is not master\'s tip is refused, and nothing is
 
 // G-27 of 20261116-200635-m2-9a-high: gitleaks exiting 99 with an empty report passed as "every finding allowed".
 test('a secret-scan exit of 99 with no finding in its report refuses the publish', (t) => {
-  const empty99 = JSON.stringify([process.execPath, '-e', [
-    'const a = process.argv; require("fs").writeFileSync(a[a.indexOf("--report-path") + 1], "[]"); process.exit(99);'].join(' ')]);
+  const empty99 = 'const a = process.argv; require("fs").writeFileSync(a[a.indexOf("--report-path") + 1], "[]"); process.exit(99);';
   const f = fixture(t);
-  const r = f.publish(['--dry-run', '--no-suite'], { QUORATE_PUBLISH_GITLEAKS: empty99 });
+  const r = f.publish(['--dry-run', '--no-suite'], { scanner: empty99 });
   assert.equal(r.status, 1, r.output);
   assert.match(r.output, /not publishable/);
 });
@@ -606,6 +749,30 @@ test('each snapshot check\'s output is recorded in a log under the engine\'s hom
   assert.match(fs.readFileSync(log, 'utf8'), /SUITE-OUTPUT-G11/);
 });
 
+// G-36 of 20261122-035227-m3s7-b3-review: the record folder is named to the second and was made with recursive mkdir, so
+// two publishes of one commit within a second shared it and the later one truncated the earlier one's logs. The folders
+// the next minute's publishes would be named are made in advance, each holding an earlier record: none may be reused.
+test('a publish never writes its check logs into a record folder an earlier publish already made', (t) => {
+  const home = (fs.realpathSync.native ?? fs.realpathSync)(fs.mkdtempSync(path.join(os.tmpdir(), 'quorate-publish-home-')));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const f = fixture(t);
+  const commit = git(f.repo, 'rev-parse', 'HEAD').stdout.trim();
+  const taken = [];
+  for (let s = 0; s < 60; s += 1) {
+    const stamp = new Date(Date.now() + s * 1000).toISOString().replace(/[-:]/g, '').replace(/\..*$/, '').replace('T', '-');
+    const dir = path.join(home, 'publish', `${stamp}-${commit.slice(0, 12)}`);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'build.log'), 'EARLIER-RECORD\n');
+    taken.push(dir);
+  }
+  const r = f.publish(['--dry-run'], { QUORATE_HOME: home });
+  assert.equal(r.status, 0, r.output);
+  const m = /publish: snapshot build: exit 0; output recorded in (.+)$/m.exec(r.output);
+  assert.ok(m, r.output);
+  assert.ok(!taken.includes(path.dirname(m[1].trim())), `the publish reused an earlier record folder: ${m[1]}`);
+  for (const dir of taken) assert.equal(fs.readFileSync(path.join(dir, 'build.log'), 'utf8'), 'EARLIER-RECORD\n', `${dir} was overwritten`);
+});
+
 // G-10 of 20261116-231613-m2-9a2-remediation-review: a shipped .gitleaksignore was renamed for the scan onto a fixed name
 // without looking there first, so a tracked .gitleaksignore.publish-scan was overwritten and its own bytes never reached
 // gitleaks, while the publish passed.
@@ -686,7 +853,8 @@ test('the published contract block carries no private development history in its
 test('stage 2: --out spelled through a link commits, as its real path does', (t) => {
   const f = fixture(t);
   const link = `${f.out}-link`;
-  fs.symlinkSync(f.out, link, process.platform === 'win32' ? 'junction' : 'dir');
+  // Through makeLink (G-15 of 20261122-214154-llo-remediation-2-review): a refused kind skips by name, never fails at setup.
+  if (!makeLink(t, { target: f.out, at: link, type: process.platform === 'win32' ? 'junction' : 'dir' })) return;
   t.after(() => fs.rmSync(link, { force: true, recursive: false }));
   const r = f.publish(['--out', link, '--identity', 'New Account <123+newacct@users.noreply.github.com>']);
   assert.equal(r.status, 0, r.output);
@@ -701,4 +869,52 @@ test('stage 2: an --out below its repository\'s top is still refused, and nothin
   assert.notEqual(r.status, 0, r.output);
   assert.match(r.output, /is not the top of its repository/);
   assert.equal(git(f.out, 'rev-list', '--count', 'HEAD').stdout.trim(), '1');
+});
+
+test('a commit whose HEAD cannot be read afterwards fails the publish and is undone, never reported as "(HEAD unread)"', (t) => {
+  // I-13, G-37 of 20261122-035227-m3s7-b3-review: a failed `rev-parse HEAD` after the commit fell back to '(HEAD unread)'
+  // and the publish went on through the scan to its success line, naming no commit. A post-commit hook points HEAD at a
+  // branch that does not exist, so the commit succeeds and rev-parse HEAD then fails.
+  const f = fixture(t);
+  const hook = path.join(f.out, '.git', 'hooks', 'post-commit');
+  fs.mkdirSync(path.dirname(hook), { recursive: true });
+  fs.writeFileSync(hook, '#!/bin/sh\nprintf "ref: refs/heads/no-such-branch-q7\\n" > "$(git rev-parse --git-dir)/HEAD"\n');
+  fs.chmodSync(hook, 0o755);
+  const r = f.commit();
+  assert.notEqual(r.status, 0, r.output);
+  assert.doesNotMatch(r.output, /HEAD unread/);
+  assert.doesNotMatch(r.output, /publish: committed/);
+  assert.match(r.output, /rev-parse HEAD in --out failed after the commit/);
+});
+
+// G-15 of 20261122-193909-llo-delivery (panel-codex-contract): the clean check before delete held --out with its own
+// linkBelowOut, which judged only symbolic links on the paths it was about to touch, never the owner. A link leading out of
+// --out that git does not see (an ignored one) passed. --out is now judged whole by firstLeadingOut before anything below
+// it is deleted, and the refusal names the path and its kind.
+test('G-15: a link leading out of --out refuses the publish before anything is deleted, through the owner', (t) => {
+  const f = fixture(t);
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'q-publish-outside-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  fs.appendFileSync(path.join(f.out, '.git', 'info', 'exclude'), 'away\n');
+  if (!makeLink(t, { target: outside, at: path.join(f.out, 'away'), type: process.platform === 'win32' ? 'junction' : 'dir' })) return;
+  const r = f.commit();
+  assert.equal(r.status, 1, r.output);
+  assert.match(r.output, /away is a link or junction leading out/);
+  assert.ok(fs.existsSync(path.join(f.out, 'stale.txt')), 'the earlier release was deleted before the refusal');
+});
+
+// G-10 of 20261122-214154-llo-remediation-2-review (panel-codex-security): the git directory is skipped by the owner's walk,
+// and the scan's record was then written below it through a raw path, so a link standing at <git-dir>/quorate-publish took
+// the record outside the public clone. A link there is refused for the record; the undo runs either way.
+test('G-10: a link at the scan record\'s folder is never written through; the record is refused and the commit undone', (t) => {
+  const f = fixture(t, { files: { 'scripts/check-secrets.mjs': 'console.log("stand-in scan: a finding"); process.exit(1);\n' } });
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'q-publish-outside-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  if (!makeLink(t, { target: outside, at: path.join(f.out, '.git', 'quorate-publish'), type: process.platform === 'win32' ? 'junction' : 'dir' })) return;
+  const before = git(f.out, 'rev-parse', 'HEAD').stdout.trim();
+  const r = f.commit();
+  assert.equal(r.status, 1, r.output);
+  assert.deepEqual(fs.readdirSync(outside), [], 'the scan record was written through the link, outside the public clone');
+  assert.match(r.output, /could not be recorded/, 'the refused record was not said');
+  assert.equal(git(f.out, 'rev-parse', 'HEAD').stdout.trim(), before, 'the rejected commit was left at HEAD');
 });

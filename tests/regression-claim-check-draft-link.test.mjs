@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { SCRIPTS_DIR, withTempDir } from './helpers.mjs';
+import { SCRIPTS_DIR, withTempDir, makeLink } from './helpers.mjs';
 
 const SCRIPT = path.join(SCRIPTS_DIR, 'claim-check.mjs');
 const env = () => { const e = { ...process.env }; delete e.GRAPH_NODE_DEPTH; return e; };
@@ -23,11 +23,8 @@ test('G-8: --check refuses a draft.md that is a link, naming it, before any chec
     fs.mkdirSync(check, { recursive: true });
     // A file link where the host can make one; where it cannot (Windows without the privilege), a junction to a
     // directory, which existsSync follows the same way: the refusal is of any link at draft.md, whatever it points at.
-    try { fs.symlinkSync(secret, path.join(check, 'draft.md'), 'file'); } catch (e) {
-      if (e.code !== 'EPERM') throw e;
-      fs.mkdirSync(path.join(dir, 'secrets'));
-      fs.symlinkSync(path.join(dir, 'secrets'), path.join(check, 'draft.md'), 'junction');
-    }
+    fs.mkdirSync(path.join(dir, 'secrets'));
+    if (!makeLink(t, { target: secret, at: path.join(check, 'draft.md'), type: 'file', fallback: { dir: path.join(dir, 'secrets') } })) return;
     const r = spawnSync(process.execPath, [SCRIPT, check, '--check'], { cwd: repo, env: env(), encoding: 'utf8' });
     assert.equal(r.status, 2, `${r.stdout}\n${r.stderr}`);
     assert.match(r.stderr, /draft\.md.*link/);
@@ -47,10 +44,7 @@ test('G-4: --check refuses a draft.md that is a hard link (nlink > 1), naming it
     const check = path.join(repo, '.claude', 'claim-checks', 'hardlinked');
     fs.mkdirSync(check, { recursive: true });
     const draft = path.join(check, 'draft.md');
-    try { fs.linkSync(secret, draft); } catch (e) {
-      if (e.code === 'EPERM' || e.code === 'ENOTSUP' || e.code === 'EXDEV') { t.skip(`this host cannot make a hard link here (${e.code})`); return; }
-      throw e;
-    }
+    if (!makeLink(t, { target: secret, at: draft, type: 'hard' })) return;
     const st = fs.lstatSync(draft);
     assert.ok(st.isFile() && !st.isSymbolicLink() && st.nlink > 1, `fixture: draft.md is a plain file with nlink ${st.nlink}`);
     const r = spawnSync(process.execPath, [SCRIPT, check, '--check'], { cwd: repo, env: env(), encoding: 'utf8' });

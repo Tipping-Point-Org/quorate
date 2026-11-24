@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import * as ds from '../scripts/io/doc-snapshot.mjs';
 import { worktreeSha } from '../scripts/io/worktree.mjs';
-import { runScript, mintedRunDir } from './helpers.mjs';
+import { runScript, mintedRunDir, makeLink } from './helpers.mjs';
 
 // Imported tolerantly, so a missing module fails ITS test by name rather than every test in the file.
 const grant = await import('../scripts/lib/grant-probe.mjs').catch(() => ({}));
@@ -154,10 +154,9 @@ test('G-7: a document that resolves to a file its glob does not declare is refus
 test('G-7: with a real link, where this host can make one', (t) => {
   const repo = tmp(t, 'q-r3-g7l-');
   put(repo, 'docs/sub/secret.md', 'undeclared\n');
-  try { fs.symlinkSync(path.join(repo, 'docs', 'sub', 'secret.md'), path.join(repo, 'docs', 'a.md')); } catch (e) {
-    t.skip(`this host cannot create a symlink (${e.code}); the realpath-driven test above covers the decision`);
-    return;
-  }
+  // Where this host cannot make one, makeLink skips; the realpath-driven test above covers the decision.
+  const link = makeLink(t, { target: path.join(repo, 'docs', 'sub', 'secret.md'), at: path.join(repo, 'docs', 'a.md'), type: 'file' });
+  if (!link) { t.skip('this host cannot create a symlink; the realpath-driven test above covers the decision'); return; }
   const snapDir = path.join(tmp(t, 'q-r3-g7l-snap-'), 'docs');
   ds.snapshotDocGlobs({ repoRoot: repo, docPaths: ['docs/*.md'], snap: ds.createSnapshot(snapDir) });
   assert.deepEqual(fs.existsSync(snapDir) ? fs.readdirSync(snapDir) : [], []);

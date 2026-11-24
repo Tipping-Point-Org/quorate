@@ -37,6 +37,7 @@ import path from 'node:path';
 import os from 'node:os';
 import readline from 'node:readline';
 import { gitSync } from './io/git.mjs';
+import { redactClaim } from './lib/redact.mjs';
 
 function die(msg, code = 2) {
   console.error(`extract-sessions: ${msg}`);
@@ -48,9 +49,23 @@ const args = { project: 'F--quorate', out: 'blog/sessions' };
   // ONE PARSER, lib/argv.mjs's, against this script's spec in lib/argv-specs.mjs (entrypoint-argv.plan.md).
   let v;
   try { ({ values: v } = parseArgv(process.argv.slice(2), ARGV_SPECS['extract-sessions'])); } catch (e) { if (e instanceof ArgvError) die(e.message); throw e; }
-  if (v.project !== undefined) args.project = v.project;
+  if (v.project !== undefined) {
+    // One directory name below the transcript root, never a path out of it (G-7 of
+    // 20261122-055431-m3s7-b3-remediation-2-review): `..`, a separator or an absolute path reached any JSONL directory.
+    if (!v.project || /[\\/:]/.test(v.project) || v.project === '.' || v.project === '..' || path.isAbsolute(v.project)) {
+      die(`--project must be one directory name under ~/.claude/projects (got ${JSON.stringify(v.project)})`);
+    }
+    args.project = v.project;
+  }
   if (v.out !== undefined) args.out = v.out;
-  if (v.since !== undefined) args.since = v.since;
+  if (v.since !== undefined) {
+    // Compared lexically against transcript dates, so only a calendar date is a window (G-26 of 20261122-035227-m3s7-b3-review).
+    // And a date that exists (G-9 of 20261122-044843-m3s7-b3-remediation-review): Date.parse rolls 2026-02-31 over to
+    // March, so the parsed date must print back as the one given.
+    const parsed = Date.parse(v.since);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v.since) || Number.isNaN(parsed) || new Date(parsed).toISOString().slice(0, 10) !== v.since) die(`--since must be a date, YYYY-MM-DD (got ${JSON.stringify(v.since)})`);
+    args.since = v.since;
+  }
   if (v['nodes-only']) args.nodesOnly = true;
   if (v['human-only']) args.humanOnly = true;
 }
@@ -141,7 +156,7 @@ async function readSession(file) {
     userTurns: [],       // human record
     plumbingTurns: 0,    // slash-command echoes and reminders: counted, never quoted
     assistantTurns: 0,
-    tools: {},           // node record; commits come from git (commitsByDay), not from here (G-3 of 20261023-214545-ger-remediation-review)
+    tools: Object.create(null),   // keyed by transcript tool names, so no prototype (G-22 of 20261122-035227-m3s7-b3-review); node record; commits come from git (commitsByDay), not from here (G-3 of 20261023-214545-ger-remediation-review)
     models: new Set(),
     efforts: new Set(),
   };
@@ -160,11 +175,15 @@ async function readSession(file) {
     // and so is any line that is not a JSON object, whatever its first character (G-2 of 20261023-214545-ger-remediation-review).
     try { d = JSON.parse(line); if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('not a record'); } catch { s.unparsed = (s.unparsed ?? 0) + 1; continue; }
 
-    if (d.type === 'ai-title' && !s.title) s.title = String(d.aiTitle ?? '').slice(0, 120);
+    // The title, cwd and branch reach nodes.json and the summary, so they are redacted as a turn is, here where they are
+    // read (G-6 of 20261122-144505-m3s7-b3-remediation-3-review).
+    // Redacted BEFORE it is cut: a cut inside a quoted credential drops the closing quote the shape needs (G-3 of
+    // 20261122-154951-m3s7-b3-remediation-4-review).
+    if (d.type === 'ai-title' && !s.title) s.title = redactClaim(String(d.aiTitle ?? '')).slice(0, 120);
     if (d.sessionId && !s.sessionId) s.sessionId = d.sessionId;
     if (d.entrypoint && !s.entrypoint) s.entrypoint = d.entrypoint;
-    if (d.cwd && !s.cwd) s.cwd = d.cwd;
-    if (d.gitBranch && !s.branch) s.branch = d.gitBranch;
+    if (d.cwd && !s.cwd) s.cwd = redactClaim(String(d.cwd));
+    if (d.gitBranch && !s.branch) s.branch = redactClaim(String(d.gitBranch));
     if (d.timestamp) {
       if (!s.firstAt || d.timestamp < s.firstAt) s.firstAt = d.timestamp;
       if (!s.lastAt || d.timestamp > s.lastAt) s.lastAt = d.timestamp;
@@ -201,9 +220,12 @@ async function readSession(file) {
       s.plumbingTurns += 1;
       continue;
     }
+    // Redacted before the cut, as the title is (G-3 of 20261122-154951-m3s7-b3-remediation-4-review): the digest's own
+    // redaction then saw a quoted credential with its closing quote cut off.
+    const shown = redactClaim(t);
     s.userTurns.push({
       at: d.timestamp ?? null,
-      text: t.length > TEXT_CAP ? `${t.slice(0, TEXT_CAP)}\n…[${t.length - TEXT_CAP} more characters]` : t,
+      text: shown.length > TEXT_CAP ? `${shown.slice(0, TEXT_CAP)}\n…[${shown.length - TEXT_CAP} more characters]` : shown,
       quotedBack: quotedBackPrefixes(t, lastAssistantText),
       // A continuation summary is ABOUT the conversation, not speech in it. Quoting one as the
       // operator's words is second-hand at best: it is the assistant's summary of what they said.
@@ -227,7 +249,8 @@ function commitsByDay() {
   const window = Number.isNaN(sinceMs) ? [] : [`--since=${new Date(sinceMs - 86400000).toISOString().slice(0, 10)}`];
   const r = gitSync(['log', '--format=%aI%x09%s', ...window], { encoding: 'utf8' });
   const byDay = {};
-  if (r.status !== 0) return byDay;
+  // A history that could not be read is not a day with no commits (G-23 of 20261122-035227-m3s7-b3-review).
+  if (r.status !== 0) die(`git log failed (exit ${r.status ?? r.error?.code ?? 'none'}): ${String(r.stderr ?? '').trim().split('\n')[0] || 'no output'}`, 1);
   for (const line of r.stdout.split('\n')) {
     const [iso, subject] = line.split('\t');
     if (!iso || !subject) continue;
@@ -244,7 +267,9 @@ function writeHumanDigest(sessions, commits) {
   const byDay = {};
   for (const s of sessions) {
     for (const turn of s.userTurns) {
-      const day = (turn.at ?? s.firstAt ?? '').slice(0, 10) || 'undated';
+      // The day names a file, and it comes from a transcript: only a calendar date may (G-24 of 20261122-035227-m3s7-b3-review).
+      const head = String(turn.at ?? s.firstAt ?? '').slice(0, 10);
+      const day = /^\d{4}-\d{2}-\d{2}$/.test(head) ? head : 'undated';
       (byDay[day] ??= []).push({ ...turn, session: s });
     }
   }
@@ -287,10 +312,12 @@ function writeHumanDigest(sessions, commits) {
       if (t.quotedBack?.length) {
         L.push(`**${t.quotedBack.length} line(s) open by quoting the assistant.** The operator's own words`,
           'begin after the colon; the prefix is context they copied in — do not attribute it to them:', '');
-        for (const q of t.quotedBack) L.push(`  - quoted back: \`${q.replace(/`/g, "'")}\``);
+        for (const q of t.quotedBack) L.push(`  - quoted back: \`${redactClaim(q).replace(/`/g, "'")}\``);
         L.push('');
       }
-      L.push(esc(t.text).split('\n').map((l) => `> ${l}`).join('\n'), '');
+      // Redacted by the one owner (G-8 of 20261122-055431-m3s7-b3-remediation-2-review): a credential pasted into a turn
+      // was copied verbatim into the digest. Best-effort, as lib/redact.mjs says; a quoted secret never belongs on the page.
+      L.push(esc(redactClaim(t.text)).split('\n').map((l) => `> ${l}`).join('\n'), '');
     }
     fs.writeFileSync(path.join(OUT, `${day}.md`), `${L.join('\n')}\n`);
   }
@@ -364,6 +391,7 @@ async function startsBefore(file, since) {
 }
 
 const sessions = [];
+let unreadable = 0;
 for (const f of files) {
   try {
     // THE WINDOW IS APPLIED BEFORE THE READ (G-14, perf-audit). `--since` was tested against
@@ -387,8 +415,12 @@ for (const f of files) {
     // covered 170 of 171 sessions would be exactly the kind of partial record this whole project
     // refuses elsewhere.
     console.error(`  unreadable: ${path.basename(f)} (${e.code ?? e.message})`);
+    // And the run says so in its status (G-13 of 20261122-044843-m3s7-b3-remediation-review): the digests are still
+    // written, but a partial digest never exits as a complete one.
+    unreadable++;
   }
 }
+if (unreadable) process.exitCode = 1;
 
 const human = sessions.filter((s) => s.entrypoint === 'cli');
 const nodes = sessions.filter((s) => s.entrypoint !== 'cli');
@@ -402,7 +434,7 @@ if (!args.nodesOnly) {
 }
 if (!args.humanOnly) {
   const rows = writeNodeDigest(nodes);
-  const byLens = {};
+  const byLens = Object.create(null);   // keyed by a transcript title, so no prototype (G-28 of 20261122-035227-m3s7-b3-review)
   for (const r of rows) {
     const k = (r.title ?? 'untitled').toLowerCase().replace(/[^a-z-]+/g, ' ').trim().split(' ')[0] || 'untitled';
     (byLens[k] ??= []).push(r);

@@ -20,6 +20,52 @@ Two conventions worth knowing before reading:
 
 ---
 
+## 1.0.0
+
+1.0 is a promise: what `shared/compatibility.md` covers stays compatible through 1.x. The list of what a consumer must
+change is held against `check-install` by `tests/regression-upgrade-from-0.3.test.mjs`: run on a project whose contract is 0.3.1's template, `check-install`'s
+`upgrade:` line must name exactly the keys this list names, each in backticks at the start of its item.
+
+### What a consumer coming from 0.3.x must change
+
+Nothing. No contract key, flag or default changed; `graph_contract_version` is still 6.
+
+### What was wrong, and what changed
+
+- **Nothing said what a release keeps compatible.** `shared/compatibility.md` is the 1.x promise: the contract keys,
+  `gate.json` (now with a schema, `scripts/gate.schema.json`), the commands `QUORATE.md` documents, and removals flagged
+  by `check-install` a release ahead. It names what is not covered. Tests hold each set against its owner.
+- **`check-install` could not see a key quorate no longer reads.** A key removed since a project copied the template,
+  or a misspelt one, was ignored with no signal. It is now reported as stale, and the report ends with one `upgrade:`
+  line naming every contract change the project must make.
+- **A review's findings could not reach a pull request.** `scripts/pr-comments.mjs --run-dir <run> --pr <n>` posts a
+  finished run's confirmed findings as one GitHub review through `gh`: a dry run unless `--post`, refused when the pull
+  request's head is not the commit the run reviewed, and gh gets none of the operator's credentials (`QUORATE.md`).
+- **macOS was tested only by hand.** CI runs the suite on macOS on every push to the public repository.
+- **Request recovery could never write its inferred request.** It wrote `.claude/requests/<slug>.inferred.md` through the
+  run directory's owner, which refuses any path outside the run, so every recovery failed.
+- **The test helper `runScript` handed live model credentials to every child script.** It now passes the environment
+  a remediation's commit gets: secret-shaped names, the runtime's auth and the run pin removed.
+- **Whether anything below a directory leads out had several half-copies.** One owner, `firstLeadingOut`, decides it
+  for every walk and tree copy: a link or junction resolving outside, a hard-linked file, a dangling link, and an entry
+  that cannot be read all lead out (`ARCHITECTURE.md` A-30). A run holding one is not archived; it stays staged, and the
+  archive says where. A test census holds `scripts/` to the owner.
+- **The release snapshot's checks were narrower than its plan.** publish runs `gitleaks` from PATH only (the scanner
+  override a test used is gone), masks each hit's excerpt, reads only absence as no link below `--out`, and its
+  machine-path pattern catches forward-slash drive paths outside `tests/`.
+- **The doc-sync pre-commit hook could run a reviewed repository's own code.** It reads the contract only through the
+  framework beside it, identified by its plugin manifest, and checks cross-references in the bytes being committed.
+- **Model-facing prose was written inline in scripts.** Every prompt-building module keeps it in `prompts/_templates/`,
+  held by an allow-list test that names each remaining literal and why it is not prose.
+- **Every open finding on the ledger was decided** before the candidate: fixed in four review batches, closed,
+  declined, or deferred past 1.0 with a reason (`m3-v1.plan.md` stage 7).
+
+### Not measured
+
+- **The settings of `arch-review`, `perf-audit`, `ui-audit` and `feature-verify` are unmeasured.** The bench corpus has
+  no seed for any of them, so each runs at the adopted lens model and effort by inheritance, not by evidence
+  (`bench/RESULTS.md`).
+
 ## 0.3.1
 
 ### What a consumer coming from 0.3.0 must change

@@ -133,6 +133,22 @@ test('admitSpend admits when spent plus the reservation fits, and says why it re
   assert.match(admitSpend({ spent: 9.99, reserve: 2.5, budgetRun: 12, what: 'the barrier' }), /run budget cannot cover the barrier/);
   assert.equal(admitSpend({ spent: 5, reserve: Infinity, budgetRun: 12 }), null, 'an uncapped reservation has no size');
   assert.match(admitSpend({ spent: 13, reserve: Infinity, budgetRun: 12 }), /run budget exhausted before launch/);
+  // G-3 of 20261123-174149-m3s9-remediation-review-b: an uncapped node admitted when spent EQUALS the run budget, so one
+  // node of unbounded cost launched on a budget already exhausted, against the refusal's own ">=".
+  assert.match(admitSpend({ spent: 12, reserve: Infinity, budgetRun: 12 }) ?? '', /run budget exhausted before launch/,
+    'an uncapped node launched on an exhausted run budget');
+  assert.equal(admitSpend({ spent: 12, reserve: Infinity, budgetRun: Infinity }), null, 'an uncapped run is never exhausted');
+});
+
+// G-5 of 20261124-021129-m3s9-remediation-2-review-b: dollars were added as raw binary floats, so 0.10 + 0.20 > 0.30 and
+// an exact-boundary admission was refused; the same error at spent === budgetRun with an uncapped reserve.
+test('G-5: admitSpend compares dollar amounts at the boundary exactly, not as raw floats', async () => {
+  const { admitSpend } = await import('../scripts/lib/decisions.mjs');
+  assert.equal(admitSpend({ spent: 0.1, reserve: 0.2, budgetRun: 0.3 }), null, '0.10 spent + 0.20 reserved fits a 0.30 budget');
+  assert.equal(admitSpend({ spent: 0.7, reserve: 0.1, budgetRun: 0.8 }), null, '0.70 + 0.10 fits 0.80');
+  assert.match(admitSpend({ spent: 0.1, reserve: 0.21, budgetRun: 0.3 }) ?? '', /run budget cannot cover/, 'a cent over is refused');
+  assert.match(admitSpend({ spent: 0.1 + 0.2, reserve: Infinity, budgetRun: 0.3 }) ?? '', /run budget exhausted before launch/,
+    '0.1 + 0.2 spent exhausts a 0.30 budget');
 });
 
 // ------------------------------------------------------- remediation of 20261007-073125-reconcile-batches-review

@@ -1,0 +1,23 @@
+{
+  "$why": "THE BENCH FORGE'S MUTATION-SPECIFIC PROSE (lib/reconcile-mutations.mjs forgeSlots, forgeFileRule; consumer-owned-configuration.md AC2). One reconcile-rewrite.md serves all three mutations, and lib/template.mjs has no conditionals by design, so the choice of text stays in code and the words are here. The forge reading them is a model.",
+  "misanchor": {
+    "change_instruction": "Rewrite it as though the group had been anchored at `{{to_file}}:{{to_line}}` instead of `{{from_file}}:{{from_line}}`. Cite {{to_line}} as the location, with the same confidence the original had about its own line.",
+    "forbidden_rule": "**Do not mention line {{from_line}}, any line within {{tolerance}} of it, or that number in any other role.** This is checked mechanically and the rewrite is discarded if it appears."
+  },
+  "deflate": {
+    "change_instruction": "Rewrite it as though you had judged this group **{{to}}** rather than **{{from}}**. The defect, its location and its mechanism are unchanged — what changes is how bad you concluded it is. Argue {{to}} the way the original argued {{from}}: state the consequence you think follows, and why it is bounded.",
+    "forbidden_rule": "**Do not use the word {{from}} anywhere.** The original explained the severity it was written for, and a paragraph that still names it contradicts the header above it. This is checked mechanically and the rewrite is discarded if it appears.",
+    "destination_source": "(not applicable: this mutation changes the severity, not the location. The code under discussion is unchanged, and you have already seen everything the original cited.)"
+  },
+  "drop": {
+    "change_instruction": "Rewrite it as the rationale for DROPPING {{group_id}} — a reconciler explaining why these findings do not survive adjudication. The original argued for keeping it; this argues the opposite, at the same length and specificity, about the same evidence.",
+    "forbidden_rule": "**Do not argue for keeping the group, and do not hedge toward it.** A paragraph in a `Dropped` bucket that reads as a confirmation is a contradiction on its face.",
+    "destination_source": "(not applicable: this mutation changes the decision, not the location. The code under discussion is unchanged, and you have already seen everything the original cited.)"
+  },
+  "destination_unreadable": "(the destination file could not be read — do not quote or describe any source)",
+  "file_rule": {
+    "same_place": "The location does not change, so name the same file the original named.",
+    "same_file": "The file is unchanged (`{{to_file}}`); only the line moves.",
+    "other_file": "The file changes too: discuss `{{to_file}}` and do not name `{{from_base}}` at all."
+  }
+}

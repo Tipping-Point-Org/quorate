@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { runScript } from './helpers.mjs';
+import { runScript, makeLink } from './helpers.mjs';
 
 const OPEN = '<!-- rule:degraded-cap subject="`arch-review`, degraded" verdict_ceiling="RISK" severity_ceiling="MEDIUM" -->';
 const CLOSE = '<!-- /rule:degraded-cap -->';
@@ -39,9 +39,8 @@ test('a stale file reached through a symbolic link is refused, and its target is
   t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
   const stale = `${OPEN}old words${CLOSE}\n`;
   fs.writeFileSync(path.join(outside, 'target.md'), stale);
-  try { fs.symlinkSync(path.join(outside, 'target.md'), path.join(dir, 'docs', 'link.md'), 'file'); } catch (e) {
-    t.skip(`this platform cannot create a symbolic link here: ${e.code}`); return;
-  }
+  const link = makeLink(t, { target: path.join(outside, 'target.md'), at: path.join(dir, 'docs', 'link.md'), type: 'file' });
+  if (!link) { t.skip('this platform cannot create a symbolic link here'); return; }
   const r = runScript('gen-rule-text.mjs', ['--root', dir], { cwd: dir });
   assert.notEqual(r.status, 0, r.output);
   assert.match(r.output, /link\.md/);

@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "gate",
+  "description": "The shape of gate.json, the one run artifact the compatibility policy covers (shared/compatibility.md). Written by writeGate in scripts/run-graph.mjs, its only writer. Every property here keeps its name, type and meaning within 1.x; new properties may be added, so a reader ignores what it does not know, which is why no object here sets additionalProperties to false. scripts/compatibility.json freezes these paths and types at 1.0.",
+  "type": "object",
+  "required": [
+    "run_id", "gate", "reason", "max_verdict", "stamps", "adjudicated_floor", "adjudication", "scope",
+    "intent_sha256", "preflight", "framework", "nodes", "buckets", "reconcile_state", "reconcile_reask",
+    "total_cost_usd", "reviewer_overrides"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "gate": { "type": "string", "enum": ["PASS", "RISK", "FAIL", "BLOCKED"] },
+    "reason": { "type": ["string", "null"] },
+    "max_verdict": { "type": "string", "enum": ["PASS", "RISK"] },
+    "stamps": { "type": "array", "items": { "type": "string" } },
+    "adjudicated_floor": { "type": "string", "enum": ["PASS", "RISK", "FAIL"] },
+    "adjudication": {
+      "type": ["object", "null"],
+      "description": "Two forms: the whole summary with crashed beside it, or crashed alone (a string) when adjudication crashed before any summary existed.",
+      "required": ["crashed"],
+      "anyOf": [
+        { "required": ["adjudicated", "decided", "tied", "inquorate", "absent", "single_judge", "agreement", "per_judge"] },
+        {
+          "properties": { "crashed": { "type": "string" } },
+          "not": {
+            "anyOf": [
+              { "required": ["adjudicated"] }, { "required": ["decided"] }, { "required": ["tied"] },
+              { "required": ["inquorate"] }, { "required": ["absent"] }, { "required": ["single_judge"] },
+              { "required": ["agreement"] }, { "required": ["per_judge"] }
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "adjudicated": { "type": "number" },
+        "decided": { "type": "number" },
+        "tied": { "type": "number" },
+        "inquorate": { "type": "number" },
+        "absent": { "type": "number" },
+        "single_judge": { "type": "number" },
+        "crashed": { "type": ["string", "null"] },
+        "agreement": {
+          "type": "object",
+          "required": ["pairs_compared", "rate", "kappa", "kappa_why"],
+          "properties": {
+            "pairs_compared": { "type": "number" },
+            "rate": { "type": ["number", "null"] },
+            "kappa": { "type": ["number", "null"] },
+            "kappa_why": { "type": ["string", "null"] }
+          }
+        },
+        "per_judge": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["judge", "reviewer", "party", "voted", "absent", "illegible", "votes"],
+            "properties": {
+              "judge": { "type": "string" },
+              "reviewer": { "type": ["string", "null"] },
+              "party": { "type": "boolean" },
+              "voted": { "type": "number" },
+              "absent": { "type": "number" },
+              "illegible": { "type": "number" },
+              "votes": { "type": "object", "additionalProperties": { "type": "number" } }
+            }
+          }
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": ["full_sweep", "paths", "changed_files"],
+      "properties": {
+        "full_sweep": { "type": "boolean" },
+        "remediation": { "type": "boolean" },
+        "paths": { "type": "array", "items": { "type": "string" } },
+        "changed_files": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "intent_sha256": { "type": ["string", "null"] },
+    "preflight": {
+      "type": "object",
+      "required": ["state", "from", "inputs_inferred", "evidence_restored", "reason"],
+      "properties": {
+        "state": { "type": "string" },
+        "from": { "type": ["string", "null"] },
+        "inputs_inferred": { "type": "boolean" },
+        "evidence_restored": { "type": ["boolean", "null"] },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "framework": {
+      "type": "object",
+      "required": ["name", "version", "commit", "dirty", "layout"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "commit": { "type": "string" },
+        "dirty": { "type": ["boolean", "null"] },
+        "layout": { "type": ["string", "null"] }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "node_id", "required", "required_by_roster", "deselected", "state", "verdict", "findings_count",
+          "report_path", "report_sha256", "evidence_dir", "skip_reason", "session_id", "total_cost_usd"
+        ],
+        "properties": {
+          "node_id": { "type": "string" },
+          "required": { "type": "boolean" },
+          "required_by_roster": { "type": "boolean" },
+          "deselected": { "type": "boolean" },
+          "state": { "type": "string" },
+          "verdict": { "type": ["string", "null"], "enum": ["PASS", "RISK", "FAIL", null] },
+          "findings_count": { "type": "number" },
+          "report_path": { "type": ["string", "null"] },
+          "report_sha256": { "type": ["string", "null"] },
+          "evidence_dir": { "type": "string" },
+          "skip_reason": { "type": ["string", "null"] },
+          "session_id": { "type": ["string", "null"] },
+          "total_cost_usd": { "type": ["number", "null"] }
+        }
+      }
+    },
+    "buckets": {
+      "type": "object",
+      "required": ["ok", "did_not_report", "not_checked", "orphan_reports"],
+      "properties": {
+        "ok": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["node_id", "verdict", "findings"],
+            "properties": {
+              "node_id": { "type": "string" },
+              "verdict": { "type": "string", "enum": ["PASS", "RISK", "FAIL"] },
+              "findings": { "type": "number" },
+              "source": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "did_not_report": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["node_id", "why"],
+            "properties": { "node_id": { "type": "string" }, "why": { "type": "string" } }
+          }
+        },
+        "not_checked": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["node_id", "why"],
+            "properties": { "node_id": { "type": "string" }, "why": { "type": "string" } }
+          }
+        },
+        "orphan_reports": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "reconcile_state": { "type": "string" },
+    "reconcile_reask": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "required": [
+          "node", "groups", "batches", "batches_planned", "state", "judged", "missing", "total_cost_usd",
+          "total_cost_usd_known", "duration_ms", "report_sha256"
+        ],
+        "properties": {
+          "node": { "type": ["string", "null"] },
+          "state": { "type": "string" },
+          "groups": { "type": "array", "items": { "type": "string" } },
+          "judged": { "type": "array", "items": { "type": "string" } },
+          "missing": { "type": "array", "items": { "type": "string" } },
+          "batches": { "type": ["number", "null"] },
+          "batches_planned": { "type": ["number", "null"] },
+          "why": { "type": ["string", "null"] },
+          "duration_ms": { "type": ["number", "null"] },
+          "report_path": { "type": ["string", "null"] },
+          "report_sha256": { "type": ["string", "null"] },
+          "total_cost_usd": { "type": ["number", "null"] },
+          "total_cost_usd_known": { "type": ["number", "null"] },
+          "validator_errors": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "total_cost_usd": { "type": "number" },
+    "reviewer_overrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "roles", "fields", "prefixes"],
+        "properties": {
+          "name": { "type": "string" },
+          "roles": { "type": "array", "items": { "type": "string" } },
+          "fields": { "type": "array", "items": { "type": "string" } },
+          "prefixes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

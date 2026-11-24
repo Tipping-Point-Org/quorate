@@ -23,7 +23,8 @@ export const RECONCILE_MAX_GROUPS = 80;
  *
  * Returns { batches: group[][], splitFiles: string[] }. One batch when everything fits — the unbatched case.
  */
-export function reconcileBatches(groups, max = RECONCILE_MAX_GROUPS) {
+// `max` has NO default (G-28 of 20261121-193516-m3s7-b1-review): the caller names it, RECONCILE_MAX_GROUPS in run-graph.
+export function reconcileBatches(groups, max) {
   if (!Number.isInteger(max) || max < 1) throw new Error(`reconcileBatches: max must be a positive integer, got ${max}`);
   const byFile = [];
   for (const g of groups) {
@@ -121,15 +122,59 @@ export function validateBatchReply(batch, payload) {
  * outside them is a guess; on any barrier, a link to an id no row carries points at nothing. Such a link is cleared —
  * the row keeps its decision and rationale — and returned as `{ from, to }` so the run can name it.
  */
+//
+// A SYMPTOM WITH NO ROOT IS CONFIRMED, AND NAMED (G-7 of 20261121-204740-m3s7-b1-remediation-review; I-13): a row decided
+// `symptom` whose root_cause_group was never given, or was cleared here, is fixed by no root, so it was neither
+// remediable nor reported, and it blocked the groups sharing its files. It is returned `confirmed`, keeping its severity
+// and rationale, and its id is in `orphaned` so the run names the change.
+//
+// A SYMPTOM'S LINK MUST LEAD TO A CONFIRMED ROOT (G-14 of 20261121-233915-m3s7-b2-review): membership in the judged set
+// let a symptom name itself, a group decided `dropped` or `coincidence`, or another symptom in a cycle, and its chain then
+// reached no confirmed group, so symptomRoot found none and the runner refused it as unconfirmed. Such a link is cleared
+// and named in `cleared` like a link to nothing, and the symptom is confirmed and named in `orphaned`. A direct link to a
+// group that is neither confirmed nor a symptom is cleared first; then, in row order, a symptom whose chain cycles has its
+// own link cleared, which gives the rest of its cycle a confirmed root.
 export function checkRootLinks(rows) {
   const judged = new Set(rows.map((r) => r.group_id));
   const cleared = [];
-  const out = rows.map((r) => {
-    if (!r.root_cause_group || judged.has(r.root_cause_group)) return r;
-    cleared.push({ from: r.group_id, to: r.root_cause_group });
-    return { ...r, root_cause_group: '' };
-  });
-  return { rows: out, cleared };
+  const orphaned = [];
+  const clear = (row) => { cleared.push({ from: row.group_id, to: row.root_cause_group }); return { ...row, root_cause_group: '' }; };
+  const out = rows.map((r) => (r.root_cause_group && !judged.has(r.root_cause_group) ? clear(r) : r));
+  const decisionOf = (id) => out.find((r) => r.group_id === id)?.decision;
+  for (let i = 0; i < out.length; i++) {
+    const row = out[i];
+    if (row.decision !== 'symptom' || !row.root_cause_group) continue;
+    const to = decisionOf(row.root_cause_group);
+    if (row.root_cause_group === row.group_id || (to !== 'confirmed' && to !== 'symptom')) out[i] = clear(row);
+  }
+  const promote = (i) => { orphaned.push(out[i].group_id); out[i] = { ...out[i], decision: 'confirmed' }; };
+  for (let i = 0; i < out.length; i++) if (out[i].decision === 'symptom' && !out[i].root_cause_group) promote(i);
+  // 'confirmed', 'self' (the chain returns to where it started: it is in the cycle) or 'none' (it runs into one).
+  const walk = (start) => {
+    const seen = new Set([start.group_id]);
+    for (let at = start.root_cause_group; at; ) {
+      if (at === start.group_id) return 'self';
+      const target = out.find((r) => r.group_id === at);
+      if (!target) return 'none';
+      if (target.decision === 'confirmed') return 'confirmed';
+      if (target.decision !== 'symptom' || seen.has(at)) return 'none';
+      seen.add(at);
+      at = target.root_cause_group;
+    }
+    return 'none';
+  };
+  // A cycle is broken at its first member in row order; a symptom leading into it then reaches that member.
+  for (const pass of ['self', 'none']) {
+    for (let i = 0; i < out.length; i++) {
+      if (out[i].decision !== 'symptom' || walk(out[i]) !== pass) continue;
+      out[i] = clear(out[i]);
+      promote(i);
+    }
+  }
+  // `orphaned` keeps the rows' order, as it did when it was filled in one pass.
+  const order = new Map(rows.map((r, i) => [r.group_id, i]));
+  orphaned.sort((a, b) => order.get(a) - order.get(b));
+  return { rows: out, cleared, orphaned };
 }
 
 /**
@@ -260,9 +305,28 @@ export function batchLoopState({ done, exhausted }) {
  */
 export const reaskAttempts = (status) => {
   const r = status?.reask;
-  if (Array.isArray(r)) return r;
-  return r && typeof r === 'object' ? [r] : [];
+  const list = Array.isArray(r) ? r : (r && typeof r === 'object' ? [r] : []);
+  return list.map(normalizeReaskAttempt);
 };
+
+/**
+ * THE FIELDS EVERY RE-ASK ATTEMPT CARRIES IN gate.json (gate-schema-at-writer.plan.md stage 1; GS-D3 A). An attempt an
+ * older engine recorded lacks some: the single-object `reask` before 337ef0ba had no node, batches, batches_planned,
+ * total_cost_usd_known or report_sha256, and a resumed run copied it into the gate unchanged, which then failed the
+ * schema the gate is written against (G-9 of 20261124-115750-m3s9-remediation-5-review-b). Each one absent is null: not
+ * recorded, which gate.schema.json allows for exactly these. A list field absent is an empty list.
+ */
+export const REASK_ATTEMPT_FIELDS = Object.freeze(['node', 'groups', 'batches', 'batches_planned', 'state', 'judged',
+  'missing', 'total_cost_usd', 'total_cost_usd_known', 'duration_ms', 'report_sha256']);
+const REASK_LIST_FIELDS = new Set(['groups', 'judged', 'missing']);
+function normalizeReaskAttempt(a) {
+  const out = a && typeof a === 'object' && !Array.isArray(a) ? { ...a } : {};
+  for (const k of REASK_ATTEMPT_FIELDS) {
+    if (Object.hasOwn(out, k) && out[k] !== undefined) continue;
+    out[k] = REASK_LIST_FIELDS.has(k) ? [] : null;
+  }
+  return out;
+}
 
 /**
  * EVERY ARTIFACT A RECONCILE OR ITS CALIBRATION WRITES THAT A LATER STEP READS OR REUSES (design §5; G-8 of

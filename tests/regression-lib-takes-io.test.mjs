@@ -171,9 +171,16 @@ test('reviewers and run-artifacts read through io', () => {
     if (!/run\.json$/.test(p)) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
     return { isSymbolicLink: () => false, isFile: () => true, isDirectory: () => false };
   };
+  // run.json is read bounded, through a descriptor (G-3 of 20261124-160743-gsw-remediation-2-review-b), so the fake
+  // serves the record's bytes through openSync/readSync as well as readFileSync.
+  const record = Buffer.from('{"run_id":"20260101-000000-x"}');
+  let at = 0;
   const runOnly = { fs: {
     existsSync: (p) => /run\.json$/.test(p), lstatSync: only, statSync: only,
-    readFileSync: () => '{"run_id":"20260101-000000-x"}', realpathSync: (p) => path.resolve(p),
+    readFileSync: () => record.toString('utf8'), realpathSync: (p) => path.resolve(p),
+    openSync: (p) => { if (!/run\.json$/.test(p)) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' }); at = 0; return 7; },
+    readSync: (fd, buf, off, len) => { const n = record.copy(buf, off, at, Math.min(record.length, at + len)); at += n; return n; },
+    closeSync: () => {},
   } };
   assert.doesNotThrow(() => artifacts.collectRun('/run', { io: runOnly }), 'a run holding only its record reads as empty, from io alone');
   assert.throws(() => artifacts.collectRun('/run', { io }), (e) => e?.name === 'RunRefused', 'a directory with no record is not refused');

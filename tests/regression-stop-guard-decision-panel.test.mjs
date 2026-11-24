@@ -11,7 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { guardDecision } from '../scripts/lib/stop-record.mjs';
+import { guardDecision } from '../scripts/io/stop-record.mjs';
 import { sessionHookEnv } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

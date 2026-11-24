@@ -19,10 +19,10 @@ written to disk before it was claimed. **A required lens that did not report mak
 each. It is developed on the Active LTS, **26**, and moves to the next line when that one enters maintenance. A line
 leaves the supported set at its end of life, by Node's own schedule
 (`https://raw.githubusercontent.com/nodejs/Release/main/schedule.json`). No engine code may need a feature newer than
-the oldest supported line. (`.claude/requests/node-support-policy.md`.)
+the oldest supported line.
 
-**Test selection needs Node ≥ 24.20 to record at full speed** (decided 2026-10-27, not built yet;
-`.claude/requests/test-selection-by-recorded-reads.md`). It will record which files each test reads with Node's
+**Test selection needs Node ≥ 24.20 to record at full speed** (decided 2026-10-27, not built yet, and
+deferred past 1.0). It will record which files each test reads with Node's
 Permission Model in audit mode (`--permission-audit`), which every process of the recorded run must accept, so every
 `node` the suite starts has to be 24.20 or newer. On an older line it falls back to a slower recorder: on a 20-test
 sample on Windows, +1.2 s per run against +0.1 s. That fallback is what keeps the rule above; that it works on Node 22
@@ -110,7 +110,9 @@ is still to be checked.
    `CLAUDE.md` — whose *meaning* can change underneath it. `budget_usd_per_node: ""` once meant a
    `$0` cap that blocked every node and now means uncapped: same text, opposite behaviour, no
    signal. This names anything stale and how to fix it, by comparing actual state rather than a
-   version recorded at install time.
+   version recorded at install time. Its `upgrade:` line lists every change your contract needs for
+   the mounted quorate, and a release's CHANGELOG list of what a consumer must change is held to it
+   (`shared/compatibility.md` says what 1.x keeps compatible).
 
    It also reports whether `.claude/quorate/test-profile.md` exists, because a MOUNTED test writer is not a
    LOCALISED one. `unit-test-writer` and `integration-test-writer` are deliberately portable: they
@@ -431,6 +433,13 @@ file, "With the decision panel on".
   `node .claude/skills/quorate/scripts/code-index.mjs <shape> --args '<json>'` rather than writing a throwaway sweep.
   An `unresolved` or `partial` answer means "could not tell", never "no". `shared/code-index.md` owns the shapes,
   the outcomes and the extractors.
+- **When the operator asks for a review's findings on a pull request**, run
+  `node .claude/skills/quorate/scripts/pr-comments.mjs --run-dir <run> --pr <number>` once the run has gated. It prints
+  the one GitHub review it would post (an inline comment per confirmed finding whose line is in the pull request's diff,
+  and a summary with the gate, the lenses that did not report and the rest) and sends nothing; show it to the operator,
+  and add `--post` only on their word. It goes through `gh` and its login, and refuses a run whose tree was dirty outside
+  `generated_globs` (or could not tell) or whose reviewed commit is not the pull request's head. `scripts/lib/pr-comments.mjs` owns what is posted and when it is
+  refused.
 - **When the operator asks what reviews cost or catch**, run `node .claude/skills/quorate/scripts/telemetry.mjs report`
   (`--since <date>`, `--kind <kind>`). Finished runs, claim checks, plan-review rounds and bench runs write a local
   record, best-effort (one that could not be written is missing until `telemetry.mjs backfill`), and the report adds up

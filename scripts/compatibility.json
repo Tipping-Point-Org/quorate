@@ -1,0 +1,326 @@
+{
+  "$comment": "What 1.x promises, frozen at 1.0. shared/compatibility.md is the policy; scripts/lib/compatibility.mjs checks each set against its current authority (before 1.0: equal; from 1.0: this a subset). Regenerate a set only by adding to it within 1.x.",
+  "frozen_at": "1.0.0",
+  "contract_keys": [
+    "code_index",
+    "code_index.*",
+    "code_index.*.env",
+    "code_index.*.extractor",
+    "code_index.*.globs",
+    "code_index.*.options",
+    "commands",
+    "commands.audit",
+    "commands.bench",
+    "commands.build",
+    "commands.deny",
+    "commands.fmt_check",
+    "commands.lint",
+    "commands.run",
+    "commands.shell",
+    "commands.test",
+    "commands.test_one",
+    "commands.test_product",
+    "commands.typecheck",
+    "doc_paths",
+    "doc_roles",
+    "doc_roles.architecture",
+    "doc_roles.request",
+    "doc_roles.roadmap",
+    "doc_roles.spec",
+    "generated_globs",
+    "graph_contract_version",
+    "hooks",
+    "hooks.secret_scan",
+    "lenses",
+    "lenses.*",
+    "lenses.*.condition",
+    "lenses.*.condition.type",
+    "lenses.*.instructions",
+    "lenses.*.timeout_minutes",
+    "project",
+    "review",
+    "review.barrier_timeout_minutes",
+    "review.budget_usd_per_barrier",
+    "review.budget_usd_per_node",
+    "review.budget_usd_per_run",
+    "review.candidate_env",
+    "review.capture_max_mb",
+    "review.capture_preview_lines",
+    "review.check_timeout_minutes",
+    "review.checks_concurrency",
+    "review.claim_check_transcript",
+    "review.code_index_cache_max_mb",
+    "review.code_index_timeout_minutes",
+    "review.concurrency",
+    "review.convergence_floor",
+    "review.decision_panel",
+    "review.decision_rounds",
+    "review.decision_rounds_max",
+    "review.effort",
+    "review.effort.judgment",
+    "review.external_panel",
+    "review.grounding_floor",
+    "review.intent_timeout_minutes",
+    "review.models",
+    "review.models.judgment",
+    "review.models.mechanical",
+    "review.node_timeout_minutes",
+    "review.panel_snapshot_max_mb",
+    "review.preflight_cache_max_mb",
+    "review.preflight_inputs",
+    "review.reviewer_probe_max_age_hours",
+    "review.reviews_dir",
+    "review.run_spend_max",
+    "review.run_time_limit_hours",
+    "review.runtime",
+    "review.session_record_retention_days",
+    "reviewers",
+    "reviewers.*",
+    "reviewers.*.args",
+    "reviewers.*.cmd",
+    "reviewers.*.effort",
+    "reviewers.*.effort.flag",
+    "reviewers.*.effort.style",
+    "reviewers.*.env_names",
+    "reviewers.*.needs_shell_on_windows",
+    "reviewers.*.prompt",
+    "reviewers.*.prompt.via",
+    "reviewers.*.response",
+    "reviewers.*.response.field",
+    "reviewers.*.response.from",
+    "source_globs",
+    "test_globs",
+    "threat_model",
+    "ui",
+    "ui.static_bundle",
+    "ui.surface"
+  ],
+  "gate_fields": {
+    "adjudicated_floor": "string{FAIL,PASS,RISK}",
+    "adjudication": "null|object",
+    "adjudication.absent": "number",
+    "adjudication.adjudicated": "number",
+    "adjudication.agreement": "object",
+    "adjudication.agreement.kappa": "null|number",
+    "adjudication.agreement.kappa_why": "null|string",
+    "adjudication.agreement.pairs_compared": "number",
+    "adjudication.agreement.rate": "null|number",
+    "adjudication.crashed": "null|string",
+    "adjudication.decided": "number",
+    "adjudication.inquorate": "number",
+    "adjudication.per_judge": "array",
+    "adjudication.per_judge[]": "object",
+    "adjudication.per_judge[].absent": "number",
+    "adjudication.per_judge[].illegible": "number",
+    "adjudication.per_judge[].judge": "string",
+    "adjudication.per_judge[].party": "boolean",
+    "adjudication.per_judge[].reviewer": "null|string",
+    "adjudication.per_judge[].voted": "number",
+    "adjudication.per_judge[].votes": "object",
+    "adjudication.per_judge[].votes.*": "number",
+    "adjudication.single_judge": "number",
+    "adjudication.tied": "number",
+    "buckets": "object",
+    "buckets.did_not_report": "array",
+    "buckets.did_not_report[]": "object",
+    "buckets.did_not_report[].node_id": "string",
+    "buckets.did_not_report[].why": "string",
+    "buckets.not_checked": "array",
+    "buckets.not_checked[]": "object",
+    "buckets.not_checked[].node_id": "string",
+    "buckets.not_checked[].why": "string",
+    "buckets.ok": "array",
+    "buckets.ok[]": "object",
+    "buckets.ok[].findings": "number",
+    "buckets.ok[].node_id": "string",
+    "buckets.ok[].source": "null|string",
+    "buckets.ok[].verdict": "string{FAIL,PASS,RISK}",
+    "buckets.orphan_reports": "array",
+    "buckets.orphan_reports[]": "string",
+    "framework": "object",
+    "framework.commit": "string",
+    "framework.dirty": "boolean|null",
+    "framework.layout": "null|string",
+    "framework.name": "string",
+    "framework.version": "string",
+    "gate": "string{BLOCKED,FAIL,PASS,RISK}",
+    "intent_sha256": "null|string",
+    "max_verdict": "string{PASS,RISK}",
+    "nodes": "array",
+    "nodes[]": "object",
+    "nodes[].deselected": "boolean",
+    "nodes[].evidence_dir": "string",
+    "nodes[].findings_count": "number",
+    "nodes[].node_id": "string",
+    "nodes[].report_path": "null|string",
+    "nodes[].report_sha256": "null|string",
+    "nodes[].required": "boolean",
+    "nodes[].required_by_roster": "boolean",
+    "nodes[].session_id": "null|string",
+    "nodes[].skip_reason": "null|string",
+    "nodes[].state": "string",
+    "nodes[].total_cost_usd": "null|number",
+    "nodes[].verdict": "null|string{FAIL,PASS,RISK,null}",
+    "preflight": "object",
+    "preflight.evidence_restored": "boolean|null",
+    "preflight.from": "null|string",
+    "preflight.inputs_inferred": "boolean",
+    "preflight.reason": "null|string",
+    "preflight.state": "string",
+    "reason": "null|string",
+    "reconcile_reask": "array|null",
+    "reconcile_reask[]": "object",
+    "reconcile_reask[].batches": "null|number",
+    "reconcile_reask[].batches_planned": "null|number",
+    "reconcile_reask[].duration_ms": "null|number",
+    "reconcile_reask[].groups": "array",
+    "reconcile_reask[].groups[]": "string",
+    "reconcile_reask[].judged": "array",
+    "reconcile_reask[].judged[]": "string",
+    "reconcile_reask[].missing": "array",
+    "reconcile_reask[].missing[]": "string",
+    "reconcile_reask[].node": "null|string",
+    "reconcile_reask[].report_path": "null|string",
+    "reconcile_reask[].report_sha256": "null|string",
+    "reconcile_reask[].state": "string",
+    "reconcile_reask[].total_cost_usd": "null|number",
+    "reconcile_reask[].total_cost_usd_known": "null|number",
+    "reconcile_reask[].validator_errors": "array",
+    "reconcile_reask[].validator_errors[]": "string",
+    "reconcile_reask[].why": "null|string",
+    "reconcile_state": "string",
+    "reviewer_overrides": "array",
+    "reviewer_overrides[]": "object",
+    "reviewer_overrides[].fields": "array",
+    "reviewer_overrides[].fields[]": "string",
+    "reviewer_overrides[].name": "string",
+    "reviewer_overrides[].prefixes": "array",
+    "reviewer_overrides[].prefixes[]": "string",
+    "reviewer_overrides[].roles": "array",
+    "reviewer_overrides[].roles[]": "string",
+    "run_id": "string",
+    "scope": "object",
+    "scope.changed_files": "array",
+    "scope.changed_files[]": "string",
+    "scope.full_sweep": "boolean",
+    "scope.paths": "array",
+    "scope.paths[]": "string",
+    "scope.remediation": "boolean",
+    "stamps": "array",
+    "stamps[]": "string",
+    "total_cost_usd": "number"
+  },
+  "commands": {
+    "new-run": {
+      "flags": [
+        "--dry-run",
+        "--full-sweep",
+        "--remediates"
+      ],
+      "words": []
+    },
+    "run-graph": {
+      "flags": [
+        "--preflight",
+        "--skip-preflight"
+      ],
+      "words": []
+    },
+    "check-install": {
+      "flags": [],
+      "words": []
+    },
+    "preflight": {
+      "flags": [
+        "--run"
+      ],
+      "words": []
+    },
+    "stop-guard": {
+      "flags": [
+        "--stop-failure",
+        "--turn-start"
+      ],
+      "words": []
+    },
+    "stop-log": {
+      "flags": [
+        "--summary"
+      ],
+      "words": []
+    },
+    "run-session": {
+      "flags": [
+        "--session-start"
+      ],
+      "words": []
+    },
+    "command-log": {
+      "flags": [
+        "--after"
+      ],
+      "words": []
+    },
+    "check-reviewers": {
+      "flags": [],
+      "words": []
+    },
+    "findings-ledger": {
+      "flags": [
+        "--run-dir",
+        "--repo-root",
+        "--summary",
+        "--stale",
+        "--operator-quote"
+      ],
+      "words": []
+    },
+    "remediate": {
+      "flags": [],
+      "words": []
+    },
+    "capture": {
+      "flags": [
+        "--interactive"
+      ],
+      "words": []
+    },
+    "code-index": {
+      "flags": [
+        "--args"
+      ],
+      "words": []
+    },
+    "telemetry": {
+      "flags": [
+        "--since",
+        "--kind"
+      ],
+      "words": [
+        "report",
+        "backfill"
+      ]
+    },
+    "pr-comments": {
+      "flags": [
+        "--run-dir",
+        "--pr",
+        "--post"
+      ],
+      "words": []
+    },
+    ".claude/hooks/install.mjs": {
+      "flags": [
+        "--force"
+      ],
+      "words": []
+    }
+  },
+  "not_quorate_flags": {
+    "$comment": "Flags QUORATE.md mentions that belong to another program, so no quorate command promises them.",
+    "--permission-audit": "node",
+    "--inline-skill": "the node runtime (claude)",
+    "--no-verify": "git"
+  },
+  "deprecated": []
+}

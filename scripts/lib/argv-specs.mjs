@@ -161,6 +161,9 @@ export const ARGV_SPECS = {
   'check-install': { options: { 'repo-root': 'string' } },
   'check-counted-facts': { options: { 'tests-count': 'string', doc: 'string' } },
   'check-secrets': { options: { mode: 'boolean' } },
+  // A finished review posted to a pull request (pr-review-comments.md): --run-dir and --pr required, --post sends; --gh-bin
+  // replaces `gh` with a fixture's fake and is not documented.
+  'pr-comments': { options: { 'run-dir': 'string', pr: 'string', post: 'boolean', 'repo-root': 'string', 'gh-bin': 'string' } },
   // One release snapshot (m2-public-release.plan.md stage 2): --ref is required, --out and --identity unless --dry-run.
   publish: {
     options: {

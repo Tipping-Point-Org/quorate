@@ -56,6 +56,7 @@ import { CONTRACT_CANDIDATES } from './lib/contract-source.mjs';
 import { admitRun, callerRepoRoot, printedRunDir, archivedReviewsDir } from './io/reviews-root.mjs';
 import { gitSync } from './io/git.mjs';
 import { writeBenchRecord } from './io/telemetry-record.mjs';
+import { firstLeadingOut, LEADS_OUT_KIND } from './io/finding-scope.mjs';
 
 // Fails CLOSED like every entry point that starts graph work (disk-first-protocol §8): a lens
 // that benchmarks lenses is an unbounded fan-out with a bill attached.
@@ -152,7 +153,7 @@ if (args.scoreOnly) {
   const admitted = admitRun({ runDir: path.resolve(args.runDir), repoRoot: callerRepoRoot(), noRepository: true });
   if (!admitted.ok) die(`--score-only: --run-dir ${admitted.why}`);
   let collected;
-  try { collected = collectRun(admitted.dir); } catch (err) {
+  try { collected = collectRun(confined(admitted.dir)); } catch (err) {
     if (err?.name === 'RunRefused') die(`--score-only: ${err.message}`);
     throw err;
   }
@@ -244,12 +245,12 @@ if (process.env.QUORATE_BENCH !== '1') {
 // ------------------------------------------------------------------------------- live bench
 function sh(cmd, argv, opts = {}) {
   const r = spawnSync(cmd, argv, { encoding: 'utf8', ...opts });
-  return { status: r.status ?? -1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+  return { status: r.status ?? -1, out: `${r.stdout ?? ''}${r.stderr ?? ''}`, stdout: r.stdout ?? '' };
 }
 // The same shape for git, through the engine's one git owner (engine-git-env.plan.md stage 3, A-29).
 function shGit(argv, opts = {}) {
   const r = gitSync(argv, { encoding: 'utf8', ...opts });
-  return { status: r.status ?? -1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+  return { status: r.status ?? -1, out: `${r.stdout ?? ''}${r.stderr ?? ''}`, stdout: r.stdout ?? '' };
 }
 
 // shAsync and the git lock now live in lib/pool.mjs, beside runPool, because they are halves of the
@@ -437,7 +438,7 @@ async function runSeed(e) {
     const {
       findingsByNode, costsByNode, usageByNode, turnsByNode, durationsByNode, configByNode,
       reconcileDecisions, groupIndex, refused,
-    } = collectRun(runDir);   // RunRefused lands in the catch below: the seed is NOT RUN, never a miss (G-4)
+    } = collectRun(confined(runDir));   // RunRefused lands in the catch below: the seed is NOT RUN, never a miss (G-4)
     const tol = e.manifest.tolerance ?? args.tolerance;
     const score = scoreSeed({
       manifest: e.manifest, findingsByNode, defectLine, tolerance: tol,
@@ -483,7 +484,7 @@ async function runSeed(e) {
         // its unadmitted spelling, and the run admission refused is not read here either. A refusal is recorded below.
         const spendRun = admitRun({ runDir, repoRoot: wt });
         if (!spendRun.ok) throw Object.assign(new Error(`run directory refused: ${spendRun.why}`), { name: 'RunRefused', why: spendRun.why });
-        const { costsByNode, usageByNode, refused } = collectRun(spendRun.dir);
+        const { costsByNode, usageByNode, refused } = collectRun(confined(spendRun.dir));
         if (Object.keys(costsByNode).length || Object.keys(usageByNode).length || Object.keys(refused).length) {
           unscoredSpend.push({ seed: e.id, costs: costsByNode, usage: usageByNode, refused });
         }
@@ -528,6 +529,10 @@ async function runSeed(e) {
         // That also makes the benchmark measure itself: seed timings taken while a neighbour was
         // copying are inflated by an amount nothing records, on a tool whose entire output is
         // comparative numbers.
+        // NOTHING THAT LEADS OUT IS PRESERVED (link-leaving-owner.plan.md stage 3, LL-D4): fs.promises.cp keeps a link as a
+        // link and copies a hard-linked file's content. Judged by the one owner first; a refusal keeps the worktree, below.
+        const out = firstLeadingOut(runDir, { leaving: true });
+        if (out) throw new Error(`${out.path} in the run is ${LEADS_OUT_KIND[out.kind]}; it is not preserved`);
         await fs.promises.cp(runDir, dest, { recursive: true });
         say(`   preserved the run at ${path.relative(FRAMEWORK_ROOT, dest)}`);
       } catch (e2) {
@@ -614,7 +619,8 @@ const result = {
   // date are all recorded, and a reader comparing two result files must check all three before
   // treating a difference as a change in the framework rather than in the model underneath it.
   config: {
-    corpus_commit: shGit(['rev-parse', 'HEAD'], { cwd: FRAMEWORK_ROOT }).out.trim(),
+    // A failed rev-parse records `unknown`, not git's error text as a commit (the G-10 class, 20261122-035227-m3s7-b3-review).
+    corpus_commit: (() => { const c = shGit(['rev-parse', 'HEAD'], { cwd: FRAMEWORK_ROOT }); return c.status === 0 && c.stdout.trim() ? c.stdout.trim() : 'unknown'; })(),
     framework: frameworkStamp(FRAMEWORK_ROOT, { layout: 'bench' }),
     // Declared in the REPOSITORY's contract, read at a different moment from the sweep — so when
     // `--effort`/`--model` are given these describe a setting the run did not use. Measured on the
@@ -645,8 +651,12 @@ const result = {
     runtime: BENCH_RUNTIME_NAME,
     // SCRUBBED, as new-run's version probe is (G-23): sh() with no env handed the runtime every secret the shell held
     // (plan-review round 11 of reviewer-credential-routing). A version string is not worth a credential.
-    runtime_version: (sh(BENCH_RUNTIME.cmd, entrypoint(BENCH_RUNTIME, 'version_argv'), { env: subscriptionProbeEnv(process.env, BENCH_RUNTIME).env }).out || 'unknown')
-      .trim().split(String.fromCharCode(10))[0],
+    // A probe that failed records `unknown`, never its error text as a version (G-10 of 20261122-035227-m3s7-b3-review).
+    runtime_version: (() => {
+      const v = sh(BENCH_RUNTIME.cmd, entrypoint(BENCH_RUNTIME, 'version_argv'), { env: subscriptionProbeEnv(process.env, BENCH_RUNTIME).env });
+      // stdout alone: a warning on stderr is not the version (G-3 of 20261122-055431-m3s7-b3-remediation-2-review).
+      return (v.status === 0 && v.stdout.trim()) ? v.stdout.trim().split(String.fromCharCode(10))[0] : 'unknown';
+    })(),
     node_version: process.version,
     measured_at: startedAt,
     alias_caveat:

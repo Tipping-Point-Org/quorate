@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { SCRIPTS_DIR, REPO_ROOT } from './helpers.mjs';
+import { SCRIPTS_DIR, REPO_ROOT, makeLink } from './helpers.mjs';
 import { answer, sweepMatches } from '../scripts/lib/code-index-query.mjs';
 import { headMatchesPin } from '../scripts/lib/code-index-cache.mjs';
 import { TABLES } from '../scripts/lib/code-index-spec.mjs';
@@ -198,10 +198,8 @@ test('G-11 of 043006 / G-12 of 061457: a manifest path whose real path is outsid
   const r = repo(dir);
   const outside = path.join(dir, 'outside.py');
   fs.writeFileSync(outside, 'secret = 1\n');
-  try { fs.symlinkSync(outside, path.join(r, 'src', 'link.py')); } catch (e) {
-    t.skip(`this platform cannot make a symlink here (${e.code}); the red and green run on Linux (plan stage 5)`);
-    return;
-  }
+  const link = makeLink(t, { target: outside, at: path.join(r, 'src', 'link.py'), type: 'file' });
+  if (!link) { t.skip('this platform cannot make a symlink here; the red and green run on Linux (plan stage 5)'); return; }
   spawnSync('git', ['add', '-A'], { cwd: r });
   const b = cli(r, home, ['build']).json.languages[0];
   assert.ok(b.not_processed.includes('src/link.py'), `the symlink to ${outside} was handed to the extractor`);

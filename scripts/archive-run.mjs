@@ -14,10 +14,11 @@
 import { parseArgv, ArgvError } from './lib/argv.mjs';
 import { ARGV_SPECS } from './lib/argv-specs.mjs';
 import path from 'node:path';
-import { archiveStagedRun, inArchive, quorateHome, repoRunRoots, runCitations, admitRun, callerRepoRoot } from './io/reviews-root.mjs';
+import { archiveStagedRun, inArchive, quorateHome, repoRunRoots, runCitations, admitRun, callerRepoRoot, readRunJson } from './io/reviews-root.mjs';
 import { readContract } from './io/contract-reader.mjs';
 import { remediationNotEnded } from './lib/remediation-chain.mjs';
 import { confined } from './io/confined-path.mjs';
+import { REMEDIATE_LOCK, takeRemediateLock, remediateLockTaken, releaseRemediateLock, remediateLockHeld } from './lib/remediate-lock.mjs';
 import { ownerBelow, rootOf } from './io/telemetry-record.mjs';
 
 const die = (msg, code = 1) => { console.error(`archive-run: ${msg}`); process.exit(code); };
@@ -85,7 +86,9 @@ function citations() {
       const file = path.join(root, n, 'run.json');
       // Through the same owner (G-1 of 20261030-153323-ciss-s7-remediation-2-review): a link at run.json is refused and
       // named unread, never followed into the citation decision.
-      try { records.push(JSON.parse(own.read([n, 'run.json']))); } catch (e) { if (e.code !== 'ENOENT') unread.push(`${file} (${e.code ?? e.message})`); }
+      // Bounded as admitRun bounds it (G-3 of 20261124-160743-gsw-remediation-2-review-b): a record larger than the bound
+      // is named unread, never read whole.
+      try { records.push(readRunJson(own, [n, 'run.json'])); } catch (e) { if (e.code !== 'ENOENT') unread.push(`${file} (${e.code === 'EFBIG' ? e.message : (e.code ?? e.message)})`); }
     }
   }
   const found = runCitations(run.run_id, records);
@@ -106,16 +109,20 @@ let lockTaken = false;
 const releaseLock = () => {
   if (!lockTaken) return;
   lockTaken = false;
-  try { confined(runDir).remove(['remediate.lock']); } catch (e) { if (e?.code !== 'ENOENT') console.error(`archive-run: remediate.lock at ${runDir} could not be released (${e?.message ?? e}); remove it once no runner holds the run`); }
+  try { releaseRemediateLock(confined(runDir)); } catch (e) { if (e?.code !== 'ENOENT') console.error(`archive-run: ${REMEDIATE_LOCK} at ${runDir} could not be released (${e?.message ?? e}); remove it once no runner holds the run`); }
 };
 process.on('exit', releaseLock);
 if (run.remediates) {
-  if (runHas('remediate.lock')) die(`${run.run_id} holds remediate.lock; a runner holds it, or one stopped: see the lock`);
+  // Asked of the lock's owner (G-1 of 20261121-204740-m3s7-b1-remediation-review), as it is taken and released there.
+  let held;
+  try { held = remediateLockHeld(confined(runDir)); } catch (e) { die(`${REMEDIATE_LOCK}: ${e.message}; it stays at ${runDir}`); }
+  if (held) die(`${run.run_id} holds ${REMEDIATE_LOCK}; a runner holds it, or one stopped: see the lock`);
   try {
-    confined(runDir).create(['remediate.lock'], JSON.stringify({ pid: process.pid, started_at: new Date().toISOString(), phase: 'archiving' }));
+    // Through the lock's one owner (G-3 of 20261121-193516-m3s7-b1-review), as remediate.mjs takes it.
+    takeRemediateLock(confined(runDir), { pid: process.pid, startedAt: new Date().toISOString(), phase: 'archiving' });
     lockTaken = true;
   } catch (e) {
-    die(`${run.run_id} holds remediate.lock (${e?.code === 'EEXIST' ? 'a runner took it just now' : e?.message ?? e}); a runner holds it, or one stopped: see the lock`);
+    die(`${run.run_id} holds ${REMEDIATE_LOCK} (${remediateLockTaken(e) ? 'a runner took it just now' : e?.message ?? e}); a runner holds it, or one stopped: see the lock`);
   }
   const why = remediationNotEnded(run);
   if (why) die(`${run.run_id} has not ended: ${why}; it stays at ${runDir}`);
@@ -132,6 +139,6 @@ if (inArchive(runDir, run.archive_to)) {
 // already wrote. Adding it was G-3 of 20261016-214749-sp-bugs-remediation-2-review; that fix drew two MEDIUMs of its own
 // (G-2, G-9 of 20261016-224651-sp-bugs-remediation-3b-review) and was backed out (operator, 2026-10-16: "Back out G-3's
 // rewrite (Recommended)"). G-3 stays open in the ledger.
-const to = archiveStagedRun({ runDir, archiveTo: run.archive_to, repoRoot: realRepo, skip: ['remediate.lock'], log: (m) => console.error(`archive-run: ${m}`) });
+const to = archiveStagedRun({ runDir, archiveTo: run.archive_to, repoRoot: realRepo, skip: [REMEDIATE_LOCK], log: (m) => console.error(`archive-run: ${m}`) });
 if (to === runDir) die(`${run.run_id} was not archived; it stays at ${runDir}`);
 console.log(`archive-run: ${run.run_id} is at ${to}`);

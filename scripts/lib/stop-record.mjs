@@ -8,6 +8,7 @@
 import { RESERVED_CATEGORIES } from './decision-panel.mjs';
 import { resetTextOf } from './quota.mjs';
 import { redactClaim } from './redact.mjs';
+import { renderTemplate } from './template.mjs';
 
 // The five reasons a session may stop for (autonomous-run-pauses.md criterion 1, and `limit`, added by
 // autonomous-run.plan.md stage 7 part 2; operator, 2026-10-31: "1 a"), and `wait`, which is not a stop: the session's
@@ -94,23 +95,30 @@ export function classifyTurnEnd(input) {
 // its contract says, with its envelope, not a stop marker. The project's hooks reach it too, and the guard had blocked
 // every node's final stop once (2026-10-25: about twenty node sessions in this repository's record, one block each), so a
 // node's stop is recorded as one and never blocked.
-export function guardDecision(input, { rulesPath = 'shared/session-rules.md', nodeDepth = 0, decisionPanel = 'off' } = {}) {
+// THE WORDS OF EACH BLOCK ARE THE PROMPT LIBRARY'S (prompts/_templates/stop-guard-blocks.json; consumer-owned-configuration.md
+// AC2): the session reading them is a model. `messages` is that file, parsed, which io/stop-record.mjs reads and passes in, so
+// this function stays pure; a missing message is refused, never left blank.
+export function guardDecision(input, { rulesPath = 'shared/session-rules.md', nodeDepth = 0, decisionPanel = 'off', messages = null } = {}) {
+  const say = (key, vars) => {
+    if (typeof messages?.[key] !== 'string') throw new Error(`guardDecision: no '${key}' message; pass messages from prompts/_templates/stop-guard-blocks.json (io/stop-record.mjs)`);
+    return renderTemplate(messages[key], vars, `stop-guard-blocks.json ${key}`);
+  };
   if (Number(nodeDepth) >= 1) return { block: false, record: { kind: 'node', reason: null, detail: null, running: running(input?.background_tasks).length, depth: Number(nodeDepth) } };
   const c = classifyTurnEnd(input);
   const again = input?.stop_hook_active === true;
   let why = null;
   let toPanel = false;
   if (c.kind === 'undeclared-wait') {
-    why = `A background task is running and the turn is ending unnamed. Start another task inside approved work if one can start; otherwise end with a last line \`Stop: wait — <what you wait on>\` (${rulesPath}).`;
+    why = say('undeclaredWait', { rules_path: rulesPath });
   } else if (c.kind === 'unnamed') {
-    why = `This turn is ending without a named reason. Continue the work, or end with a last line \`Stop: <done|question|reserved>\`, \`Stop: error — <what>\` or \`Stop: limit — <what>\` (${rulesPath}).`;
+    why = say('unnamed', { rules_path: rulesPath });
   } else if (c.kind === 'two-markers') {
-    why = `This message has more than one stop marker. Keep exactly one, on its last line (${rulesPath}).`;
+    why = say('twoMarkers', { rules_path: rulesPath });
   } else if (c.kind === 'named' && (c.reason === 'question' || c.reason === 'reserved') && !asksWithOptions(input?.last_assistant_message)) {
-    why = `A stop that waits for the operator asks a concrete question with its options and a suggestion (${rulesPath}). Rewrite the question that way, keeping the last line \`Stop: ${c.reason}\`.`;
+    why = say('noOptions', { rules_path: rulesPath, reason: c.reason });
   } else if (decisionPanel === 'on' && c.kind === 'named' && c.reason === 'question' && !forOperatorAnyway(input?.last_assistant_message)) {
     // autonomous-run.plan.md stage 6: with the panel on, a question with options is the panel's, not the operator's.
-    why = `review.decision_panel is on: a question with options goes to the decision panel, not the operator. Write it to a question file and run \`node <framework-root>/scripts/decide.mjs --question <file>\`, then go on with its answer; stop for the operator only for a reserved category (named) or a decision the panel postponed (its id on the line) (${rulesPath}).`;
+    why = say('toPanel', { rules_path: rulesPath });
     toPanel = true;
   }
   const kindOf = (suffix) => (toPanel ? `to-panel-${suffix}` : c.kind === 'named' ? `no-options-${suffix}` : `${c.kind}-${suffix}`);

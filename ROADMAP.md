@@ -14,22 +14,22 @@ The rule every gate inherits, in the operator's words (2026-09-25): *"deploy wit
 thing"*. So no gate below passes with a confirmed finding unresolved — resolved meaning fixed and
 promoted by a later review, or declined with a reason the operator approved.
 
-## Where things stand (2026-11-13)
+## Where things stand (2026-11-20)
 
 Each row says how it was established; a value carried from an earlier table without a recheck says so.
 
 | | |
 |---|---|
-| Milestone | **M0's gate met** (2026-10-03, one stated exception: `64980a9`, below), **M1's gate met** (2026-10-04, `.claude/requests/m1-story-pipeline.plan.md`), and **Consumer use met** (2026-11-12, all five end conditions below). **M2 started 2026-11-13**: `.claude/requests/m2-public-release.plan.md` approved (operator: "Approve, start stage 0 (Recommended)", after plan-review round 9 PASS), and `doc_roles.request` names it; stages 0 to 9b done (9b, the merge to `master`, on 2026-11-18), 9c (publish) in progress. M3 not started |
+| Milestone | **M0's gate met** (2026-10-03, one stated exception: `64980a9`, below), **M1's gate met** (2026-10-04, `.claude/requests/m1-story-pipeline.plan.md`), and **Consumer use met** (2026-11-12, all five end conditions below). **M2 started 2026-11-13**: `.claude/requests/m2-public-release.plan.md` approved (operator: "Approve, start stage 0 (Recommended)", after plan-review round 9 PASS), and `doc_roles.request` names it; **M2's gate met 2026-11-20** (`.claude/reviews/version-gate-M2.md`): `v0.3.0` and `v0.3.1` published on `github.com/Tipping-Point-Org/quorate`, repository-state items evidenced by CI runs and GitHub's API (operator: "Amend I4, accept CI/API evidence (Recommended)"). **M3 started 2026-11-20**: `.claude/requests/m3-v1.plan.md` approved (operator: "Approve, start stage 0 (Recommended)", after plan-review round 4 PASS), and `doc_roles.request` names it; stages 0-7 done by 2026-11-23 (the ledger triage closed: no open entry without an operator decision, `.claude/requests/m3-stage7-fixes.md`), stage 8 (the 1.0 candidate) in progress |
 | Consumer use, end conditions | Decided by the operator, 2026-10-17: "When the in-flight items close (Recommended)". (1) item 2's chain, observation-guard-and-sibling-census, meets D1: **met** (20261017-044216-ogsc-remediation-2-review). (2) item 3's PATH fix, reviewer-path-entries, meets D1: **met** (20261017-190519-rpe-remediation-4-review). (3) `deploy-test` is merged to `master`: **met** 2026-11-12: master fast-forwarded from `318f7be4` to `c9c0ae95` after PR #2's CI went green on all five jobs (run 43309179949), and master's own CI green (run 43320590005), the first green run since 2026-10-11. (4) story-pipeline asked to repin to that merge: **met** 2026-11-12, repinned to `c9c0ae95` (its beca26e), check-install unchanged bar the hash and `new-run --dry-run` exit 0 with an asserted scope (it repinned to `4baa0184` on 2026-11-12, its 6061a66; a repin only, by the operator's 2026-11-12 ruling below). (5) ledger-findings' stage 8, story-pipeline told and asked: **met** 2026-10-15 (`ledger-findings.plan.md:87`: story-pipeline declared `commands.test_one` and `review.candidate_env` and repinned; a CLAUDE.md comment of 2026-10-17 still called it open) |
 | Pulled ahead of M2 since | closed: autonomous-run part 3 delivered 2026-11-12 (`autonomous-run.plan.md`, stage 9's run with the decision panel on), with the design steps delivered inside it (decision-panel-seats, stdin-folder-owner, the `--runtime-bin` rename, hardlink-egress); the code index's own half of stage 8 met 2026-11-13 (`code-index.plan.md`, `stage_8_run`); the code index delivered 2026-11-13 (operator: "Delivered, compare deferred (Recommended)"), its scored compare against story-pipeline's answer file deferred until that file exists; test selection deferred to after M2 (operator: "Defer to after M2 (Recommended)") |
-| Version | `0.3.1` in `VERSION` and `.claude-plugin/plugin.json`; `CHANGELOG.md`'s newest section is *0.3.1*; `v0.3.0` tagged on the public mirror's `3ec4f049` with a GitHub Release (2026-11-19); 0.3.1 not tagged yet (rechecked 2026-11-20) |
-| Branch | `origin/master` at `94385c61`, the merge of PR #7; `deploy-test` ahead of it by the version gate's gap-closing commits (`examples/`, the CI install job, the build log kept private), which reach `master` by pull request (rechecked 2026-11-20) |
+| Version | `1.0.0` in `VERSION` and `.claude-plugin/plugin.json`, the 1.0 candidate (M3 stage 8); `CHANGELOG.md`'s newest section is *1.0.0*; `v0.3.0` and `v0.3.1` published on the public mirror (2026-11-20); 1.0.0 not tagged yet (rechecked 2026-11-23) |
+| Branch | `origin/master` at `d60797cf`, the merge of PR #8; `deploy-test` ahead of it by M3's 208 commits, which reach `master` by pull request (stage 8; local refs, rechecked 2026-11-23) |
 | Consumer | story-pipeline pins `c9c0ae95` (its beca26e, 2026-11-12; `git -C story-pipeline submodule status .claude/skills/quorate`, rechecked 2026-11-18). Moving its pointer is asked of its session first |
 | M0 gate, condition 1 | **28 of 28**: every confirmed group of `20260925-200721-platform-remediated` fixed by claim+silence, declined, or closed on the operator's word, each judged by its own defect (entries followed by `first_seen` and file where the ledger re-bucketed them; G-8 settled by group as the gate list records). Re-run 2026-10-03 at stage 8 and again after the last review |
 | M0 gate, condition 2 | Met: every follow-up review's findings resolved under D1, through `stopping-a-child.plan.md` stage 7 and the arms' directory work (`arms-directory-home.design.md`). **Stated exception:** `64980a9` (a one-paragraph doc edit, its guard, a test's load headroom) was not reviewed before M0 closed, on the operator's choice; its G-13/G-12 claims are promoted only when a later review covers that paragraph (whether one has since is not rechecked) |
 | M0 "soon after" items | prompt-overlap mapping and the first `feature-verify` run: not started (carried from 2026-10-06, not rechecked) |
-| OS coverage | CI on the push to `master`: ubuntu Node 22, 24, 26 and windows Node 26, green on `45188401` (run 44395581032, 2026-11-18); a pull request runs Node 26 on ubuntu and windows only (operator, 2026-11-18: "1"). macOS: a hand-started job only (operator, 2026-11-13: "Here, once, on the release PR"), green on the release pull request's head `feb3aa01` (run 44360966711, 2026-11-18). The public repository's run on all three is M2 stage 9d |
+| OS coverage | Since 2026-11-23 (operator: "if possible only use ubuntu budge leaving windows and macOS build only when changes affect theem"): a pull request runs Node 26 on ubuntu only, the push to the private `master` ubuntu Node 22, 24 and 26, and Windows Node 26 is a hand-started job (`-f os=windows`) for a change that can behave differently there, green on `d3bea42d` (run 45189202720). Before that the push to `master` also ran windows Node 26, green on `45188401` (run 44395581032, 2026-11-18). macOS: a hand-started job only (operator, 2026-11-13: "Here, once, on the release PR"), green on the release pull request's head `feb3aa01` (run 44360966711, 2026-11-18). The public repository's run on all three is M2 stage 9d |
 | Public-release files | `LICENSE` (Apache-2.0) and `NOTICE` added 2026-11-13, `NOTICE` naming Tipping Point Org since 2026-11-18 (operator: "Tipping Point Org (Recommended)"); `CONTRIBUTING.md` and `SECURITY.md` written 2026-11-14 (M2 stage 5); no code of conduct |
 | Exposure | carried from 2026-09-25, not rechecked: tracked review runs and many tracked files carry the operator's local paths; D2/D4 keep `.claude/reviews/` and `.claude/requests/` out of the public mirror |
 | Remote visibility | this repository is **private** (`gh repo view --json visibility`, rechecked 2026-11-20) and stays private: the public mirror is `github.com/Tipping-Point-Org/quorate`, **public**, its `master` at `3ec4f049` (`v0.3.0`), filled by `scripts/publish.mjs` (rechecked 2026-11-20) |
@@ -128,7 +128,7 @@ approved), implemented once (stages 1–4: `3a87df3`, `36050d3`, `94058b9`, `665
 `20261007-080217-reconcile-batches-r2`, raised no new MEDIUM from this work, so D1 is met). Its single-family LOWs and
 the pre-existing G-8 (an adapter timeout flag nothing passes) are in the ledger with their reasons.
 
-**In progress — the remediate design step** (operator, 2026-10-08: "One remediate design (Recommended)", "Build the
+**Delivered — the remediate design step** (operator, 2026-10-08: "One remediate design (Recommended)", "Build the
 mechanism"). The search-for-other-instances rule written into `skills/remediate` step 3 drew a new MEDIUM from its own
 fix in three reviews running (`20261008-152031-remediate-siblings`, `-r2`, `-r3`), and the reviews and story-pipeline's
 questions showed the mechanism the skill describes was never built: no remediate node had ever run, and remediation run
@@ -290,8 +290,9 @@ private or machine-local ships with it.
 3. **Outsider docs**: `README.md` written for someone who has never seen this repository — what quorate
    is, what it costs (it spends model and vendor quota), what leaves the machine (the external panel),
    and install by `QUORATE.md`. `CONTRIBUTING.md` and `SECURITY.md` (how to report a vulnerability).
-4. **Merge to `master`**, and CI green on `master` for push and pull request, on all three operating
-   systems (D5).
+4. **Merge to `master`**, and CI green on `master` for push and pull request on Linux and Windows, and on macOS
+   for every release commit, started by hand (D5; the plan's Q9, "Here, once, on the release PR"; amended 2026-11-20,
+   operator: "Amend I4, accept CI/API evidence (Recommended)").
 5. **A tagged 0.x release** (e.g. `v0.3.0`) with a `CHANGELOG.md` entry that says what a consumer must
    change — the first release this project has cut.
 6. **Telemetry** (`.claude/requests/telemetry-recommendations.md`, approved 2026-09-27; placed here by the operator,
@@ -362,9 +363,10 @@ v1 is a promise: the contract, the CLI and the artifacts a consumer depends on s
    - `model-and-effort-reevaluation.md` — AC7's false-positive tolerance is **decided (2026-10-02)**; the
      number and the measurement behind it are in that request, not restated here.
    - `consumer-owned-configuration.md` — AC 6 met; its other criteria's status is not recorded.
-   - `per-functionality-auth-selection.md`, `code-review-comparison.md`,
-     `adjudication-merge-for-disputes.md`, `cross-family-review-standard.md` — **no delivery status
-     recorded; audit needed**.
+   - `per-functionality-auth-selection.md`, `code-review-comparison.md` — deferred past v1 (operator, 2026-11-20: "Defer
+     past v1 (Recommended)"), in each request's `m3_deferred`.
+   - `adjudication-merge-for-disputes.md`, `cross-family-review-standard.md` — delivered, verified 2026-11-20, in each
+     request's `m3_verified`.
    - `gateway-reviewer-adapter.md` — draft; approve, reject or defer.
    - `second-opinion-scored.plan.md` — the build plan for AC 14's second half of `model-and-effort-reevaluation.md`
      (status `plan`, no milestone until 2026-10-06).
@@ -395,6 +397,9 @@ v1 is a promise: the contract, the CLI and the artifacts a consumer depends on s
      `--add` guard does not cover. Case and encounters: `.claude/findings/2026-10-15-ledger-bucket-collisions.md`.
    - **The mechanical census check.** The commit step notes a group whose changed files do not cover the
      `search_sites` it reported, minus its `not_in_class`. Case: `.claude/findings/2026-10-15-evidence-gate-under-reach.md`.
+
+   **Both deferred past v1** (operator, 2026-11-20: "Defer both past v1 (Recommended)"), written into
+   `observation-guard-and-sibling-census.md`'s front matter (`m3-v1.plan.md` stage 2).
 10. **Memory and CPU monitoring** (`.claude/requests/resource-monitor.md`, approved; operator, 2026-11-05: "A but do not
    start yet add it to the roadmap for a stage after public release"): per-run load figures and a standing collector,
    built from memlog and the avp sampler, on all three operating systems, switchable and configured by contract keys,
@@ -436,6 +441,12 @@ v1 is a promise: the contract, the CLI and the artifacts a consumer depends on s
   and a remediation's candidate check still running everything. The plan,
   `.claude/requests/test-selection-by-recorded-reads.plan.md`, stays approved with items 1-9 not built; its harness's open
   findings are settled when it resumes. The request: `.claude/requests/test-selection-by-recorded-reads.md`.
+- **A refactoring module — a 1.x release.** Operator, 2026-11-24: "1.x release"; "Write a simple md file for that and
+  update roadmap so we can implement that later". Named, behaviour-preserving refactorings applied and proved: a core
+  shared by every language, a small provider per language that parses the code only while the refactoring runs and
+  answers for the span it touches, refusal when a provider cannot answer, and the same tests green before and after.
+  Which refactorings, and the rules each follows, are decided when it is taken up. The note:
+  `.claude/requests/refactoring-module.md` (a draft, not yet a request to build).
 
 ---
 

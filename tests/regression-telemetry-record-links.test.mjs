@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { readRecords, writeSuiteRecord, SUITE_RECORDS_DIR } from '../scripts/io/telemetry-record.mjs';
 import { SUITE_RECORDS_KEEP } from '../scripts/lib/telemetry-record.mjs';
+import { makeLink } from './helpers.mjs';
 
 const link = (target, at) => fs.symlinkSync(target, at, process.platform === 'win32' ? 'junction' : 'dir');
 const tmp = () => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'trl-')));
@@ -35,7 +36,7 @@ test('G-9: a run\'s telemetry.json that is a link is refused (where this host ca
     const runs = path.join(dir, 'runs'); const run = path.join(runs, '20261105-000000-x'); fs.mkdirSync(run, { recursive: true });
     const forged = path.join(dir, 'forged.json');
     fs.writeFileSync(forged, JSON.stringify({ schema_version: 1, kind: 'review', run_id: 'FORGED' }));
-    try { fs.symlinkSync(forged, path.join(run, 'telemetry.json'), 'file'); } catch (e) { t.skip(`no file links here (${e.code})`); return; }
+    if (!makeLink(t, { target: forged, at: path.join(run, 'telemetry.json'), type: 'file' })) return;
     const { records } = readRecords(dir, { runRoots: [runs] });
     assert.ok(!records.some((r) => r.run_id === 'FORGED'), 'the linked telemetry.json was read');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
@@ -47,7 +48,7 @@ test('G-9: a claim check\'s check.json that is a link is refused by its record\'
   try {
     const check = path.join(dir, '.claude', 'claim-checks', 'c1'); fs.mkdirSync(check, { recursive: true });
     const forged = path.join(dir, 'forged.json'); fs.writeFileSync(forged, JSON.stringify({ family: 'FORGED' }));
-    try { fs.symlinkSync(forged, path.join(check, 'check.json'), 'file'); } catch (e) { t.skip(`no file links here (${e.code})`); return; }
+    if (!makeLink(t, { target: forged, at: path.join(check, 'check.json'), type: 'file' })) return;
     const w = writeClaimCheckRecord(check, { repoRoot: dir });
     assert.equal(w.ok, false, 'the linked check.json was read as the check\'s');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }

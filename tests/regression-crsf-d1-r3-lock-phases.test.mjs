@@ -16,6 +16,8 @@ test('G-14: every phase written to remediate.lock is in the contract\'s phase li
     const src = read(f);
     for (const m of src.matchAll(/setLockPhase\('([a-z-]+)'\)/g)) written.add(m[1]);
     for (const m of src.matchAll(/remediate\.lock'\], JSON\.stringify\(\{[^}]*phase: '([a-z-]+)'/g)) written.add(m[1]);
+    // Through the lock's one owner since G-3 of 20261121-193516-m3s7-b1-review.
+    for (const m of src.matchAll(/takeRemediateLock\([^,]+, \{[^}]*phase: '([a-z-]+)'/g)) written.add(m[1]);
   }
   assert.ok(written.has('started') && written.has('archiving'), `found ${[...written]}`);
   const doc = read('shared/claude-md-contract.md');

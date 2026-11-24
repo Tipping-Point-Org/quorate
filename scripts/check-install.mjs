@@ -42,6 +42,9 @@ import { contractVersionGap, contractVersionMessage, declaredContractVersion } f
 import { readContract } from './io/contract-reader.mjs';
 import { gitSync } from './io/git.mjs';
 import { stopGuardDeclared } from './lib/stop-record.mjs';
+import {
+  deprecationsUsed, deprecationEntryError, documentedContractKeys, undocumentedKeys, upgradeLine,
+} from './lib/compatibility.mjs';
 
 /** Directory names under `dir` that carry `file` — the framework's own skill and prompt ids. */
 function idsIn(dir, file) {
@@ -155,6 +158,7 @@ function missingKeys(known, actual, prefix = '') {
 
 const problems = [];
 const notes = [];
+const upgrade = [];   // every contract change this project must make, for the `upgrade:` line (stage 4)
 // COUNTED, NOT INFERRED. The summary read hook state off the number of notes beginning with
 // "hook '", so the case where hooks were never compared AT ALL — not a git repository — collapsed
 // into the zero-uninstalled branch and printed "hooks match", claiming a comparison that never
@@ -250,6 +254,7 @@ if (mine) {
     notes.push(`${declared.key} is the old spelling of graph_contract_version — both are accepted, `
       + 'so this is a rename to make when convenient rather than a break');
   }
+  if (gap.state === 'behind' || gap.state === 'invalid') upgrade.push({ name: declared.key ?? 'graph_contract_version', why: `declares ${declared.value ?? 'nothing'}, this quorate reads its own version` });
   if (gap.state !== 'current') {
     const msg = contractVersionMessage(gap);
     // `behind` is a problem rather than a note: a note reads as advisory, and the whole point is
@@ -264,6 +269,28 @@ if (!mine) {
   problems.push('no parseable graph_contract in this repository — see QUORATE.md step 2');
 } else if (tpl) {
   const missing = missingKeys(tpl, mine).filter((k) => k !== 'project');
+  for (const k of missing) upgrade.push({ name: k, why: 'missing; absent falls back to a default you never chose' });
+  // THE OTHER DIRECTION (m3-v1.plan.md stage 4): a key this quorate does not document is one it ignores, so a key
+  // removed since the consumer copied the template (the old top-level `os` and `shell`), or a misspelt one, did nothing
+  // with no signal. The documents are read through the compatibility owner, which reads them as the freeze does.
+  let documented = null;
+  try {
+    documented = documentedContractKeys({
+      docText: fs.readFileSync(path.join(FRAMEWORK.frameworkRoot, 'shared', 'claude-md-contract.md'), 'utf8'),
+      templateText: fs.readFileSync(path.join(FRAMEWORK.frameworkRoot, 'CLAUDE.template.md'), 'utf8'),
+    });
+  } catch (e) {
+    problems.push(`the contract documents could not be read (${e?.code ?? e?.message}) — keys this quorate does not know were not looked for`);
+  }
+  const unknown = documented ? undocumentedKeys(mine, documented) : [];
+  for (const k of unknown) upgrade.push({ name: k, why: 'not a key this quorate documents; it is ignored' });
+  if (unknown.length) {
+    problems.push(
+      `contract carries ${unknown.length} key(s) this quorate does not document, so it ignores them:\n`
+      + unknown.map((k) => `      ${k}`).join('\n')
+      + '\n      Removed (shared/claude-md-contract.md, "Keys that were deliberately removed") or misspelt: delete or correct each.',
+    );
+  }
   if (missing.length) {
     problems.push(
       `contract is missing ${missing.length} key(s) the mounted quorate knows about:\n` +
@@ -645,6 +672,39 @@ if (fs.existsSync(path.join(repoRoot, '.gitleaks.toml'))) {
   }
 }
 
+// ------------------------------------------------------------- 3f. what this project uses that 2.0 removes
+// THE REMOVALS HALF OF THE COMPATIBILITY POLICY (shared/compatibility.md; m3-v1.plan.md stage 3): anything 2.0 removes is
+// deprecated in compatibility.json for at least one 1.x release, and named here wherever this project still uses it: a
+// contract key in its contract, a flag in the files that invoke quorate (its Claude Code settings and its git hooks). It
+// still works, so the fix is a change to make before 2.0; it is reported as stale so it is not read past. A list that
+// cannot be read is said, never read as nothing deprecated.
+{
+  const listFile = path.join(FRAMEWORK.frameworkRoot, 'scripts', 'compatibility.json');
+  let list = null;
+  try { list = JSON.parse(fs.readFileSync(listFile, 'utf8')).deprecated; } catch (e) {
+    problems.push(`the deprecation list ${path.relative(repoRoot, listFile) || listFile} could not be read (${e?.code ?? e?.message}) — nothing here says whether this project uses something 2.0 removes`);
+  }
+  if (list !== null) {
+    const bad = Array.isArray(list) ? list.map(deprecationEntryError).filter(Boolean) : ['`deprecated` is not a list'];
+    if (bad.length) problems.push(`the deprecation list is malformed: ${bad.join('; ')}`);
+    else {
+      const texts = [];
+      const hooksDir = gitSyncUtf8(['rev-parse', '--git-path', 'hooks'], { cwd: repoRoot });
+      const files = [path.join(repoRoot, '.claude', 'settings.json'), path.join(repoRoot, '.claude', 'settings.local.json'),
+        ...(hooksDir.status === 0 ? ['pre-commit', 'pre-push'].map((h) => path.resolve(repoRoot, hooksDir.stdout.trim(), h)) : [])];
+      for (const file of files) {
+        try { texts.push({ file: path.relative(repoRoot, file) || file, text: fs.readFileSync(file, 'utf8') }); } catch { /* absent */ }
+      }
+      const used = deprecationsUsed(list, { contract: mine, texts });
+      for (const u of used) {
+        if (u.kind === 'contract-key') upgrade.push({ name: u.name, why: `deprecated, removed in ${u.removed_in}` });
+        problems.push(`${u.name} is deprecated since ${u.since} and removed in ${u.removed_in}; this project uses it (${u.where}) — ${u.use_instead}`);
+      }
+      notes.push(`deprecations: ${list.length} listed, ${used.length} used here`);
+    }
+  }
+}
+
 // -------------------------------------------------------------------------------- 4. what ran
 // A COMMIT WITHOUT A DIRTY FLAG IS AN ATTRIBUTION, AND IT CAN BE FALSE. This printed
 // `@ <sha>` from a bare `rev-parse`, so a mount with edits on top of that commit reported the
@@ -660,6 +720,9 @@ const stampText = fstamp.commit === 'unknown'
     : fstamp.dirty === null ? ' (clean/dirty unknown)' : ''}`;
 console.log(`quorate mounted at ${path.relative(repoRoot, FRAMEWORK.frameworkRoot) || '.'}${stampText}`);
 for (const n of notes) console.log(`  note: ${n}`);
+// The contract half, in one line (m3-v1.plan.md stage 4): what this project must change in its contract for this quorate.
+// Printed only when a contract was read, since "nothing to change" over no contract would be a claim nothing checked.
+if (mine) console.log(`  ${upgradeLine(upgrade)}`);
 
 if (!problems.length) {
   // Say what was actually verified. "hooks match" would be a false claim when none are installed,

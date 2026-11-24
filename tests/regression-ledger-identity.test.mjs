@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { makeLink } from './helpers.mjs';
 import { readReconcileArtifacts, collectRun } from '../scripts/io/run-artifacts.mjs';
 import { sightingsFromReconcile, mergeRun, markFixed, isOpen, convergence, entryNotes, migrateIdentity } from '../scripts/lib/ledger.mjs';
 
@@ -425,8 +426,9 @@ test('stage 5: refused — no finding-groups.json, groups with no payload, a non
   fs.writeFileSync(path.join(outside, 'payload.json'), JSON.stringify({ groups: [row('G-1', 'confirmed', 'MEDIUM')] }));
   const linked = runFixture(d, '20261012-130000-e', { groups: g1 });
   fs.mkdirSync(path.join(linked, 'evidence'), { recursive: true });
-  let linkMade = true;
-  try { fs.symlinkSync(outside, path.join(linked, 'evidence', 'reconcile'), 'junction'); } catch { linkMade = false; }
+  // Said, not silent (silent-platform-skips.md): where no junction can be made, makeLink skips and the other cases still
+  // run, but this one did not.
+  const linkMade = makeLink(t, { target: outside, at: path.join(linked, 'evidence', 'reconcile'), type: 'junction' });
   if (linkMade) cases['linked artifact'] = linked;
   for (const [name, dir] of Object.entries(cases)) {
     const r = cli(['--run-dir', dir, '--ledger', ledgerPath], d);

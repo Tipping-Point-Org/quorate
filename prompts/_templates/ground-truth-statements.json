@@ -1,0 +1,6 @@
+{
+  "$why": "THE BENCH'S GROUND-TRUTH STATEMENTS (lib/reconcile-mutations.mjs applyMisanchor, applyDeflate, applyDrop; G-1 of 20261121-043112-ac2-delivery). Each is recorded as ground_truth.statement in the bench result file and shown to the judge, a model, so its words are the prompt library's. One string per mutation, so the question asked and the question recorded cannot drift apart.",
+  "misanchor": "Group {{group_id}} is anchored at {{to}}. That is the wrong location: the defect this group describes is at {{from}}, which is where a fix has to go. A remediation working from this reconciliation would patch the wrong place.",
+  "deflate": "Group {{group_id}} is recorded at {{to}}. That is too low: the findings it groups were raised at {{from}}, and nothing in the evidence justifies lowering it. A gate reading this reconciliation would let {{from}}-severity work through under a {{to}} label.",
+  "drop": "Group {{group_id}} was dropped. That is wrong: the findings it groups were raised by more than one reporter and were {{from}} before, nothing in the evidence withdraws them, and a dropped group reaches no gate and no remediation. The defect it describes would ship."
+}

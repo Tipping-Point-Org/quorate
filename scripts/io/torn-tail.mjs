@@ -7,6 +7,7 @@ import { hostPlatform } from '../platform/index.mjs';
 import { confined } from './confined-path.mjs';
 import { withRecordLock, LockBusyError } from './record-lock.mjs';
 import { writeAllSync } from './write-all.mjs';
+import { hardLinkReason } from '../lib/egress-read.mjs';
 
 /**
  * Whether `file`'s last byte is not a newline: a torn line at its end. Missing or empty is not. `fsImpl` is any object
@@ -34,7 +35,7 @@ export function appendOwnFile(file, text, fsImpl = nodeFs) {
   const fd = fsImpl.openSync(file, 'a');
   try {
     const st = fsImpl.fstatSync(fd);
-    if (st.nlink > 1) {
+    if (hardLinkReason(st)) {   // the one single-path rule (link-leaving-owner.plan.md stage 4)
       throw Object.assign(new Error(`refusing to append to ${file}: a hard link (${st.nlink} names point at this file), so its content may be another file's`),
         { code: 'EHARDLINK', nlink: st.nlink });
     }

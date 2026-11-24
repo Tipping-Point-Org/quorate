@@ -7,10 +7,19 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderGitleaksToml } from './lib/secret-shapes.mjs';
-import { writeTextAtomic } from './io/atomic.mjs';
+import { confined } from './io/confined-path.mjs';
 
-const out = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.claude', 'hooks', 'gitleaks.toml');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const segs = ['.claude', 'hooks', 'gitleaks.toml'];
+const out = path.join(repoRoot, ...segs);
 // Atomic (G-2 of 20261022-025041-cid1a-remediation-review): a bare write truncates first, so an interruption could leave
-// the push scan's rules empty or partial.
-writeTextAtomic(out, renderGitleaksToml());
+// the push scan's rules empty or partial. THROUGH THE REPOSITORY'S OWNER (G-2 of 20261122-204359-llo-remediation-review;
+// ARCHITECTURE A-30): a link or junction at .claude or .claude/hooks sent the temporary write and its rename outside the
+// repository. The owner's replace is atomic too, and refuses a link at any level before anything is written.
+try {
+  confined(repoRoot).replace(segs, renderGitleaksToml());
+} catch (e) {
+  process.stderr.write(`gen-gitleaks-config: ${e.message}\n`);
+  process.exit(1);
+}
 process.stdout.write(`gen-gitleaks-config: wrote ${path.relative(process.cwd(), out) || out}\n`);

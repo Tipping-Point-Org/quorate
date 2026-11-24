@@ -4,6 +4,8 @@
 // reached from here. This module writes files and nothing else.
 import path from 'node:path';
 import { confined } from './confined-path.mjs';
+import { firstLeadingOut, LEADS_OUT_KIND } from './finding-scope.mjs';
+import { hardLinkReason } from '../lib/egress-read.mjs';
 import { buildDecisionSeatPrompt, buildDecisionModeratorPrompt } from './review-prompts.mjs';
 import {
   blindQuestion, seatLetters, startState, applyRound, roundResult, nextStep, parseModerator, roundView, outcomeOf,
@@ -141,27 +143,49 @@ export function recordStore(recordDir, { root = null, prefix = null } = {}) {
  * The scratch is read through `confined` rooted at the scratch root AS NAMED, the seat's directory a segment below it
  * (G-12 of 20261102-231209-rbr-remediation-6-review): rooted at the scratch's real path, a link the seat's call left AT
  * its directory was resolved, its target copied into the record and then deleted. A link at the root or at the seat's
- * directory is now refused before anything is read or removed; a link below it is not followed but listed in
- * `links-refused.json`. Each file is written into the record through the record's owner. A copy that fails removes what
+ * directory is now refused before anything is read or removed; a link or a hard-linked file below it refuses the whole
+ * move, nothing written and the scratch kept (G-8 of 20261122-193909-llo-delivery). Each file is written into the record through the record's owner. A copy that fails removes what
  * it wrote of the destination and leaves the scratch where it was; the scratch is removed, through the same owner, only
  * once the record holds it. A seat whose call made no directory has nothing to move.
  */
 function moveScratchIntoRecord(scratchRoot, name, rec, destName) {
   const from = confined(path.resolve(scratchRoot));
   if (!from.exists([name])) return;
+  // JUDGED WHOLE BEFORE ANYTHING IS WRITTEN OR REMOVED (G-8 of 20261122-193909-llo-delivery; ARCHITECTURE A-30): a link
+  // or a hard-linked file was listed in links-refused.json while the rest was copied and the scratch then removed, so the
+  // refused entries were lost and the move reported success. Now the scratch is listed first; a link, or a file
+  // hardLinkReason names, refuses the move with each one named, nothing written and the scratch kept.
+  // THE OWNER FIRST (ARCHITECTURE A-30; G-19 of 20261122-193909-llo-delivery): firstLeadingOut judges the scratch before
+  // the walk below, which refuses an inward link too, stricter than the owner.
+  const out = firstLeadingOut(from.resolve([name]), { leaving: true });
+  if (out) {
+    throw Object.assign(new Error(`confined path refused: the seat scratch ${name} is not moved into the record, and is kept `
+      + `where it is: ${out.path}: ${LEADS_OUT_KIND[out.kind] ?? out.kind}`), { code: 'ECONFINED', refused: [out.path] });
+  }
   const refused = [];
+  const dirs = [[]];
+  const files = [];
   const walk = (segs) => {
     for (const ent of from.list([name, ...segs], { withFileTypes: true })) {
       const here = [...segs, ent.name];
-      if (ent.isSymbolicLink()) { refused.push(here.join('/')); continue; }
-      if (ent.isDirectory()) { walk(here); continue; }
-      if (ent.isFile()) rec.owner.replace(rec.seg(destName, ...here), from.read([name, ...here], null));
+      if (ent.isSymbolicLink()) { refused.push(`${here.join('/')}: a link`); continue; }
+      if (ent.isDirectory()) { dirs.push(here); walk(here); continue; }
+      const why = ent.isFile() ? hardLinkReason(from.stat([name, ...here])) : null;
+      if (why) { refused.push(`${here.join('/')}: ${why}`); continue; }
+      // NOT A REGULAR FILE, A DIRECTORY OR A LINK (G-3 of 20261122-204359-llo-remediation-review): a FIFO, a socket or a
+      // device node fell through uncollected, the move succeeded without it and the scratch was then removed.
+      if (!ent.isFile()) { refused.push(`${here.join('/')}: not a regular file, a directory or a link`); continue; }
+      files.push(here);
     }
   };
+  walk([]);
+  if (refused.length) {
+    throw Object.assign(new Error(`confined path refused: the seat scratch ${name} is not moved into the record, and is kept `
+      + `where it is: ${refused.join('; ')}`), { code: 'ECONFINED', refused });
+  }
   try {
-    rec.owner.dir(rec.seg(destName));
-    walk([]);
-    if (refused.length) rec.json(`${destName}/links-refused.json`, { refused });
+    for (const d of dirs) rec.owner.dir(rec.seg(destName, ...d));
+    for (const f of files) rec.owner.replace(rec.seg(destName, ...f), from.read([name, ...f], null));
   } catch (e) {
     try { rec.owner.remove(rec.seg(destName), { recursive: true }); } catch { /* the copy's error is the one to report */ }
     throw e;

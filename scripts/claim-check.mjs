@@ -45,6 +45,8 @@ import { selectAdapters, subagentNotices } from './io/reviewers.mjs';
 import { panelSnapshotMaxBytes } from './lib/snapshot-surface.mjs';
 import { buildClaimCheckArmPrompt, buildClaimCheckSameFamilyBrief } from './io/review-prompts.mjs';
 import { gitSync } from './io/git.mjs';
+import { relativeBelow } from './io/finding-scope.mjs';
+import { confined } from './io/confined-path.mjs';
 
 // ONE PARSER, lib/argv.mjs's, against this script's spec in lib/argv-specs.mjs (entrypoint-argv.plan.md): refused before
 // anything is asked of git, naming the flag. The check directory is the first bare argument.
@@ -83,8 +85,9 @@ function checkDirOf(arg, usage) {
   const dir = path.resolve(arg);
   const root = real(checksRoot);
   const at = real(dir);
-  const rel = root && at ? path.relative(root, at) : '';
-  if (!rel || rel === '..' || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
+  // Strictly below the checks root, by containment's one owner and the host's case rule (link-leaving-owner.plan.md stage
+  // 4; design divergence 9): a hand-rolled path.relative and startsWith('..') beside the owner is the class it ends.
+  if (!root || !at || !relativeBelow(root, at)) {
     console.error(`claim-check: ${arg} is not a check directory: it must be a directory under ${checksRoot}, as --new makes one`);
     process.exit(2);
   }
@@ -106,8 +109,14 @@ if (opts.new !== undefined) {
   // EXCLUSIVE creation (G-2 of 20260926-044637-m0-close-r2): a recursive mkdir succeeds on a directory
   // that exists, so two same-slug checks in one second shared a draft. The parent is made recursively;
   // the check directory itself must be new, and a taken name gets a numeric suffix.
-  const parent = path.join(repoRoot, '.claude', 'claim-checks');
-  fs.mkdirSync(parent, { recursive: true });
+  // MADE THROUGH THE OWNER (G-7 of 20261122-193909-llo-delivery): a raw recursive mkdir followed a link at .claude or at
+  // .claude/claim-checks, and the .gitignore below was written through it, outside the repository. `confined`, rooted at
+  // the repository's real path, refuses a link at either level before anything is written.
+  let parent;
+  try { parent = confined(fs.realpathSync(repoRoot)).dir(['.claude', 'claim-checks']); } catch (e) {
+    console.error(`claim-check: ${path.join(repoRoot, '.claude', 'claim-checks')} cannot be used for a check directory: ${e?.message ?? e}`);
+    process.exit(2);
+  }
   // THE DIRECTORY IGNORES ITSELF. "Gitignored" above held only in quorate's own repository: in a
   // consumer nothing ignored .claude/claim-checks/, so a draft and a checker's answer (model text) sat
   // untracked one `git add` from a commit (story-pipeline, 2026-10-06). A `*` .gitignore inside it holds

@@ -58,6 +58,7 @@ import { parseArgv, ArgvError } from './lib/argv.mjs';
 import { contractMinutes } from './lib/check-timeout.mjs';
 import { ARGV_SPECS } from './lib/argv-specs.mjs';
 import { nodeDepth } from './lib/node-depth.mjs';
+import { hostPlatform } from './platform/index.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -70,8 +71,8 @@ import {
   groupHeaders, groupSection, alternateAnchor, applyMisanchor, mutationSurvived,
   splitGroupSection, rewriteCarriesTell, applyRewrittenRationale, citedLines, INJECTION_RULES,
   MUTATIONS, deflatedSeverity, applyDeflate, dropWouldDangle, applyDrop,
-  forgeSlots, tellForMutation, injectionSurvived,
-} from './lib/reconcile-mutations.mjs';
+  forgeSlots, forgeFileRule, forgeTexts, tellForMutation, injectionSurvived,
+} from './io/reconcile-mutations.mjs';   // io/: the forge's words come bound from the prompt library (AC2)
 import {
   scoreJudgedReport, summariseSecondOpinion, readCliEnvelope, JUDGE_PARTICIPANTS, IDENTIFIED, NOT_IDENTIFIED,
 } from './lib/second-opinion-scoring.mjs';
@@ -89,11 +90,12 @@ import { readContract } from './io/contract-reader.mjs';
 import { CONTRACT_CANDIDATES } from './lib/contract-source.mjs';
 import { VOTE_NEITHER } from './lib/adjudication.mjs';
 import { frameworkStamp } from './io/version.mjs';
-import { quorateHome, isSafeRunId, admitRun, defaultReviewsRoot } from './io/reviews-root.mjs';
+import { quorateHome, isSafeRunId, admitRun, defaultReviewsRoot, readRunJson } from './io/reviews-root.mjs';
 import { confined } from './io/confined-path.mjs';
 import { gitSync, gitAsync } from './io/git.mjs';
 import { writeBenchRecord } from './io/telemetry-record.mjs';
 import { callEntry, runtimeAnswered, markAnswered } from './lib/call-entry.mjs';
+import { hardLinkReason } from './lib/egress-read.mjs';
 
 // Fails CLOSED like every entry point that starts graph work (disk-first-protocol §8). Copied in
 // the same shape as the other seven, including the present-but-empty case: `Number('')` is 0, so a
@@ -461,7 +463,7 @@ async function forgeRationale({ wt, runDir, seed, groupId, severity, decision, f
     const hi = Math.min(destLines.length, to.line + 7);
     destinationSource = destLines.length
       ? destLines.slice(lo - 1, hi).map((l, i) => `${String(lo + i).padStart(5)}  ${l}`).join('\n')
-      : '(the destination file could not be read — do not quote or describe any source)';
+      : forgeTexts().destination_unreadable;
   }
 
   // THE FORGE MATCHES THE RECONCILER, SO IT NEVER TAKES THE CANDIDATE. A pass comparing two
@@ -490,11 +492,7 @@ async function forgeRationale({ wt, runDir, seed, groupId, severity, decision, f
     forbidden_rule: slots.forbidden_rule,
     destination_source: slots.destination_source,
     // Only `misanchor` moves between files; the others discuss the same code at the same place.
-    file_rule: args.mutation !== 'misanchor'
-      ? 'The location does not change, so name the same file the original named.'
-      : from.file === to.file
-        ? `The file is unchanged (\`${to.file}\`); only the line moves.`
-        : `The file changes too: discuss \`${to.file}\` and do not name \`${path.basename(from.file)}\` at all.`,
+    file_rule: forgeFileRule({ mutation: args.mutation, from, to }),
   }, 'reconcile-rewrite.md'));
 
   // NO TOOLS, and the argv rendered by nodeArgv with the prompt on stdin where the runtime takes it there: both in
@@ -571,6 +569,7 @@ async function askJudge({ label, wt, runDir, injected, groupId, excerpt, report,
   const env = {
     ...reviewerEnv(judge.reviewer, process.env, {
       depth: 0, prefixes: envPrefixesOf(REVIEWER_TABLE[judge.reviewer]), names: envNamesOf(REVIEWER_TABLE[judge.reviewer]),
+      caseFold: hostPlatform().caseInsensitiveEnv,
     }).env,
     ...engineLocationEnv(process.env),
   };
@@ -751,7 +750,7 @@ async function runSeed(c) {
     fs.cpSync(c.runDir, copy, { recursive: true, filter: (from) => {
       const entry = fs.lstatSync(from);
       if (entry.isSymbolicLink()) throw new Error(`${path.relative(c.runDir, from)} in the preserved run is a link or junction; it is not copied or followed`);
-      if (entry.isFile() && entry.nlink > 1) noteHardLink(c.seed, 'the preserved-run copy', path.relative(c.runDir, from));
+      if (hardLinkReason(entry)) noteHardLink(c.seed, 'the preserved-run copy', path.relative(c.runDir, from));
       return true;
     } });
 
@@ -769,7 +768,9 @@ async function runSeed(c) {
     // path because that is genuinely where the lenses looked. Rewriting those would be falsifying
     // the run rather than relocating it.
     {
-      const rj = JSON.parse(fs.readFileSync(path.join(copy, 'run.json'), 'utf8'));
+      // Through readRunJson's bound and a confined owner (G-5 of 20261124-170802-gsw-remediation-3-review-b): the copy was
+      // read whole and raw.
+      const rj = readRunJson(confined(copy), ['run.json']);
       rj.repo_root = wt;
       if (rj.host) rj.host.cwd = wt;
       // Nothing archives this run any more — the orchestrator is not involved — but the recorded
@@ -899,6 +900,15 @@ async function runSeed(c) {
         throw new Error(`no preserved run for '${c.seed}' under ${args.rejudge} carries a `
           + `second-opinion report for ${runJson.run_id}`);
       }
+      // ONE CANDIDATE, OR NONE CHOSEN (G-3 of 20261124-180917-gsw-remediation-4-review-b): the first by name was taken, and
+      // a kept run records neither its mutation, its rule nor its setting, so with two kept passes for one seed an older
+      // report was re-judged and attributed to this invocation's configuration. Which pass is meant is the operator's:
+      // point --rejudge at a folder that holds that one.
+      if (candidates.length > 1) {
+        throw new Error(`more than one preserved run for '${c.seed}' under ${args.rejudge} carries a second-opinion report `
+          + `for ${runJson.run_id} (${candidates.join(', ')}), and a kept run does not record which pass it came from; `
+          + 'point --rejudge at a folder holding only the one to re-judge');
+      }
       // THE REPORT IS NOT COPIED HERE. `copy` currently holds the ORIGINAL run's report, and that
       // is the CONTROL — read a few lines below, before any spawn. Overwriting it now with the kept
       // MUTATED report would make the control a copy of the mutated one and every seed would agree
@@ -906,14 +916,14 @@ async function runSeed(c) {
       kept = { owner: keptRoot, segs: [candidates[0], runJson.run_id] };
       // The kept report is what --rejudge sends to the judge (G-8 of 20261031-055840-urr-remediation-3-review): named here,
       // when it is chosen, if it has another name.
-      if (kept.owner.stat([...kept.segs, 'nodes', 'second-opinion-report.md']).nlink > 1) {
+      if (hardLinkReason(kept.owner.stat([...kept.segs, 'nodes', 'second-opinion-report.md']))) {
         noteHardLink(c.seed, '--rejudge', path.join(...kept.segs, 'nodes', 'second-opinion-report.md'));
       }
       for (const rel of [['reconciled.md'], ['finding-groups.json'], ['evidence', 'reconcile', 'payload.json']]) {
         let data;
         // Each copied file reaches the judge too, so a second name is noted as the report's is (prompt-bound-run-reads
         // census, G-9 of 20261115-005715-pbr-remediation-3-review): the bench's rule is to note and use, not to refuse.
-        try { if (kept.owner.stat([...kept.segs, ...rel]).nlink > 1) noteHardLink(c.seed, '--rejudge', path.join(...kept.segs, ...rel)); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+        try { if (hardLinkReason(kept.owner.stat([...kept.segs, ...rel]))) noteHardLink(c.seed, '--rejudge', path.join(...kept.segs, ...rel)); } catch (e) { if (e.code !== 'ENOENT') throw e; }
         try { data = kept.owner.read([...kept.segs, ...rel], null); } catch (e) {
           if (e.code === 'ENOENT') throw new Error(`the preserved run is missing ${path.join(...rel)}: ${path.join(args.rejudge, ...kept.segs, ...rel)}`);
           throw e;

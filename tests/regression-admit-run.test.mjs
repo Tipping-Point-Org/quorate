@@ -48,6 +48,49 @@ test('a run staged for this repository is admitted, and the repository returned 
   assert.equal(r.record.run_id, ID);
 });
 
+// G-5 of 20261124-140633-gsw-remediation-review-b: run.json was read and parsed whole before its identity was checked, so
+// a syntactically valid record of any size reached every entry point's allocation. It is refused above a bound (8 MiB).
+// "BEFORE IT IS READ" IS OBSERVED, not implied (G-10 of 20261124-160743-gsw-remediation-2-review-b): the refusal alone
+// passed for an admitRun that read and parsed the whole record first and checked its size after. The platform's
+// readFileSync is watched, and the oversized record must never reach it.
+test('a run.json larger than the bound is refused by its record, before it is read', (t) => {
+  const w = world(t);
+  const record = JSON.stringify({ run_id: ID, repo_root: w.repo, pad: 'x'.repeat(9 * 1024 * 1024) });
+  const dir = w.put(w.staged(), ID, record);
+  const reads = [];
+  const watchedFs = Object.create(io.fs);
+  Object.defineProperty(watchedFs, 'readFileSync', { value: (p, ...rest) => { reads.push(String(p)); return io.fs.readFileSync(p, ...rest); } });
+  const watched = Object.create(io);
+  Object.defineProperty(watched, 'fs', { value: watchedFs });
+  const r = w.admit(dir, { io: watched });
+  assert.equal(r.ok, false, 'an oversized run.json was admitted');
+  assert.equal(r.check, 'record');
+  assert.match(r.why, /larger than/);
+  assert.deepEqual(reads.filter((p) => path.basename(p) === 'run.json'), [], 'the oversized run.json was read before it was refused');
+});
+
+// G-8 of 20261124-180917-gsw-remediation-4-review-b: admitRun held the bound by an lstat and then read the record with no
+// bound, a second implementation of readRunJson's rule with a window between the two. A record that grows after the
+// lstat (simulated: the lstat reports the size it had) must still be refused, by the bounded read itself, and the refusal
+// is readRunJson's, the one owner of the run.json bound.
+test('a run.json that grows past the bound after its lstat is still refused, by readRunJson\'s rule', (t) => {
+  const w = world(t);
+  const record = JSON.stringify({ run_id: ID, repo_root: w.repo, pad: 'x'.repeat(9 * 1024 * 1024) });
+  const dir = w.put(w.staged(), ID, record);
+  const stale = Object.create(io.fs);
+  Object.defineProperty(stale, 'lstatSync', { value: (p, ...rest) => {
+    const st = io.fs.lstatSync(p, ...rest);
+    if (path.basename(String(p)) !== 'run.json') return st;
+    return Object.assign(Object.create(Object.getPrototypeOf(st)), st, { size: 100 });
+  } });
+  const grown = Object.create(io);
+  Object.defineProperty(grown, 'fs', { value: stale });
+  const r = w.admit(dir, { io: grown });
+  assert.equal(r.ok, false, 'a run.json that grew after its size check was read whole and admitted');
+  assert.equal(r.check, 'record');
+  assert.match(r.why, /larger than the \d+-byte bound on a run\.json/, `refused by readRunJson's rule: ${r.why}`);
+});
+
 test('an archived run in the repository is admitted', (t) => {
   const w = world(t);
   const dir = w.put(path.join(w.repo, '.claude', 'reviews'), ID, { run_id: ID, repo_root: w.repo });

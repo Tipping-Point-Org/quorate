@@ -40,7 +40,12 @@ const WRONG = { string: 7, name: 7, bool: 'yes', int: 'one', literal: { x: 1 }, 
 
 test('the baseline rows and records are valid, so a refusal below is the field\'s', () => {
   for (const t of TABLES) assert.deepEqual(responseErrors(response(t, ROWS[t]), request), [], t);
-  assert.deepEqual(responseErrors(response('definitions', FIELD_ROW), request), []);
+  // FIELD_ROW holds both defaults so every field is checked below; a valid field row holds one (G-21 of
+  // 20261121-233915-m3s7-b2-review).
+  const { default_text: _text, ...literal } = FIELD_ROW;
+  assert.deepEqual(responseErrors(response('definitions', literal), request), []);
+  const { default: _literal, ...expression } = FIELD_ROW;
+  assert.deepEqual(responseErrors(response('definitions', expression), request), []);
 });
 
 test('every table field the spec requires is refused when missing or of the wrong type, naming it', () => {
@@ -178,6 +183,8 @@ test('each cross-record rule is enforced, and every rule the spec names is teste
   refused('extractors-unless-not-configured', envelopeErrors({ ...ENVELOPE_OK, extractors: [] }));
   refused('hash-unless-no-facts', envelopeErrors({ ...ENVELOPE_OK, input_hash: null }));
   refused('one-of-arguments', argsErrors('comparisons', {}));
+  // G-21 of 20261121-233915-m3s7-b2-review: a field row giving its default both as a literal and as source text.
+  refused('default-or-default-text', responseErrors(response('definitions', FIELD_ROW), request).filter((e) => /default/.test(e)));
   refused('pinned-commit-is-hex', answersFileErrors({ pinned_commit: 'HEAD', sweeps: [{ name: 's', shape: 'calls', args: { callee: 'm.f' }, expected: [], method: 'read' }] }));
   assert.deepEqual([...tested].sort(), Object.keys(RULES).sort(), 'a rule the spec names has no test here');
 });

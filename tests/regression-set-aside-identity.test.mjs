@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { REPO_ROOT } from './helpers.mjs';
+import { REPO_ROOT, makeLink } from './helpers.mjs';
 import { READ } from './tools/read-census.mjs';
 import diagnosticsChannel from 'node:diagnostics_channel';
 import { git as fixtureGit, remAt, runRem, readRem, checkedFixture } from './remediate-runner-fixture.mjs';
@@ -187,11 +187,8 @@ test('stage 1, SI-D2 A (G-15): a set-aside path replaced by a file link to the s
   assert.ok(!fs.existsSync(b), 'the new file was not set aside');
   const target = path.join(path.dirname(f.repo), 'same-bytes.js');
   fs.writeFileSync(target, bytes);
-  try { fs.symlinkSync(target, b, 'file'); } catch (err) {
-    // A file symlink needs a privilege Windows grants only in Developer Mode; Linux and macOS run this case.
-    if (err.code === 'EPERM' && process.platform === 'win32') { t.skip('file symlinks need Developer Mode on Windows'); return; }
-    throw err;
-  }
+  // A file symlink needs a privilege Windows grants only in Developer Mode; Linux and macOS run this case.
+  if (!makeLink(t, { target, at: b, type: 'file' })) { t.skip('file symlinks need Developer Mode on Windows'); return; }
   assert.ok(fs.lstatSync(b).isSymbolicLink(), 'the fixture did not make a link');
   const again = runRem(f, ['--retry-commits']);
   assert.notEqual(again.status, 0, again.output.slice(-800));
@@ -404,11 +401,8 @@ test('G-13: pathState, executed, on a file link', (t) => {
   const f = setAsideFixture(t, { committed: { 'src/a.js': 'a\n' } });
   const target = path.join(f.base, 'matrix-target.js');
   fs.writeFileSync(target, 'outside\n');
-  try { fs.symlinkSync(target, path.join(f.repo, 'src', 'link.js'), 'file'); } catch (err) {
-    // A file symlink needs a privilege Windows grants only in Developer Mode; Linux and macOS run this case.
-    if (err.code === 'EPERM' && process.platform === 'win32') { t.skip('file symlinks need Developer Mode on Windows'); return; }
-    throw err;
-  }
+  // A file symlink needs a privilege Windows grants only in Developer Mode; Linux and macOS run this case.
+  if (!makeLink(t, { target, at: path.join(f.repo, 'src', 'link.js'), type: 'file' })) { t.skip('file symlinks need Developer Mode on Windows'); return; }
   assert.deepEqual(pathStates(f, ['src/link.js'])['src/link.js'], { kind: 'link' }, 'a file link was followed');
   assert.equal(fs.readFileSync(target, 'utf8'), 'outside\n');
 });

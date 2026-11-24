@@ -24,7 +24,7 @@ function groupsFor(counts) {
 
 test('at or under the cap there is one batch: the unbatched barrier is unchanged', () => {
   const g = groupsFor([['a.js', 40], ['b.js', 40]]);
-  const { batches, splitFiles } = reconcileBatches(g);
+  const { batches, splitFiles } = reconcileBatches(g, RECONCILE_MAX_GROUPS);
   assert.equal(batches.length, 1);
   assert.deepEqual(batches[0], g);
   assert.deepEqual(splitFiles, []);
@@ -36,7 +36,7 @@ test('156 groups split into batches under the cap, every group exactly once, no 
   for (let f = 0; f < 26; f++) counts.push([`src/f${String(f).padStart(2, '0')}.py`, 6]);
   const g = groupsFor(counts);
   assert.equal(g.length, 156);
-  const { batches, splitFiles } = reconcileBatches(g);
+  const { batches, splitFiles } = reconcileBatches(g, RECONCILE_MAX_GROUPS);
   assert.ok(batches.length >= 2, 'more groups than the cap must make more than one batch');
   for (const b of batches) assert.ok(b.length <= RECONCILE_MAX_GROUPS, `a batch of ${b.length} exceeds the cap`);
   const ids = batches.flat().map((x) => x.group_id);
@@ -49,7 +49,7 @@ test('156 groups split into batches under the cap, every group exactly once, no 
 
 test('a single file with more groups than the cap is split, and the split is reported', () => {
   const g = groupsFor([['small.js', 5], ['huge.js', RECONCILE_MAX_GROUPS + 10], ['tail.js', 3]]);
-  const { batches, splitFiles } = reconcileBatches(g);
+  const { batches, splitFiles } = reconcileBatches(g, RECONCILE_MAX_GROUPS);
   assert.deepEqual(splitFiles, ['huge.js'], 'a root-cause link may be missing there, so the run must be able to say so');
   for (const b of batches) assert.ok(b.length <= RECONCILE_MAX_GROUPS);
   assert.deepEqual(batches.flat().map((x) => x.group_id), g.map((x) => x.group_id));
@@ -78,7 +78,7 @@ test('the batch size has ONE owner: the reconcile output schema reads it', () =>
 
 test('run-graph batches inside the one reconcile node, and every batch\'s brief names its own groups file', () => {
   const g = read('scripts/run-graph.mjs');
-  assert.match(g, /reconcileBatches\(groupsOut\)/, 'the barrier partitions its groups');
+  assert.match(g, /reconcileBatches\(groupsOut, RECONCILE_MAX_GROUPS\)/, 'the barrier partitions its groups');
   // The batched path is one function since reconcile-batches.plan.md stage 1, and the barrier calls it.
   assert.match(g, /st = await runBatchedReconcile\(reconcileBatchList, splitFiles, writeReconcileBrief\)/, 'the barrier runs the batched path');
   const start = g.indexOf('async function runBatchedReconcile(');
@@ -93,7 +93,7 @@ test('run-graph batches inside the one reconcile node, and every batch\'s brief 
   const loopStart = g.indexOf('async function reconcileBatchLoop(');
   const loop = g.slice(loopStart, g.indexOf('\n}\n', loopStart));
   assert.match(loop, /^async function reconcileBatchLoop\(groups,/, 'the shared loop takes a group set');
-  assert.match(loop, /= reconcileBatches\(groups\);/, 'and partitions it itself');
+  assert.match(loop, /= reconcileBatches\(groups, RECONCILE_MAX_GROUPS\);/, 'and partitions it itself');
   const reaskStart = g.indexOf('async function reaskMissing(');
   const reask = g.slice(reaskStart, g.indexOf('\n}\n', reaskStart));
   assert.match(reask, /await reconcileBatchLoop\(asked,/, 'the re-ask runs its missing groups through the loop');
@@ -109,4 +109,16 @@ test('run-graph batches inside the one reconcile node, and every batch\'s brief 
   assert.match(g, /if \(calibrate && st\.state === 'OK'\)/, 'and divergence is computed only when it ran');
   assert.match(read('prompts/_templates/reconcile-brief.md'), /\{\{groups_file\}\}/, 'the brief names the groups file');
   assert.match(read('prompts/reconcile/PROMPT.md'), /The groups file your brief names/, 'and the prompt reads that file');
+});
+
+// NO HIDDEN DEFAULT MAXIMUM (G-28 of 20261121-193516-m3s7-b1-review): both of run-graph's calls passed only the groups and
+// the library filled in its module constant, so the batch size was a decision nobody at the call site made. The maximum is
+// now a required argument, refused when absent, and each call names it.
+test('reconcileBatches refuses a call that does not name its maximum (G-28)', () => {
+  assert.throws(() => reconcileBatches([{ file: 'a', id: 'G-1' }]), /max must be a positive integer/);
+});
+test('both of run-graph\'s calls pass RECONCILE_MAX_GROUPS explicitly (G-28)', () => {
+  const calls = read('scripts/run-graph.mjs').match(/reconcileBatches\([^)]*\)/g) ?? [];
+  assert.equal(calls.length, 2, `expected two calls, found ${calls.length}`);
+  for (const c of calls) assert.match(c, /, RECONCILE_MAX_GROUPS\)$/, `a call passes no maximum: ${c}`);
 });

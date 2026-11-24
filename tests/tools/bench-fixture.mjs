@@ -2,7 +2,8 @@
 // read the contract of the framework they live in (design D1), so a test of that read needs a framework root whose
 // contract the test writes — the real repository's would be the only one any test could exercise, and
 // test-suite-cost.md moved tests off it. This builds the least a bench needs to run its no-spend paths: a copy of
-// scripts/ (lens-roster.json included, which bench-second-opinion's listing reads), the plugin marker, ONE corpus seed
+// scripts/ (lens-roster.json included, which bench-second-opinion's listing reads), the plugin marker, prompts/_templates/
+// (the statements the bench's mutations are rendered from), ONE corpus seed
 // with its manifest and patch (bench-lenses refuses an empty corpus), ONE results file (bench-second-opinion's listing
 // starts from it), and a CLAUDE.md per test. The bench is launched from a SEPARATE throwaway project whose own contract
 // overrides a built-in too, so every test also shows which root was read.
@@ -43,6 +44,9 @@ export function benchFixture(t, { contract = contractText(), launchContract = co
   fs.cpSync(path.join(REPO_ROOT, 'scripts'), path.join(fw, 'scripts'), { recursive: true });
   fs.mkdirSync(path.join(fw, '.claude-plugin'), { recursive: true });
   fs.copyFileSync(path.join(REPO_ROOT, '.claude-plugin', 'plugin.json'), path.join(fw, '.claude-plugin', 'plugin.json'));
+  // The prompt templates the engine assembles from (prompts/_templates/): the bench's mutations read their statements
+  // there (ground-truth-statements.json), so a framework without them is not one the bench can run in.
+  fs.cpSync(path.join(REPO_ROOT, 'prompts', '_templates'), path.join(fw, 'prompts', '_templates'), { recursive: true });
   fs.cpSync(path.join(REPO_ROOT, 'bench', 'corpus', SEED), path.join(fw, 'bench', 'corpus', SEED), { recursive: true });
   fs.mkdirSync(path.join(fw, 'bench', 'results'), { recursive: true });
   fs.copyFileSync(path.join(REPO_ROOT, 'bench', 'results', RESULT), path.join(fw, 'bench', 'results', RESULT));

@@ -61,13 +61,16 @@ test('G-12: a since git cannot read as a commit is refused before anything else,
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('G-18: a link in a seat\'s scratch is not carried into the record, and the real files are', async () => {
+// A LINK REFUSES THE WHOLE MOVE (G-8 of 20261122-193909-llo-delivery): it was skipped while the real files were copied
+// and the scratch removed, losing the refused entry behind a move reported as done. Now the decision is refused, the
+// record holds nothing of the scratch and the scratch is kept.
+test('G-18: a link in a seat\'s scratch is not carried into the record, and the move is refused whole', async () => {
   const dir = tmp('decide-link-rec-');
   const scratchRoot = tmp('decide-link-scratch-');
   const outside = tmp('decide-link-outside-');
   try {
     fs.writeFileSync(path.join(outside, 'secret.txt'), 'outside');
-    await runDecision({ grounding: { floor: 'convention', basisOf: () => 'convention' },
+    await assert.rejects(() => runDecision({ grounding: { floor: 'convention', basisOf: () => 'convention' },
       question: Q, recordDir: dir, seed: 'x', seats: ['s1', 's2', 's3'], context: '', caps: { cap: 1, hardCap: 1 }, scratchRoot,
       runSeat: async (seat, prompt, round, scratch) => {
         fs.writeFileSync(path.join(scratch, `${seat}.json`), '{}');
@@ -75,9 +78,10 @@ test('G-18: a link in a seat\'s scratch is not carried into the record, and the 
         return { status: 'ok', choice: 'E1', rationale: 'r', other_text: '', change_of: '', what_would_change: 'w', citations: [] };
       },
       runModerator: async () => null,
-    });
+    }), /confined path refused: the seat scratch r1-s1 .*lead: a link/);
     const ev = path.join(dir, 'evidence-r1-s1');
-    assert.ok(fs.existsSync(path.join(ev, 's1.json')), 'the seat\'s real evidence reaches the record');
+    assert.equal(fs.existsSync(path.join(ev, 's1.json')), false, 'part of a refused scratch reached the record');
+    assert.ok(fs.existsSync(path.join(scratchRoot, 'r1-s1', 's1.json')), 'the refused scratch was removed');
     let st = null;
     try { st = fs.lstatSync(path.join(ev, 'lead')); } catch { /* absent, as it should be */ }
     assert.equal(st, null, 'a link from the seat\'s scratch was carried into the record');

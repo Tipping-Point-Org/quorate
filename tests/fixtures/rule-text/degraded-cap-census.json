@@ -3,13 +3,13 @@
   "rows": [
     {
       "file": "shared/claude-md-contract.md",
-      "anchor": "it reviews against observed conventions only, and `not_checked[]` names the",
+      "anchor": "it reviews against observed conventions and the non-waivable invariants (its",
       "status": "pointer",
       "why": "a pointer to shared/disk-first-protocol.md §7, the owner (operator, 2026-11-05: \"Pointers, all 6\")"
     },
     {
       "file": "CLAUDE.md",
-      "anchor": "| `doc_roles.architecture` | `arch-review` degrades to convention-only",
+      "anchor": "| `doc_roles.architecture` | `arch-review` degrades to the observed conventions and the non-waivable invariants",
       "status": "pointer",
       "why": "a pointer to shared/disk-first-protocol.md §7, the owner (operator, 2026-11-05: \"Pointers, all 6\")"
     },

@@ -64,9 +64,19 @@ test('a bare bench-second-opinion (no QUORATE_BENCH) names the overrides of its 
 
 test('bench-lenses probes the runtime version with subscriptionProbeEnv, not the inherited environment', () => {
   const src = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'bench-lenses.mjs'), 'utf8');
-  const probe = src.match(/runtime_version:\s*\(sh\(BENCH_RUNTIME\.cmd,[^\n]*/);
+  const probe = src.match(/runtime_version:[\s\S]{0,400}?sh\(BENCH_RUNTIME\.cmd,[^\n]*/);
   assert.ok(probe, 'the version probe call site was not found');
   // With the runtime it probes (G-11 of 20261103-022403-rbr-remediation-8-review).
   assert.match(probe[0], /env:\s*subscriptionProbeEnv\(process\.env, BENCH_RUNTIME\)\.env/,
     'sh() without env inherits every secret the shell holds (GITHUB_TOKEN, AWS_*); new-run\'s probe is scrubbed (G-23)');
+});
+
+test('bench-lenses records a failed version probe as unknown, not its stderr as the version', () => {
+  // G-10 of 20261122-035227-m3s7-b3-review: sh() joins stdout and stderr and the status was ignored, so a probe that
+  // failed had its error text saved as runtime_version and two result files looked comparable when they were not.
+  const src = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'bench-lenses.mjs'), 'utf8');
+  const site = src.match(/runtime_version:[\s\S]{0,600}?\n\s*(?:\}\)\(\)|\.trim\(\)[^\n]*),/);
+  assert.ok(site, 'the runtime_version site was not found');
+  assert.match(site[0], /\.status === 0/, `the probe's exit status decides whether its output is a version:\n${site[0]}`);
+  assert.match(site[0], /'unknown'/);
 });

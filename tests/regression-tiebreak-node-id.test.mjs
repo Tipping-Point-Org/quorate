@@ -62,6 +62,9 @@ test('widening to uppercase did not widen it to anything dangerous', () => {
   // The rule's actual job. `A-Z` carries no separator and no dot, which is the whole refusal.
   for (const bad of [
     '../escape', 'a/b', 'a\b', '.', '..', 'a.b', 'a b', '', 'a/../b', 'C:/x', 'a\u0000b',
+    // A node id is a directory name, and Windows reserves these as devices in any case (G-8 of
+    // 20261122-144505-m3s7-b3-remediation-3-review).
+    'CON', 'nul', 'Prn', 'aux', 'COM1', 'lpt9',
   ]) {
     assert.equal(NODE_ID_RE.test(bad), false, `${JSON.stringify(bad)} must still be refused`);
   }

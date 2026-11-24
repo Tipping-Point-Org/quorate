@@ -12,7 +12,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { stopChild } from '../scripts/io/stop-child.mjs';
 import { hostPlatform } from '../scripts/platform/index.mjs';
-import { withKill } from './helpers.mjs';
+import { withKill, makeLink } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -94,7 +94,7 @@ test('KL-D1: a lock at a link is refused and thrown, never followed, with nothin
   const dir = tmp(t, 'link');
   const outside = tmp(t, 'outside');
   const log = path.join(dir, 'kills.jsonl');
-  try { fs.symlinkSync(path.join(outside, 'x'), `${log}.lock`); } catch (e) { t.skip(`no symlinks here (${e.code})`); return; }
+  if (!makeLink(t, { target: path.join(outside, 'x'), at: `${log}.lock`, type: 'file' })) { t.skip('no symlinks here'); return; }
   assert.throws(() => appendRecord(log, '{"a":1}\n', { waitMs: 0 }));
   assert.equal(fs.existsSync(log), false, 'the record was appended without the lock');
   assert.equal(fs.existsSync(path.join(outside, 'x')), false, 'the lock was followed outside its folder');
@@ -301,6 +301,8 @@ test('one record lock: no lock is created outside the named lock owners', () => 
     'scripts/external-review.mjs': [1, "--out created exclusively: a caller's output file, not a lock"],
     'scripts/findings-ledger.mjs': [2, 'the migration report created exclusively: a report, not a lock'],
     'scripts/lib/confined-path.mjs': [1, "the confined owner's exclusive create: the primitive, not a lock"],
+    // G-10 of 20261122-214154-llo-remediation-2-review: removed, then created new, so no link at its name is written through.
+    'scripts/publish.mjs': [1, "the public secret scan's record created exclusively: a record, not a lock"],
   };
   assert.deepEqual(censusMisses(scriptFiles(), EXCL, ALLOWED), [], 'an exclusive create outside the named lock owners');
 });
@@ -321,8 +323,9 @@ test('one record lock: no `<file>.lock` is named outside the named lock owners',
     'scripts/io/reviewer-probe.mjs': [2, "a probe key's lock, through io/atomic.mjs acquireFileLock"],
     'scripts/decide.mjs': [2, 'the decision record and the spend count, through io/atomic.mjs acquireFileLock'],
     'scripts/findings-ledger.mjs': [2, 'the ledger, through io/atomic.mjs acquireFileLock'],
-    'scripts/remediate.mjs': [6, "remediate.lock, one runner per remediation run (remediation-run-ownership.plan.md); pre-existing, ledgered"],
-    'scripts/archive-run.mjs': [4, 'remediate.lock, held while a staged run is archived, the same lock as remediate.mjs'],
+    // remediate.mjs and archive-run.mjs name no `.lock` literal of their own: both take remediate.lock through
+    // lib/remediate-lock.mjs's REMEDIATE_LOCK (G-3 of 20261121-193516-m3s7-b1-review).
+    'scripts/lib/remediate-lock.mjs': [1, "remediate.lock's one owner, the protocol remediate.mjs and archive-run.mjs share (G-3 of 20261121-193516-m3s7-b1-review)"],
     'scripts/lib/preflight-cache.mjs': [8, "dependency manifests (uv.lock, Cargo.lock): file names, not locks"],
   };
   assert.deepEqual(censusMisses(scriptFiles(), LOCKNAME, ALLOWED), [], 'a `<file>.lock` outside the named lock owners');

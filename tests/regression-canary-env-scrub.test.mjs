@@ -45,6 +45,23 @@ test('regression: scrubChildEnv strips the secrets that were really crossing int
   assert.equal('Github_Token' in folded.env, false, 'an unrelated secret is still stripped');
 });
 
+// G-12 of 20261123-161216-m3s9-review: GIT_CONFIG_PARAMETERS and GIT_CONFIG_VALUE_<n> can carry an http.extraheader
+// Authorization header, and SECRET_NAME matches neither, so they crossed into every node; GIT_CONFIG_KEY_<n> matched
+// `_KEY` and was dropped alone, leaving COUNT and the VALUEs as the half-tuple git rejects. The tuple goes whole.
+test('regression: scrubChildEnv drops git\'s environment config whole, every carrier and the tuple together', () => {
+  const { env, scrubbed } = scrubChildEnv({
+    PATH: '/usr/bin', GIT_CONFIG_PARAMETERS: "'http.extraheader'='AUTHORIZATION: bearer x'",
+    GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraheader', GIT_CONFIG_VALUE_0: 'AUTHORIZATION: bearer x',
+    Git_Config_Value_1: 'y', GIT_CONFIG_GLOBAL: '/etc/x.gitconfig',
+  });
+  for (const k of ['GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_0', 'GIT_CONFIG_VALUE_0', 'Git_Config_Value_1']) {
+    assert.equal(k in env, false, `${k} must not cross into an agentic child`);
+    assert.ok(scrubbed.includes(k), `${k} must be recorded as stripped`);
+  }
+  assert.equal(env.GIT_CONFIG_GLOBAL, '/etc/x.gitconfig', 'a config file path is not a carrier and crosses');
+  assert.equal(env.PATH, '/usr/bin');
+});
+
 test('regression: canaryEnv routes through the single owner instead of re-implementing a deny-list', () => {
   const src = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'new-run.mjs'), 'utf8');
   const fn = src.slice(src.indexOf('function canaryEnv()'));

@@ -1,11 +1,12 @@
 {
-  "$comment": "What a release snapshot ships (scripts/publish.mjs; lib/publish.mjs owns the shape; ROADMAP D2 and D4; m2-public-release.plan.md stage 2). exclude: contract-grammar globs that do not ship. replace: published path -> tracked source. patterns: machine-local shapes a shipped file must not carry. markers: placeholders that refuse a publish. The operator's identity patterns are NOT here: they live in the gitignored .claude/publish.local.json. allow: one entry per accepted hit, by file, pattern and line_sha256 (the hash of the line's trimmed text, which publish prints beside each finding), with its reason; an entry that matches nothing refuses the publish.",
+  "$comment": "What a release snapshot ships (scripts/publish.mjs; lib/publish.mjs owns the shape; ROADMAP D2 and D4; m2-public-release.plan.md stage 2). exclude: contract-grammar globs that do not ship. replace: published path -> tracked source. patterns: machine-local shapes a shipped file must not carry, each with the contract globs it does not scan in skip (windows-drive-path skips tests/, whose made-up paths are many: operator, \"Pattern skips tests/ only (Recommended)\"). markers: placeholders that refuse a publish. The operator's identity patterns are NOT here: they live in the gitignored .claude/publish.local.json. allow: one entry per accepted hit, by file, pattern and line_sha256 (the hash of the line's trimmed text, which publish prints beside each finding), with its reason; an entry that matches nothing refuses the publish.",
   "version": 1,
   "exclude": [
     ".claude/reviews",
     ".claude/requests",
     ".claude/findings",
-    "blog/build-log.html"
+    "blog/build-log.html",
+    "blog/sessions"
   ],
   "replace": {
     "CLAUDE.md": "publish/CLAUDE.public.md"
@@ -13,7 +14,8 @@
   "patterns": [
     {
       "name": "windows-drive-path",
-      "regex": "(^|[^A-Za-z0-9])[A-Za-z]:\\\\[A-Za-z0-9_.~-]{2,}"
+      "regex": "(^|[^A-Za-z0-9])[A-Za-z]:[\\\\/][A-Za-z0-9_.~-]",
+      "skip": ["tests/**"]
     },
     {
       "name": "posix-home-path",
@@ -28,18 +30,6 @@
       "path": "scripts/lib/finding-scope.mjs",
       "pattern": "windows-drive-path",
       "line_sha256": "a2aa4539da37f8e6eed41255632800f1f7897d43cdc012d928fcb37c9946dfc9",
-      "reason": "a comment illustrating a junction to another volume with a made-up user (C:\\Users\\x -> F:\\x)"
-    },
-    {
-      "path": "tests/regression-publish.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "2e0f9d39dcd8bb2b3520624dc45a55ac7defdef0f2e37537f8bb55d8bdefd372",
-      "reason": "a comment naming the CI runner's 8.3 short path shape (C:\\Users\\RUNNER~1\\...), not this machine's"
-    },
-    {
-      "path": "tests/regression-root-cross-volume.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "28cfd2920d3e36724f05877e9c5e65dceebb182b44d0495bd38deed77ae4154a",
       "reason": "a comment illustrating a junction to another volume with a made-up user (C:\\Users\\x -> F:\\x)"
     },
     {
@@ -157,160 +147,142 @@
       "reason": "a comment illustrating a Windows path shape (\\\\?\\C:\\..., C:\\Windows, C:\\Program Files, the CI runner's C:\\Users\\RUNNER~1, a made-up user)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/ciss-d1-4-symptom/evidence/remediation/g10-green.log",
+      "path": "shared/claude-md-contract.md",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "12e66d1643e67080c7efd66ad058c37ede1d09ef62cbbba8ea12150162778625",
+      "reason": "an illustrative absolute glob, a drive and one letter, that the contract refuses; reached by the pattern broadened for G-15"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/ciss-d1-4-symptom/evidence/remediation/g10-red.log",
+      "path": "scripts/lib/finding-scope.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "a2aa4539da37f8e6eed41255632800f1f7897d43cdc012d928fcb37c9946dfc9",
+      "reason": "the second path on the same comment line, a junction to another volume with a made-up user (C:\\Users\\x -> F:\\x)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/ciss-d1-4-symptom/evidence/remediation/g16-green.log",
+      "path": "scripts/lib/evidence-path.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "8cfca4dd32f06c8e0f24a20c4c6befad3f9ba8303012abd969ea2712a4238dac",
+      "reason": "a comment naming the device-path shapes \\\\?\\C:\\x and \\\\.\\C:\\x, a made-up path"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/ciss-d1-4-symptom/evidence/remediation/g16-red.log",
+      "path": "scripts/lib/evidence-path.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "8cfca4dd32f06c8e0f24a20c4c6befad3f9ba8303012abd969ea2712a4238dac",
+      "reason": "a comment naming the device-path shapes \\\\?\\C:\\x and \\\\.\\C:\\x, a made-up path"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/ciss-d1-4-symptom/evidence/remediation/g9-green.log",
+      "path": "bench/test-selection/measure-bazel.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "0bbaf19177a356617cd20f88b23ba557d3c0f6c21383cac4cad8df4ed8e1f0eb",
+      "reason": "the second path on the same comment line, the Program Files folder on drive C spelled with a forward slash"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/ciss-d1-4-symptom/evidence/remediation/g9-red.log",
+      "path": "scripts/lib/evidence-path.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "cdc76b06c8a55565f080174645501c4006c678bf7669ec388ea443541d3eea05",
+      "reason": "a comment naming the drive-path shape C:\\x, a made-up path"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/adoption-green.log",
+      "path": "scripts/new-run.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "8ac08967b85a409ec254c1d81fbfa9f6d92b7cceb2a000df8b7887e8644fd14d",
+      "reason": "not a path: the text framework's:\\n in a string literal, where s, a colon and the escape \\n read as a drive"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/adoption-red.log",
+      "path": "scripts/reviewers.json",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "14f0210d473caa89e4aea0afbf9d2b55c88a7b92d6995187e5943650697ea11f",
+      "reason": "a note naming an absolute Edit grant spelling with its path elided"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/check-external-review-override.log",
+      "path": "examples/secret-scan-review/nodes/panel-codex-contract-report.md",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "1d517e59b5ca62a27c229699ca19d3a17fa8f17bc78a0da40868024b0b3f3dca",
+      "reason": "an example review naming the drive-path shape C:\\x\\file, a made-up path"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/check-ledger-findings.log",
+      "path": "examples/secret-scan-review/reconciled.md",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "d4e757528629d28298a920449ab432a20d9c3a0790f3179ee342a5ebffb377a3",
+      "reason": "an example review naming the drive-path shape C:\\x\\..., a made-up path"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/check-run-dir-trust-callers-2.log",
+      "path": "examples/secret-scan-review/reconciled.md",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "24bfe4aa027b034ed5b8e205d50f550f0445fd2173acafc2d5e4afb22b5fbf1c",
+      "reason": "an example review naming the drive-path shape C:\\x\\file, a made-up path"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/check-run-dir-trust-callers.log",
+      "path": "bench/corpus/numeric-bundle-pager/defect.patch",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "10a1432d0ed3b8ecf645134040683bc2a57b56d109399373572a2575384140b6",
+      "reason": "a seeded defect's comment naming the Windows folder's win.ini on drive C, a system file present on every Windows machine"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/check-sibling-census.log",
+      "path": "bench/corpus/numeric-bundle-pager/manifest.json",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "f682654abdb7d63f06fd852aac68bb13888cb6c9dd6b9240bde1842a3917f6b2",
+      "reason": "a seed's description naming the Windows folder's win.ini on drive C, a system file present on every Windows machine"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/sandbox-order-green.log",
+      "path": "bench/test-selection/measure-buildxl.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-no-red/evidence/remediation/sandbox-order-red2.log",
+      "path": "bench/test-selection/measure-buildxl.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/green-archive-fold.log",
+      "path": "bench/test-selection/measure-buildxl.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/green-arm-forbidden.log",
+      "path": "bench/test-selection/measure-buildxl.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/green-brief-path.log",
+      "path": "bench/test-selection/measure-buildxl.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/green-cgg-r2.log",
+      "path": "bench/test-selection/measure-overhead.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/green-framework-stamp.log",
+      "path": "bench/test-selection/measure-overhead.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/green-inquorate.log",
+      "path": "bench/test-selection/measure-overhead.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/green-roster.log",
+      "path": "bench/test-selection/measure-overhead.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/silent-return-green2.log",
+      "path": "bench/test-selection/measure-overhead.mjs",
       "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
-    },
-    {
-      "path": "tests/fixtures/remediation-evidence/rdt-2-test-only/evidence/remediation/silent-return-red.log",
-      "pattern": "windows-drive-path",
-      "line_sha256": "6b038997fb9926442a003099b5fe0f215fbb1b6909bb31d272134f634ab8102b",
-      "reason": "a captured check log, its working directory neutralised to C:\\work"
-    },
-    {
-      "path": "tests/regression-admit-run.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "4bd0f875adc115529fc93fe71fac19ff3a2f98a4105d25a40c86d69702b54102",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-brief-path-shell-safe.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "6ee4665aca15acc32baa0c2394f54d1dbf498fc934c66e5d37b52881f0001f32",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
+      "line_sha256": "97c45945c8cb65750f23f438fae75c9e610a048b2c276b63667af389bd0ad9e3",
+      "reason": "a list of system and neutral folders on drive C (work\\temp, Program Files, Program Files (x86), ProgramData, Windows)"
     },
     {
       "path": "tests/regression-brief-path-shell-safe.test.mjs",
@@ -385,24 +357,6 @@
       "reason": "a test of path handling, with a made-up home folder and user"
     },
     {
-      "path": "tests/regression-briefs-name-the-repository.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "3217968fd3204f76014fe73c5c1381095e2c059f0d0ac45089844722d5cddcc8",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-canary-positive-arm.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "3e88d2a8b573c7a0dbae307faf39f122c0300d08ffba830f0449769084997d55",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-check-install.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "251d83d339c7f6881d27229e1646a0274d5ddeb68623cacf7794ade38c3b867b",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
       "path": "tests/regression-decide.test.mjs",
       "pattern": "posix-home-path",
       "line_sha256": "a9b460e9a914950cbe240840944b5ea8548546da831950f88977a1035093e53b",
@@ -413,18 +367,6 @@
       "pattern": "posix-home-path",
       "line_sha256": "8700721346d2111ab08e5b77a2441f3d6e80ea74631cd98372e9d7a6ddc6f162",
       "reason": "a test of path handling, with a made-up home folder and user"
-    },
-    {
-      "path": "tests/regression-dps-seat-cited-paths.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "88d30904e06c3fc086ede95cb3178488e33cee2bdd148428c39b0b2e826bef84",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-epo-r3-path-forms.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "ba970fc858ee1c3dc9bc5fa3b264b83434abe513d968854f398ead50dc54374e",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
     },
     {
       "path": "tests/regression-evidence-path-owner.test.mjs",
@@ -449,24 +391,6 @@
       "pattern": "posix-home-path",
       "line_sha256": "6c136ff7a5a44336cb9c7a63ac315fb27d11af490bc9732376fed3f1dd7c8178",
       "reason": "a test of path handling, with a made-up home folder and user"
-    },
-    {
-      "path": "tests/regression-git-grant-scope.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "7a3088a5b526055e5130ff9103fd3d89be4788d170eeced5f3a4b6d2c3e12dc2",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-intent-canary-control.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "8a6f1c89d10b3d6055530a4e75a18dee71f9126970b1c98da42b7a09edfe6f42",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-invoke-single-lens.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "aea4d8ebe373ccf1546dceb4f3803b62fa5d87dce65573bafa5d7bc2554ebdf3",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
     },
     {
       "path": "tests/regression-printed-recovery-args.test.mjs",
@@ -497,24 +421,6 @@
       "pattern": "posix-home-path",
       "line_sha256": "12eda80411ab9f76942e3e7e9ac59f5e2d83577b3ff12334a4b7512798b4afc5",
       "reason": "a test of path handling, with a made-up home folder and user"
-    },
-    {
-      "path": "tests/regression-project-profile.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "fc2ba7fbc579f06319296af41cad86065742ff778f19f5723b39bf8d16f8edf0",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-remediation-group-scope.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "9f21e4cf0e3bfcbf74767d2ca9e5212b9c216704e2292ade53a922ec410a245c",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-remediation-sandbox.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "e5da6404a590614ea7c1fd37bf46b18db4710086341b72f40e3a6ccadb1e0b9b",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
     },
     {
       "path": "tests/regression-reviews-out-of-tree.test.mjs",
@@ -553,28 +459,10 @@
       "reason": "a test of path handling, with a made-up home folder and user"
     },
     {
-      "path": "tests/regression-short-path-home.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "6433a3f599dc8efea631285c4636cd795733f00fe7e3b690c303204aeebd23fa",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-short-path-home.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "336df9b0f4d54365de750137c0ed2a768a020362422d96ca18c47321895efede",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-short-path-home.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "79c4607deb447b742fb39d79ed544288b73cbf1ce86be0f8bb9a5f4dcdad5d01",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
-    },
-    {
-      "path": "tests/regression-test-writer-skills.test.mjs",
-      "pattern": "windows-drive-path",
-      "line_sha256": "33abcfcc9c5ea5b7fce2b5282e4af154f41cd4c0fe5a15a37c168e8dac3c42b3",
-      "reason": "a test or its comment needs a Windows path; the path is made up or neutralised (C:\\work, C:\\Users\\<example>)"
+      "path": "tests/regression-remediate-saverun-redacted.test.mjs",
+      "pattern": "posix-home-path",
+      "line_sha256": "e897f9d421d320e3f3323be540856292118336f3e473b1813397c57952437022",
+      "reason": "a test of redaction, with a made-up CI home folder and a fake key built at runtime"
     }
   ]
 }

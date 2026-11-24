@@ -36,7 +36,6 @@ const ALLOWED = [
   ['scripts/lib/remediation-chain.mjs', 'review.node_timeout_minutes is the remediation node', 'a message naming the key'],
   ['scripts/lib/remediation-chain.mjs', 'const cap = Number(record.timeout_minutes);', 'a node RECORD read back after the run: the limit it ran under, not a configured one'],
   ['scripts/new-run.mjs', '.filter((e) => /\\.timeout_minutes: /.test(e))', 'a pattern over the loader\'s error messages'],
-  ['scripts/remediate.mjs', '(review.check_timeout_minutes); `', 'a message naming the key'],
   ['scripts/remediate.mjs', 'timeout_minutes: st.timeout_minutes', 'copies a node record\'s recorded limit'],
   ['scripts/lib/telemetry-record.mjs', "timeout_minutes: num(pick('timeout_minutes', status.timeout_minutes))", 'copies a task\'s recorded limit, its call entry\'s or its status\'s, into its telemetry record'],
   ['scripts/spawn-node.mjs', 'timeoutMinutes: status.timeout_minutes ?? null', 'copies the limit this node ran under, already in its status, into its call entry'],

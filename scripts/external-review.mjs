@@ -354,7 +354,9 @@ const earlyAdmission = (() => {
 })();
 if (earlyAdmission && !earlyAdmission.ok) die(`--run-dir ${earlyAdmission.why}`);
 const DECLARED_REVIEWERS = args.runDir ? (earlyAdmission?.ok ? (earlyAdmission.record?.contract?.reviewers ?? {}) : {})
-  : declaredReviewers({ runDir: null, live: true });
+  // A live contract that cannot be read is this tool's failure, said as every other early one is (G-6 of
+  // 20261122-044843-m3s7-b3-remediation-review), as check-reviewers already does, never an unstructured throw.
+  : (() => { try { return declaredReviewers({ runDir: null, live: true }); } catch (e) { die(`the live contract's reviewers: ${e.message}`); } })();
 // The one owner (contract-runtime-and-session-files.plan.md stage 1); this tool uses the table and the overrides only.
 const ADAPTERS = selectAdapters({ declared: DECLARED_REVIEWERS });
 const REVIEWER_TABLE = ADAPTERS.table;
@@ -519,8 +521,10 @@ let evidenceRoot = outDir;
 // named the directory — an evidence sink escapes the tree exactly as easily as a run directory.
 const outFlag = args.runDir ? '--run-dir' : '--evidence-dir';
 if (outDir) {
-  const top = gitSync(['rev-parse', '--show-toplevel'], { encoding: 'utf8' });
-  if (top.status !== 0) {
+  // The roots come from gitWorktreeRoots, their one owner (I-3; G-17 of 20261122-035227-m3s7-b3-review): this block
+  // once asked git and parsed its answer a second time, so admission and confinement could disagree.
+  const roots = gitWorktreeRoots();
+  if (!roots) {
     die(`not inside a git repository, so there is no tree to confine ${outFlag} to (G-9)`);
   }
   // isWithin, from the one owner (G-7, arch-review + panel-codex-code). finding-scope.mjs calls
@@ -544,7 +548,7 @@ if (outDir) {
   // is the property G-9 is actually about — the authority for "which repository is this" must not
   // come from the file under test. Accepting a second root git itself reports does not weaken that;
   // accepting one the run.json named would have.
-  const roots = [path.resolve(top.stdout.trim())];
+  // (The roots above are gitWorktreeRoots': the toplevel first, then every root `git worktree list` reports.)
   // ASK GIT FOR A WORKTREE ROOT, NOT FOR A GIT DIRECTORY (G-8, security-audit).
   //
   // The first version of this took `dirname(--git-common-dir)`, which equals a worktree root only
@@ -559,14 +563,6 @@ if (outDir) {
   // the same answer from inside a linked worktree or from the main checkout. Still git speaking, in
   // this process, which is the property G-9 is about; what changed is that it is now asked the
   // question whose answer this code actually needs, instead of one whose answer resembles it.
-  const wt = gitSync(['worktree', 'list', '--porcelain'], { encoding: 'utf8' });
-  if (wt.status === 0) {
-    for (const line of (wt.stdout ?? '').split(String.fromCharCode(10))) {
-      if (!line.startsWith('worktree ')) continue;
-      const root = path.resolve(line.slice('worktree '.length).trim());
-      if (root && !roots.includes(root)) roots.push(root);
-    }
-  }
 
   // ONE ROOT DECIDES BOTH CHECKS (G-45, contract-audit). The first version tested the lexical
   // containment against ANY root and the link containment against ANY root, independently — so a
@@ -1018,7 +1014,7 @@ async function reviewerPreflight() {
   // process's whole environment. And under the call's PATH filter: the snapshot is named here as it is at the call (G-1
   // of 20261017-060636-rpe-review), so the probe cannot vouch for a binary the call would never run.
   const version = cliVersion(ADAPTER, limits, {
-    env: reviewerEnv(args.reviewer, process.env, { depth: DEPTH + 1, prefixes: envPrefixesOf(ADAPTER), names: envNamesOf(ADAPTER) }).env,
+    env: reviewerEnv(args.reviewer, process.env, { depth: DEPTH + 1, prefixes: envPrefixesOf(ADAPTER), names: envNamesOf(ADAPTER), caseFold: hostPlatform().caseInsensitiveEnv }).env,
     inside: [args.surface && path.resolve(args.surface)].filter(Boolean),
   });
   // Every exit from here on carries the count, failures included (I-5; G-6 of 20261017-071826-rpe-remediation-2-review):
@@ -1036,8 +1032,12 @@ async function reviewerPreflight() {
   const counts = (rec) => recordCounts(rec, combination, { now: Date.now(), maxAgeHours });
   let record = readProbeRecord(home, key);
   if (args.reprobe || !counts(record)) {
+    // Whether the lock was taken: a failure inside it (the probe or its record) is not a lock that could not be taken (G-18
+    // of 20261122-035227-m3s7-b3-review), and is reported as what it was.
+    let held = false;
     try {
       record = await withProbeLockAsync(home, key, limits, async () => {
+        held = true;
         // RE-READ under the lock: one written while this process waited, passed or failed, is used as it stands, so a
         // waiter never probes after a holder that finished.
         const again = readProbeRecord(home, key);
@@ -1051,7 +1051,8 @@ async function reviewerPreflight() {
         return fresh;
       });
     } catch (e) {
-      return { ok: false, label, reason: `the probe's lock could not be taken: ${String(e?.message ?? e).split('\n')[0]}`, dropped };
+      const why = String(e?.message ?? e).split('\n')[0];
+      return { ok: false, label, reason: held ? `the probe failed while its lock was held: ${why}` : `the probe's lock could not be taken: ${why}`, dropped };
     }
   }
   return record?.state === 'passed' ? { ok: true, label, record, dropped } : { ok: false, label, reason: record?.reason ?? 'the probe did not pass', dropped };
@@ -1427,7 +1428,9 @@ let outFile = '';
 const readAnswerFile = (f) => {
   if (!f) return '';
   if (evidenceSink) { try { return evidenceSink.read(['evidence', nodeId, path.basename(f)]); } catch { return ''; } }
-  return fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+  // Guarded as the sink read is (G-7 of 20261122-044843-m3s7-b3-remediation-review): a directory or an unreadable file
+  // at the answer path gives '' and the structured failure below, never a throw past every emitter.
+  try { return fs.readFileSync(f, 'utf8'); } catch { return ''; }
 };
 // Why the answer file gave nothing, for the failure's wording: below the sink the owner is asked (G-8 of
 // 20261029-212858-rdr-remediation-2-review), so a link standing there is named as refused rather than followed.
@@ -1512,7 +1515,7 @@ const { cmd, argv } = reviewerArgv({
 // inherit it entire — GITHUB_TOKEN, AWS_*, DATABASE_URL, ANTHROPIC_API_KEY (G-10 BLOCKER). Scoped
 // to the selected vendor's own prefixes so no key crosses a vendor boundary (G-21).
 const { env: reviewerScrubbedEnv } = reviewerEnv(args.reviewer, process.env, {
-  depth: DEPTH + 1, prefixes: envPrefixesOf(ADAPTER), names: envNamesOf(ADAPTER),
+  depth: DEPTH + 1, prefixes: envPrefixesOf(ADAPTER), names: envNamesOf(ADAPTER), caseFold: hostPlatform().caseInsensitiveEnv,
 });
 // WHERE THE REVIEWER STANDS is not where this script stands (arms-read-surface). The arms' directory
 // is built by run-graph as a repository of its own, holding a snapshot of the reviewed state — so

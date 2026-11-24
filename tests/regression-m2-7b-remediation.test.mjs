@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { runScript, mintedRunDir } from './helpers.mjs';
+import { runScript, mintedRunDir, makeLink } from './helpers.mjs';
 
 const tmp = (t, prefix) => {
   const d = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
@@ -149,7 +149,7 @@ test('G-8: an event is not appended through a hard link at the record file', asy
   const victim = path.join(outside, 'victim.txt');
   fs.writeFileSync(victim, 'outside\n');
   fs.rmSync(current);
-  try { fs.linkSync(victim, current); } catch (e) { t.skip(`this host cannot make a hard link here (${e.code})`); return; }
+  if (!makeLink(t, { target: victim, at: current, type: 'hard' })) { t.skip('this host cannot make a hard link here'); return; }
   assert.throws(() => appendStopEvent(repo, { at: 2, event: 'turn', session: 's1' }, { home }), /hard link|second name|EHARDLINK/i);
   assert.equal(fs.readFileSync(victim, 'utf8'), 'outside\n', 'the event was written into a file outside the engine home');
 

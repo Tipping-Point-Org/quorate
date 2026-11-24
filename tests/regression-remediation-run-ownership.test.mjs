@@ -146,7 +146,8 @@ test('r1: the writer guard catches async and promise writers too', () => {
 // readRun's own definition.
 // The lock is the run owner's exclusive create since run-dir-descendants.plan.md stage 2 (it was writeFileSync with `wx`).
 export function preLockReads(src) {
-  const lock = src.search(/owner\.create\(\['remediate\.lock'\], /);
+  // Through the lock's one owner since G-3 of 20261121-193516-m3s7-b1-review.
+  const lock = src.search(/takeRemediateLock\(owner, /);
   if (lock === -1) return ['no lock'];
   const before = src.slice(0, lock).split('\n');
   return before.map((l, i) => ({ l, n: i + 1 }))
@@ -156,7 +157,7 @@ export function preLockReads(src) {
 test('r1: nothing reads run.json before the lock, in any spelling', () => {
   const src = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'remediate.mjs'), 'utf8');
   assert.deepEqual(preLockReads(src), []);
-  const lockLine = "try { owner.create(['remediate.lock'], '{}'); } catch {}";
+  const lockLine = "try { takeRemediateLock(owner, {}); } catch {}";
   for (const early of ["const r = JSON.parse(fs.readFileSync(runJsonPath, 'utf8'));", 'const r = readRun(args.runDir);']) {
     assert.equal(preLockReads(`${early}\n${lockLine}\nconst run = readRun(runDir);`).length, 1, early);
   }
@@ -184,7 +185,12 @@ test('r2: the lock is created exclusively WITH its content, in one call', () => 
   const src = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'remediate.mjs'), 'utf8');
   assert.doesNotMatch(src, /openSync\(lockPath, 'wx'\)/, 'no empty create');
   // Through the run owner's exclusive create since run-dir-descendants.plan.md stage 2: one call, content included.
-  assert.match(src, /owner\.create\(\['remediate\.lock'\], JSON\.stringify\(\{[^;]*phase: 'started'[^;]*\}\)\)/s);
+  // Through the lock's one owner since G-3 of 20261121-193516-m3s7-b1-review, which creates it with its record.
+  assert.match(src, /takeRemediateLock\(owner, \{[^;]*phase: 'started'[^;]*\}\)/s);
+  // The lib names the run's owner `runOwner`, not `owner`: tests/regression-home-state-roots.test.mjs reads an `owner`
+  // receiver as rooted at the engine's home, and this lock lives in a run directory.
+  assert.match(fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'lib', 'remediate-lock.mjs'), 'utf8'),
+    /\brunOwner\.create\(\[REMEDIATE_LOCK\], remediateLockRecord\(record\)\)/);
 });
 
 // G-10, G-11 of 20261009-041724-run-ownership-r1: a lock whose removal failed stays at phase `saved` — the run finished

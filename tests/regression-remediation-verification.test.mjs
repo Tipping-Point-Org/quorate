@@ -174,7 +174,10 @@ test('stage 3: the brief template carries the narrow command and both limits, an
   const src = fs.readFileSync(new URL('../scripts/remediate.mjs', import.meta.url), 'utf8');
   assert.match(src, /test_one: /, 'remediate.mjs does not fill the test_one slot');
   assert.match(src, /limits: /, 'remediate.mjs does not fill the limits slot');
-  assert.match(src, /none declared/, 'an empty test_one must say so, not leave the slot blank');
+  // The sentence is the prompt library's (consumer-owned-configuration.md AC2); remediate.mjs fills the slot with it.
+  assert.match(fs.readFileSync(new URL('../prompts/_templates/remediation-test-one-none.md', import.meta.url), 'utf8'), /none declared/,
+    'an empty test_one must say so, not leave the slot blank');
+  assert.match(src, /briefLine\('remediation-test-one-none\.md'/, 'remediate.mjs must fill an empty test_one with that sentence');
 });
 
 test('stage 3: the prompt says captures run in the foreground, red and green narrow, and the whole is the runner\'s', () => {

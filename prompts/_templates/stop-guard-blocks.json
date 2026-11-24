@@ -1,0 +1,8 @@
+{
+  "$why": "WHAT THE STOP GUARD TELLS THE SESSION WHEN IT BLOCKS A STOP (lib/stop-record.mjs guardDecision; consumer-owned-configuration.md AC2). The session that reads these is a model, so the words are the prompt library's, not a script's. {{rules_path}} is the session rules the project follows; {{reason}} the stop reason the message named.",
+  "undeclaredWait": "A background task is running and the turn is ending unnamed. Start another task inside approved work if one can start; otherwise end with a last line `Stop: wait — <what you wait on>` ({{rules_path}}).",
+  "unnamed": "This turn is ending without a named reason. Continue the work, or end with a last line `Stop: <done|question|reserved>`, `Stop: error — <what>` or `Stop: limit — <what>` ({{rules_path}}).",
+  "twoMarkers": "This message has more than one stop marker. Keep exactly one, on its last line ({{rules_path}}).",
+  "noOptions": "A stop that waits for the operator asks a concrete question with its options and a suggestion ({{rules_path}}). Rewrite the question that way, keeping the last line `Stop: {{reason}}`.",
+  "toPanel": "review.decision_panel is on: a question with options goes to the decision panel, not the operator. Write it to a question file and run `node <framework-root>/scripts/decide.mjs --question <file>`, then go on with its answer; stop for the operator only for a reserved category (named) or a decision the panel postponed (its id on the line) ({{rules_path}})."
+}

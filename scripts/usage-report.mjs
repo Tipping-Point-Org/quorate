@@ -27,6 +27,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gitSync } from './io/git.mjs';
 import { confined } from './io/confined-path.mjs';
+import { readRunJson } from './io/reviews-root.mjs';
 import { coverage, scopeMatcher, reachedGate, unproven } from './lib/reviewed-run.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -78,7 +79,8 @@ try {
     // joined path made the run directory a root no one had checked; below reviewsOwner the run's own level is lstat'ed too.
     // ONE READ PER FILE (G-12 of 20261102-220302-rbr-remediation-5-review): an exists probe before each read walked the
     // owner's levels twice; a missing file is the read's ENOENT.
-    const readRun = (segs) => { try { return JSON.parse(reviewsOwner.read([name, ...segs])); } catch (e) { if (e?.code === 'ENOENT') return ABSENT; unreadable.push({ run: name, file: segs.join('/'), why: why(e) }); return undefined; } };
+    // run.json held to admitRun's bound (G-3 of 20261124-160743-gsw-remediation-2-review-b), never read whole.
+    const readRun = (segs) => { try { return segs.length === 1 && segs[0] === 'run.json' ? readRunJson(reviewsOwner, [name, ...segs]) : JSON.parse(reviewsOwner.read([name, ...segs])); } catch (e) { if (e?.code === 'ENOENT') return ABSENT; unreadable.push({ run: name, file: segs.join('/'), why: why(e) }); return undefined; } };
     const j = readRun(['run.json']);
     if (j === undefined || j === ABSENT) continue;
     // A RUN RECORD IS AN OBJECT (G-10): `false`, `0` or `""` was dropped unrecorded, and an array or number counted as a run.

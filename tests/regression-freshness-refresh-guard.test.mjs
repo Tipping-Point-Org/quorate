@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { refreshFreshnessDetached } from '../scripts/io/cli-freshness.mjs';
+import { refreshFreshnessDetached, checkFreshness } from '../scripts/io/cli-freshness.mjs';
 
 const stale = (home, extra = {}) => fs.writeFileSync(path.join(home, 'cli-freshness.json'), JSON.stringify({ checked_day: '2026-11-04', adapters: {}, ...extra }));
 const withHome = (fn) => {
@@ -34,6 +34,36 @@ test('G-2: today\'s cache from a table with other overrides is not current for t
   const declared = { codex: { cmd: '/opt/other-codex' } };
   assert.equal(refreshFreshnessDetached({ home, now: new Date('2026-11-05T10:00:00Z'), spawn, declared }), true, 'another table\'s answer was taken as this one\'s');
   assert.equal(calls.length, 1);
+}));
+
+// G-2 of 20261124-021129-m3s9-remediation-2-review-b: the child's error event only took the recorded start back, so a
+// refresh that could not start was retried in silence and the operator never learnt the CLIs were not being checked.
+test('G-2: a refresh that fails to start is said on the next turn start, and only until a check runs', () => withHome((home) => {
+  stale(home);
+  const handlers = {};
+  const spawn = () => ({ on(ev, fn) { handlers[ev] = fn; }, unref() {} });
+  const now = new Date('2026-11-05T10:00:00Z');
+  assert.equal(refreshFreshnessDetached({ home, now, spawn, declared: {} }), true);
+  assert.equal(typeof handlers.error, 'function', 'the child has no error handler');
+  handlers.error(new Error('spawn node ENOENT'));
+  const lines = checkFreshness({ cacheOnly: true, home, now: new Date(now.getTime() + 1000), declared: {} });
+  assert.ok(lines.some((l) => /could not start/.test(l) && /ENOENT/.test(l)), `a failed refresh went unsaid: ${JSON.stringify(lines)}`);
+  // Its start is still taken back, so a later turn retries.
+  assert.equal(refreshFreshnessDetached({ home, now: new Date(now.getTime() + 2000), spawn, declared: {} }), true, 'the failed start held off the retry');
+  // A check that ran writes a cache with no failure in it.
+  checkFreshness({ force: true, home, now, declared: {}, run: () => ({ ok: false }) });
+  assert.ok(!checkFreshness({ cacheOnly: true, home, now, declared: {} }).some((l) => /could not start/.test(l)), 'a failure outlived the check that followed it');
+}));
+
+// G-5 of 20261124-030759-m3s9-remediation-3-review-b: a spawn that threw synchronously took the start back but recorded no
+// error, so the same unstarted refresh went unsaid on that spelling of the failure.
+test('G-5: a refresh whose spawn throws is said on the next turn start, as an error event is', () => withHome((home) => {
+  stale(home);
+  const spawn = () => { throw new Error('spawn EACCES'); };
+  const now = new Date('2026-11-05T10:00:00Z');
+  assert.throws(() => refreshFreshnessDetached({ home, now, spawn, declared: {} }), /EACCES/);
+  const lines = checkFreshness({ cacheOnly: true, home, now: new Date(now.getTime() + 1000), declared: {} });
+  assert.ok(lines.some((l) => /could not start/.test(l) && /EACCES/.test(l)), `a refresh whose spawn threw went unsaid: ${JSON.stringify(lines)}`);
 }));
 
 test('G-3: an override the refresh runs is named by the hook that starts it', () => withHome((home) => {

@@ -35,7 +35,7 @@ import { confined, TMP_MAX } from './io/confined-path.mjs';
 import { gitSync } from './io/git.mjs';
 import { lsTreeEntries } from './lib/remediation-chain.mjs';
 import { isWithin } from './io/finding-scope.mjs';
-import { admitRun, callerRepoRoot, repoRunRoots, quorateHome } from './io/reviews-root.mjs';
+import { admitRun, callerRepoRoot, repoRunRoots, quorateHome, readRunJson } from './io/reviews-root.mjs';
 import { readContract } from './io/contract-reader.mjs';
 import { renderTemplate } from './lib/template.mjs';
 import { readTemplate } from './io/template.mjs';
@@ -205,7 +205,8 @@ function replayCase(id) {
       bench.replace([caseName, log], `${r.stdout ?? ''}\n${r.stderr ?? ''}`);
       return r;
     };
-    const runRecord = () => JSON.parse(confined(remDir).read(['run.json']));
+    // Held to readRunJson's bound (G-4 of 20261124-170802-gsw-remediation-3-review-b).
+    const runRecord = () => readRunJson(confined(remDir), ['run.json']);
     // 5. Reproduce: the full check once, no pass.
     const first = remediate(['--replay-node', replay.root, '--test-repair-passes', '0', '--measure-only'], 'remediate-1.log');
     const fc0 = (runRecord().full_checks ?? [])[0];

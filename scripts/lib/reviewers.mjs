@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { requireIo } from './io-param.mjs';
 import { minutes, TIMER_MAX_MS as MAX_TIMER_MS } from './check-timeout.mjs';
 import { toolListErrors } from './tool-lists.mjs';
+import { readRunJson } from './reviews-root.mjs';
 
 // NO node:fs OR node:child_process HERE (os-platform-adapters stage 3c). The table is read through an
 // injected reader or the platform implementation passed as `io`; scripts/io/reviewers.mjs binds it.
@@ -916,7 +917,8 @@ export function declaredReviewers({ run = null, runDir = null, cwd = null, readC
     if (typeof run.read !== 'function') throw new TypeError('declaredReviewers: `run` is the admitted run\'s owner, not a path');
     try {
       // The run's record through its owner (run-dir-reads.plan.md stage 3): a link standing at run.json is refused.
-      const frozen = JSON.parse(run.read(['run.json']));
+      // Held to readRunJson's bound (G-8 of 20261124-170802-gsw-remediation-3-review-b): a record over it is unreadable.
+      const frozen = readRunJson(run, ['run.json']);
       return frozen?.contract?.reviewers ?? {};
     } catch {
       // An unreadable run.json is refused by the egress check on the paths that transmit, so keeping

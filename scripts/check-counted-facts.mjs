@@ -47,7 +47,11 @@ const docPaths = args.doc
   // README.md joins the set for the reason this comment already gives: it states the test count in
   // its own words, so it is a third drift channel the moment it exists. Checking only the documents
   // that stated a number first would verify the copies nobody reads and skip the front page.
-  : ['CLAUDE.md', 'QUORATE.md', 'README.md'].map((f) => path.join(FRAMEWORK_ROOT, f)).filter((f) => fs.existsSync(f));
+  // publish/CLAUDE.public.md, the CLAUDE.md the public mirror ships, states the test count and cites this script as
+  // what verifies it, so it is one more drift channel (G-1 of 20261124-140633-gsw-remediation-review-b). Absent in the
+  // mirror itself, where the existence filter skips it.
+  : ['CLAUDE.md', 'QUORATE.md', 'README.md', path.join('publish', 'CLAUDE.public.md')]
+    .map((f) => path.join(FRAMEWORK_ROOT, f)).filter((f) => fs.existsSync(f));
 if (!docPaths.length) {
   console.error('check-counted-facts: no document found');
   process.exit(2);

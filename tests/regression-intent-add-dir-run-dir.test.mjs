@@ -32,7 +32,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { repoRunDir, runScript, REPO_ROOT } from './helpers.mjs';
+import { repoRunDir, runScript, REPO_ROOT, makeLink } from './helpers.mjs';
 
 /**
  * A minimal staged run directory, with the pre-flight logs this guard exists to withhold. Staged in this repository's
@@ -90,11 +90,12 @@ test('and any ANCESTOR of the run directory, which is how a staging root would a
 // G-14 of 20261025-092319-srf-review-amended: every check compared lexical paths, so a link whose own path passed them
 // all while its target was the source tree opened the sandbox onto the implementation. The link sits beneath the run
 // directory, the one place the guards admit by its path.
-test('and a link whose target is the source tree, whatever its own path', () => {
+test('and a link whose target is the source tree, whatever its own path', (t) => {
   const dir = stagedRunDir();
   const link = path.join(dir, 'sandbox', 'intent-capture', 'docs-link');
   try {
-    fs.symlinkSync(path.join(REPO_ROOT, 'scripts'), link, process.platform === 'win32' ? 'junction' : 'dir');
+    // Through makeLink (G-13 of 20261122-214154-llo-remediation-2-review): a refused kind skips by name, never fails at setup.
+    if (!makeLink(t, { target: path.join(REPO_ROOT, 'scripts'), at: link, type: process.platform === 'win32' ? 'junction' : 'dir' })) return;
     const r = spawnIntent(dir, link);
     assert.notEqual(r.status, 0, `a link onto scripts/ must be refused:\n${r.output.slice(-400)}`);
     assert.match(r.output, /would expose the source tree/);
@@ -115,12 +116,12 @@ test('the sandbox guards use the one link-aware containment owner, and it fails 
 
 // G-13 of 20261025-095239-srf-remediation-2-review: the guards judged each --add-dir by its own path and target, so a
 // link INSIDE the admitted floor that resolves to evidence/pre-flight, another part of the run directory, passed them all.
-test('and a link inside an --add-dir that leads elsewhere in the run directory', () => {
+test('and a link inside an --add-dir that leads elsewhere in the run directory', (t) => {
   const dir = stagedRunDir();
   const floor = path.join(dir, 'sandbox', 'intent-capture');
   const link = path.join(floor, 'preflight-link');
   try {
-    fs.symlinkSync(path.join(dir, 'evidence', 'pre-flight'), link, process.platform === 'win32' ? 'junction' : 'dir');
+    if (!makeLink(t, { target: path.join(dir, 'evidence', 'pre-flight'), at: link, type: process.platform === 'win32' ? 'junction' : 'dir' })) return;
     const r = spawnIntent(dir, floor);
     assert.notEqual(r.status, 0, `a link onto the pre-flight logs must be refused:\n${r.output.slice(-400)}`);
     assert.match(r.output, /run directory/);
@@ -132,18 +133,34 @@ test('and a link inside an --add-dir that leads elsewhere in the run directory',
 
 // G-17 of 20261025-104155-srf-remediation-3-review: the scan of links inside an admitted directory looked only for links
 // into the run directory, so a link in the floor onto the implementation (`src -> <repo>/scripts`) passed every guard.
-test('and a link inside an --add-dir that leads to the source tree', () => {
+test('and a link inside an --add-dir that leads to the source tree', (t) => {
   const dir = stagedRunDir();
   const floor = path.join(dir, 'sandbox', 'intent-capture');
   const link = path.join(floor, 'src');
   try {
-    fs.symlinkSync(path.join(REPO_ROOT, 'scripts'), link, process.platform === 'win32' ? 'junction' : 'dir');
+    if (!makeLink(t, { target: path.join(REPO_ROOT, 'scripts'), at: link, type: process.platform === 'win32' ? 'junction' : 'dir' })) return;
     const r = spawnIntent(dir, floor);
     assert.notEqual(r.status, 0, `a link onto scripts/ inside the floor must be refused:\n${r.output.slice(-400)}`);
     assert.match(r.output, /source tree/);
   } finally {
     try { fs.unlinkSync(link); } catch { /* not made */ }
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+  // G-16 of 20261122-144505-m3s7-b3-remediation-3-review: a link in the floor to a directory that is neither the run nor
+  // the source tree passed, so the floor held a door to anywhere else on the machine.
+  const dir2 = stagedRunDir();
+  const floor2 = path.join(dir2, 'sandbox', 'intent-capture');
+  const elsewhere = fs.mkdtempSync(path.join(path.dirname(dir2), 'q-g16-elsewhere-'));
+  const link2 = path.join(floor2, 'elsewhere');
+  try {
+    if (!makeLink(t, { target: elsewhere, at: link2, type: process.platform === 'win32' ? 'junction' : 'dir' })) return;
+    const r = spawnIntent(dir2, floor2);
+    assert.notEqual(r.status, 0, `a link out of the floor to an unrelated directory must be refused:\n${r.output.slice(-400)}`);
+    assert.match(r.output, /leads out of the sandbox floor/);
+  } finally {
+    try { fs.unlinkSync(link2); } catch { /* not made */ }
+    fs.rmSync(dir2, { recursive: true, force: true });
+    fs.rmSync(elsewhere, { recursive: true, force: true });
   }
 });
 
@@ -171,4 +188,29 @@ test('but the sandbox floor BENEATH the run directory is still admitted', () => 
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// THROUGH THE ONE LINK-LEAVING OWNER (link-leaving-owner.plan.md stage 2): a hard-linked file in a floor was passed by two of
+// the three scans (G-8 of 20261122-164811-m3s7-b3-remediation-5-review), and a floor outside the run had no hard-link check
+// at all. Each refusal names the kind, so a hard link is not reported as a link into the run.
+test('a hard-linked file in an --add-dir is refused, named, below the run and outside it', (t) => {
+  const dir = stagedRunDir();
+  const floor = path.join(dir, 'sandbox', 'intent-capture');
+  const outsideFile = path.join(path.dirname(dir), `q-hl-${process.pid}-${Date.now()}.txt`);
+  const outsideFloor = fs.mkdtempSync(path.join(path.dirname(dir), 'q-hl-floor-'));
+  t.after(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(outsideFloor, { recursive: true, force: true });
+    fs.rmSync(outsideFile, { force: true });
+  });
+  fs.writeFileSync(outsideFile, 'content from elsewhere');
+  if (!makeLink(t, { target: outsideFile, at: path.join(floor, 'same.txt'), type: 'hard' })) return;
+  const below = spawnIntent(dir, floor);
+  assert.notEqual(below.status, 0, `a hard link in the floor must be refused:\n${below.output.slice(-400)}`);
+  assert.match(below.output, /a hard-linked file \(same\.txt\)/);
+  fs.rmSync(path.join(floor, 'same.txt'));
+  if (!makeLink(t, { target: outsideFile, at: path.join(outsideFloor, 'same.txt'), type: 'hard' })) return;
+  const outside = spawnIntent(dir, outsideFloor);
+  assert.notEqual(outside.status, 0, `a hard link in a floor outside the run must be refused:\n${outside.output.slice(-400)}`);
+  assert.match(outside.output, /a hard-linked file \(same\.txt\)/);
 });

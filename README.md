@@ -65,7 +65,9 @@ normal use nobody runs the engine by hand: you ask, and the session follows the 
 - `candidate-pool`: three model families propose options before a hard-to-reverse choice.
 - `version-gate`: checks a milestone's definition of done against recorded run evidence.
 - `claim-check`: checks the agent's own report before you read it: a fresh checker looks for what would make each
-  claim a non-issue.
+  claim a non-issue. It has four limits, so do not over-trust it: it checks only what is written down, its checker can
+  miss a claim, a claim about who asked stands only on a transcript the checker is given, and a command it cites is
+  re-runnable but not re-run. [`shared/unverified-claims.md`](shared/unverified-claims.md) owns them.
 - `graph-plan`: how to split new parallel agent work.
 
 **Long runs**
@@ -197,8 +199,8 @@ node scripts/run-graph.mjs --run-dir <the run dir new-run printed>
 ```
 
 Zero runtime dependencies: Node (every maintained LTS line), git, and whichever reviewer CLIs you configure. CI runs
-the suite on Linux and Windows on every push to the default branch and every pull request; macOS runs when started by
-hand.
+the suite on Linux and Windows on every push to the default branch and every pull request, and on macOS too on every
+push to the public repository's default branch; elsewhere macOS runs when started by hand.
 
 ---
 
@@ -212,6 +214,7 @@ Each document **owns** its subject. Where two disagree, the owner wins.
 | [`shared/claude-md-contract.md`](shared/claude-md-contract.md) | What every `graph_contract` key means, and what an empty one does. |
 | [`shared/external-reviewers.md`](shared/external-reviewers.md) | The cross-family panel: what leaves the machine, and on whose consent. |
 | [`shared/adapter-contract.md`](shared/adapter-contract.md) | What each role needs from a runtime or a reviewer, and what is lost without it. |
+| [`shared/compatibility.md`](shared/compatibility.md) | What stays compatible within 1.x (the contract, `gate.json`, the documented commands, how removals are flagged), and what is not covered. |
 | [`shared/unverified-claims.md`](shared/unverified-claims.md) | What this framework does **not** verify, named and dated. |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | The engine's structure, as a specification the reviews hold it to. |
 | [`QUORATE.md`](QUORATE.md) | Consumer onboarding and setup. |
@@ -226,7 +229,7 @@ reads one says so and skips.
 
 ## Tests
 
-4716 regression tests. Every one records the defect it exists to prevent, in its own text. The count is verified
+5027 regression tests. Every one records the defect it exists to prevent, in its own text. The count is verified
 against the tree on every push, because a stated number that has gone stale is an inert guarantee.
 
 ```

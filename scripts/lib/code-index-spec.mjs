@@ -201,4 +201,6 @@ export const RULES = Object.freeze({
   'hash-unless-no-facts': 'an answer computed from facts names the key they were read under',
   'one-of-arguments': 'a shape with a one-of set is given exactly one of it',
   'pinned-commit-is-hex': 'an answer file pins a commit by its hex id',
+  // G-21 of 20261121-233915-m3s7-b2-review: both were permitted, so a field could carry two defaults the page says differ.
+  'default-or-default-text': 'a definition gives its default as a literal (default) or as source text (default_text), never both',
 });

@@ -58,6 +58,10 @@ to be valid. A required lens that did not report makes the gate `BLOCKED`, never
     (Recommended)", G-11 of 20261116-231613-m2-9a2-remediation-review).
   - `<quorateHome>/bench-repair/` — the repair-pass bench's results, one `result.json` per case, committed nowhere
     (`scripts/bench-repair-pass.mjs`).
+
+  One location sits outside its home, in a clone the operator names: `scripts/publish.mjs --out <clone>` writes the
+  public-history secret scan's record to `<clone's git directory>/quorate-publish/check-secrets.log`, inside `.git`, so
+  no commit carries it (operator, 2026-11-21, in the M3 stage 7 ledger triage: "I add the bullet (Recommended)").
   - `<quorateHome>/stdin/` — a runtime child's stdin file, one folder per call made exclusively, removed after the
     call, and any folder there older than a day swept (`scripts/io/stdin-file.mjs`; stdin-folder-owner.plan.md).
 
@@ -134,6 +138,11 @@ are not restated here.
 
 `nodes/expected.json` is written **before anything launches**. The barrier compares what reported
 against what was promised; it never derives the node set from what came back.
+
+A row may be ADDED to it later, before the node it names launches or in the same write that records that node
+`BLOCKED` without launching: a lens re-derived after request recovery, the adjudicators of a dispute, which could not be
+promised before reconciliation found the dispute, and a reconcile step whose required input was refused. The file's
+`derivation` says when that happened; no row is ever removed, or derived from what a node reported.
 
 *Failure this prevents:* a worker that dies silently simply does not appear, and its absence reads as
 "nothing to report".
@@ -267,9 +276,10 @@ plus `CHILD_ENV_KEEP` — the operator's Anthropic auth (`lib/decisions.mjs`); t
 the binary the contract chose, the source-editing remediation node included.
 
 Every path that runs an overridden built-in names it where its reader looks: the gate for a minted run
-(`gate.json.reviewer_overrides`), external-review's stderr and every response record, new-run at mint and
-in its refusals, spawn-node, check-reviewers and both benches. One function words it
-(`overrideLine`, `scripts/lib/reviewers.mjs`). No stamp and no ceiling: it is a fact for the reader, not a
+(`gate.json.reviewer_overrides`), external-review's stderr and every response record, and each other entry script
+that runs one, new-run at mint and in its refusals among them. One function words it (`overrideLine`,
+`scripts/lib/reviewers.mjs`), and its callers are the set: this sentence named five and missed seven
+(G-8 of 20261122-232627-m3s7-b4-review). No stamp and no ceiling: it is a fact for the reader, not a
 gap.
 
 **The flip condition.** This holds while the contract is the OPERATOR'S OWN. A quorate that ever reads a
@@ -305,7 +315,8 @@ A run directory carries a `run.json` that configures what a script does with it:
 repository it locks, commits in and spawns a node in. So a directory is not authority for itself. Every entry script
 that takes one (`--run-dir`, `--remediates`, `--follows-remediation`) admits it through `admitRun`
 (`scripts/lib/reviews-root.mjs`), which checks, in order: containment in the repository or the engine's home, lexically
-and after realpath; a readable `run.json`; a safe `run_id` equal to the directory's real name; what the caller requires
+and after realpath; a readable `run.json`, a regular file no larger than `RUN_RECORD_MAX_BYTES` (8 MiB) before it
+is read; a safe `run_id` equal to the directory's real name; what the caller requires
 of it; and that the run is one of the repository's runs and names that repository as its `repo_root`. The repository is
 the one the caller established (`--repo-root`, or git's toplevel of where it runs), and the script acts on the
 repository `admitRun` returns, never on the record's `repo_root`; a record with no `repo_root`, which predates the field,
@@ -330,7 +341,8 @@ containment alone admitted every repository's staged runs under the shared home,
 
 A git process runs the repository's hooks, clean filters and fsmonitor, so its environment is theirs. Every git the
 engine spawns goes through `scripts/io/git.mjs` (`gitSync`, `gitCommitSync`, `gitAsync`), in the environment
-`gitEnvFor` (`scripts/lib/decisions.mjs`) decides: no secret-shaped name, no runtime auth, no run pin,
+`gitEnvFor` (`scripts/lib/decisions.mjs`) decides; the one exception is a read-only git command a node runs through
+`scripts/capture.mjs`, which capture spawns as it spawns any captured command, in that same `gitEnvFor` environment: no secret-shaped name, no runtime auth, no run pin,
 `GRAPH_NODE_DEPTH` at least 1, and the SSH agent socket only for `git commit`. A caller cannot widen it: `env` is
 refused, and `gitVars` admits only git's own location, pathspec and commit-identity variables. A test enumerates every
 call in `scripts/` whose first argument is the literal `git` and holds it to this module; a git binary named through a
@@ -362,6 +374,13 @@ second test does the same for every read-family call (`tests/regression-confined
 is the one statement of which reads are outside the owner. Nothing below a run is contained by real path: a reader that
 admitted a link resolving back inside the run reads through the owner now, so such a link is refused on a read as on a
 write (`run-dir-reads.design.md`, R-D3 A). A read or a write through an aliased `fs` is the stated residual.
+
+A WALK OR A TREE COPY of what is below an admitted directory decides whether anything there leads out through one owner,
+`firstLeadingOut` (`scripts/lib/finding-scope.mjs`), as a single path is opened through `confined`: a link or junction
+resolving outside, a hard-linked file (by `hardLinkReason`, `scripts/lib/egress-read.mjs`, the one single-path rule), a
+dangling link and an entry that cannot be read all lead out, and a copy is judged before it writes
+(`link-leaving-owner.design.md`, LL-D1 B, LL-D3, LL-D4). `tests/regression-link-leaving-census.test.mjs` holds every walk,
+tree copy and hard-link test in `scripts/` to it, and its allow-list is the one statement of the exceptions and why.
 
 The session records are held to the same rule (`contract-runtime-and-session-files.design.md`, CR-D3 A): the run state and
 the CLI freshness cache, the stop record and the command log, each below the engine's home, through `confined` rooted at
@@ -545,9 +564,8 @@ Linux) — because each launcher answered "how is this child stopped, and what d
 > sets each decision's basis by code from the citations its seats give (A-22), settles a delegable question whose basis
 > is at or above `review.grounding_floor` under A-20's one exception below, sends one below the floor to the operator
 > with the panel's positions as its options, never touches what A-23 reserves, and records every decision (A-24).
-> `review.decision_rounds` is read with the meaning `shared/claude-md-contract.md` gives it (rounds before the
-> panel's moderator is asked, default 3; `review.decision_rounds_max` the hard cap, default 6), which replaced the
-> maximum-with-default-1 A-21 item 3 first specified. `review.autonomy_floor` is not a key: A-22 says why.
+> `review.decision_rounds` and `review.decision_rounds_max` are read with the meaning and defaults
+> `shared/claude-md-contract.md` gives them, which replaced the maximum-with-default-1 A-21 item 3 first specified. `review.autonomy_floor` is not a key: A-22 says why.
 >
 > **What stays uncalibrated is the floor's VALUE.** The section was deferred on 2026-09-16 until there were real
 > consumer runs to calibrate a floor against, and that reason still holds for the value: `measurement` is the
@@ -605,8 +623,9 @@ For a choice arising during work, the layer:
 2. **polls independent proposers in parallel and blind** — this is round 1, and it is the only round
    admissible as corroboration;
 3. **optionally runs rounds 2..N**, in which each proposer sees the others' positions and reasons under anonymous,
-   reshuffled letters. `review.decision_rounds` (default 3) is the rounds before a non-voting moderator is asked
-   whether to extend, and `review.decision_rounds_max` (default 6) the hard cap (the operator, 2026-10-21, in
+   reshuffled letters. `review.decision_rounds` is the rounds before a non-voting moderator is asked whether to
+   extend, and `review.decision_rounds_max` the hard cap, their defaults owned by `shared/claude-md-contract.md` (the
+   operator, 2026-10-21, in
    `autonomous-run.md`: "configurable, default 3"; "Moderator extends, capped"); this replaced a maximum with default
    `1` on 2026-10-31;
 4. **grades the choice on the basis ladder** of A-6: what does the decision actually rest on?

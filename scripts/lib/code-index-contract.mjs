@@ -13,6 +13,8 @@ import { candidateEnvErrors } from './decisions.mjs';
 
 const LANGUAGE = /^[a-z][a-z0-9_-]*$/;
 const LANGUAGE_KEYS = new Set(['extractor', 'globs', 'options', 'env']);
+/** A language's keys, for the compatibility freeze (lib/compatibility.mjs), which reads them from here. */
+export const CODE_INDEX_LANGUAGE_KEYS = Object.freeze([...LANGUAGE_KEYS]);
 const CREDENTIAL_FAMILIES = ['ANTHROPIC_', 'CLAUDE_CODE_'];
 const isMap = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 

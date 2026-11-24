@@ -34,10 +34,13 @@ A node whose id begins `panel-` is an **external arm** — a different model fam
 shadowed lens's own review criteria *and* the same run brief, with `source` naming the reviewer
 and `model` naming what it actually ran. Both matter to how much weight the agreement carries: an
 arm handed the brief without the criteria was answering a different question, so read `model` and
-the arm's `not_checked[]` before treating agreement as corroboration. Every lens is a Claude model,
-so two lenses agreeing share a blind spot and may be one opinion counted twice; a lens and an
-external arm agreeing do not. Treat the second as materially stronger evidence than the first, and
-say so in the rationale when it decides a group.
+the arm's `not_checked[]` before treating agreement as corroboration. Every lens runs on this run's
+one node runtime, whichever family that is, so two lenses agreeing share a blind spot and may be one
+opinion counted twice; so may two arms on one reviewer. Two nodes of DIFFERENT families agreeing do
+not, and a lens and an arm are of different families only when the arm's reviewer is not the lens
+runtime's family. Read the family from what each node recorded (`source`, `model`), never assume it.
+Treat cross-family agreement as materially stronger evidence than same-family agreement, and say so
+in the rationale when it decides a group.
 
 An arm's findings are capped at `convention` / `MEDIUM` and its verdict at `RISK`, because it runs
 outside the run sandbox and cannot produce an evidence path this run can verify. So an arm may
@@ -57,12 +60,14 @@ every asymmetry in coverage, which is most of them.
 Disputed groups are the only ones the ORCHESTRATOR sends to the adjudicators, and it sends them to
 every declared judge rather than to one tie-breaker (G-4: this said `second-opinion` sends them to
 `agy`, and both halves were wrong — second-opinion audits your adjudication and cannot spawn
-anything, and the judge set replaced the single tie-breaker). A 1-1 split is recorded undecided.
+anything, and the judge set replaced the single tie-breaker). A 1-1 split is recorded `outcome: tied`.
 
 You are the one who decides a dispute exists, because a script cannot tell a contradiction from a
-coincidence — that is the same error the removed `corroborated` flag made. What a script CAN check,
-and now does, is that a group you flagged has two sides: a flagged group with no lens or no arm among
-its findings is reported and no judge is asked, since a vote needs two positions to decide between.
+coincidence — that is the same error the removed `corroborated` flag made. So every group you flag
+goes to the judges: no script second-guesses the flag. What a script does is REPORT the group's
+composition, whether a lens and an arm are both among its findings, so a reader can tell a
+lens-versus-arm dispute from one inside a single side; that report never stops a judge being asked.
+Flag a group only when two of its findings take positions a vote can decide between.
 
 Your job is the part a script cannot do: judgment.
 

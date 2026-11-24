@@ -77,7 +77,7 @@ export function validateManifest(m) {
     if (namesGit(to) || namesGit(from)) return { error: `replace ${JSON.stringify(to)} -> ${JSON.stringify(from)} names a .git path, which is git's, never content` };
   }
   const patterns = m.patterns ?? [];
-  const pErr = patternErrors(patterns, 'patterns');
+  const pErr = patternErrors(patterns, 'patterns', { allowSkip: true });
   if (pErr) return { error: pErr };
   // The local identity patterns are renamed local:<name> (scripts/publish.mjs); a manifest pattern of that name would let
   // an allowance name, and so suppress, an identity hit.
@@ -127,14 +127,31 @@ export function validateLocalPatterns(l) {
   return { patterns };
 }
 
-function patternErrors(patterns, label) {
+// A manifest pattern may name the paths it does not scan, `skip`, contract globs (G-3 of
+// 20261123-020742-m3s7-b4-remediation-3-review; operator: "Pattern skips tests/ only (Recommended)"): the drive-path
+// pattern broadened for G-15 matched some two hundred made-up paths in tests/, each needing an allowance. An identity
+// pattern never skips: the operator's name is refused everywhere.
+function patternErrors(patterns, label, { allowSkip = false } = {}) {
   if (!Array.isArray(patterns)) return `${label} is not a list`;
   for (const p of patterns) {
     if (!p || typeof p.name !== 'string' || typeof p.regex !== 'string') return `${label}: each needs a name and a regex`;
     try { new RegExp(p.regex, p.flags ?? ''); } catch (e) { return `${label}: ${p.name}: ${e.message}`; }
     if (/[gy]/.test(p.flags ?? '')) return `${label}: ${p.name}: the g and y flags are not allowed`;
+    if (p.skip !== undefined) {
+      if (!allowSkip) return `${label}: ${p.name}: skip is not allowed here; an identity pattern scans every shipped file`;
+      if (!Array.isArray(p.skip) || p.skip.some((g) => typeof g !== 'string')) return `${label}: ${p.name}: skip is not a list of globs`;
+      for (const g of p.skip) {
+        const why = validateGlob(g);
+        if (why) return `${label}: ${p.name}: skip glob ${JSON.stringify(g)}: ${why}`;
+      }
+    }
   }
   return null;
+}
+
+/** Whether a pattern scans the shipped path `rel`: false where one of its `skip` globs matches it. Pure. */
+export function patternScans(p, rel) {
+  return !(p.skip ?? []).some((g) => matchesGlob(g, String(rel).replace(/\\/g, '/')));
 }
 
 // A path component as Windows resolves it (G-5 of 20261117-122032-m2-9a-d1-2): an NTFS stream suffix (`name::$DATA`)
@@ -196,22 +213,31 @@ export function untrackedThatShips(untracked, manifest) {
 
 /**
  * Every finding in one shipped file's text: [{ path, line, name, excerpt }] for each pattern, and [{ path, line,
- * marker }] for a placeholder marker. An excerpt is bounded and never the whole line, so a report does not republish
- * what it found.
+ * marker }] for a placeholder marker. An excerpt is bounded, never the whole line, and has every hit's span on the line
+ * masked, so a report does not republish what it found.
  */
 export function scanText(path, text, { patterns = [], markers = [] } = {}) {
   const hits = [];
   const lines = String(text).split(/\r?\n/);
   // Every occurrence is a hit (G-12 of 20261117-031403-m2-9a-d1): one exec per line reported only the first, so the one
   // allowance naming that line covered every occurrence on it. The manifest refuses g and y; the scan adds g itself.
-  const compiled = patterns.map((p) => ({ name: p.name, re: new RegExp(p.regex, `${p.flags ?? ''}g`) }));
+  const compiled = patterns.filter((p) => patternScans(p, path))
+    .map((p) => ({ name: p.name, re: new RegExp(p.regex, `${p.flags ?? ''}g`) }));
   lines.forEach((ln, i) => {
+    const found = [];
     for (const { name, re } of compiled) {
       re.lastIndex = 0;
       for (let m = re.exec(ln); m; m = re.exec(ln)) {
-        hits.push({ path, line: i + 1, name, excerpt: excerptAround(ln, m.index, m[0].length), line_sha256: lineSha256(ln) });
+        found.push({ name, at: m.index, end: tokenEnd(ln) });
         if (m[0].length === 0) { if (re.lastIndex >= ln.length) break; re.lastIndex += 1; }
       }
+    }
+    if (found.length) {
+      const sha = lineSha256(ln);
+      // Every span runs to the end of the line, so the masked region is one: from the earliest hit on (G-4 of
+      // 20261123-020742-m3s7-b4-remediation-3-review: each excerpt re-walked every span, quadratic in the hits).
+      const maskFrom = found.reduce((a, f) => Math.min(a, f.at), ln.length);
+      for (const f of found) hits.push({ path, line: i + 1, name: f.name, excerpt: excerptAround(ln, f.at, maskFrom), line_sha256: sha });
     }
     for (const marker of markers) {
       if (ln.includes(marker)) hits.push({ path, line: i + 1, marker });
@@ -244,10 +270,19 @@ export function scanShipped(path, buf, opts = {}) {
   return hits;
 }
 
-function excerptAround(ln, at, len) {
+// A path pattern matches its first characters only, and where the path ends cannot be known from its text: a folder name
+// may hold a space or any punctuation (G-5 of 20261123-020742-m3s7-b4-remediation-3-review: masking to the first space
+// printed "Doe\repo" of a path through "Jane Doe"). So a hit's span runs to the end of its line.
+function tokenEnd(ln) {
+  return ln.length;
+}
+
+// The context before a hit, with everything from the line's first hit on masked (I-1 of m3-stage7-fixes.md): the report
+// says where a hit is, by line and line_sha256, and never repeats the path or identity it found. Constant work per hit.
+function excerptAround(ln, at, maskFrom) {
   const from = Math.max(0, at - 20);
-  const to = Math.min(ln.length, at + len + 20);
-  return `${from > 0 ? '…' : ''}${ln.slice(from, to)}${to < ln.length ? '…' : ''}`;
+  const clearTo = Math.max(from, Math.min(maskFrom, ln.length));
+  return `${from > 0 ? '…' : ''}${ln.slice(from, clearTo)}[masked]`;
 }
 
 /**
@@ -357,8 +392,9 @@ export function applyAllowances(hits, allow = []) {
  * for readers (I-5; G-32 of 20261117-013640-m2-9a-final). Returns { text } or { error }.
  */
 export const PUBLIC_REQUEST_COMMENT = [
-  '  # Empty in a copy of quorate: no request is declared, so a review finds an approved request under',
-  '  # .claude/requests/ or recovers one, as shared/claude-md-contract.md describes. Name the request your work',
+  '  # Empty in a copy of quorate: no request is declared, so a review finds an approved request in your own',
+  '  # .claude/requests/ (a folder you create; none ships) or recovers one, as shared/claude-md-contract.md',
+  '  # describes. Name the request your work',
   '  # answers here, or pass --request to new-run. (The development repository records here which request each',
   '  # stretch of work was judged against; that history stays with its private design records.)',
 ];

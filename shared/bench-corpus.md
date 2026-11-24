@@ -19,7 +19,7 @@ story-pipeline's five). `bench/README.md` says how the bench runs here; this pag
 ```
 
 `defect.patch` recreates the **pre-discovery** state, which is the state a review exists for. It also removes the
-defect's regression tests (`removes_tests: true`): a defect the suite catches fails the pre-flight barrier, and the
+defect's regression tests where there are any (`removes_tests: true`; `false` when there were none to strip): a defect the suite catches fails the pre-flight barrier, and the
 bench would then measure the tests instead of the lenses. The patch must apply to the tree being benchmarked; the
 offline corpus check fails a seed whose patch no longer applies, so a stale seed is visible rather than silently wrong,
 and is regenerated.

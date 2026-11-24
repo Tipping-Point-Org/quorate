@@ -19,7 +19,16 @@ import { confined, readAtMost } from './confined-path.mjs';
 
 export { readAtMost };
 
-/** Why a regular file with `nlink` names may not leave, or null. A directory or a single-named file is not refused here. */
+/**
+ * Why a regular file with `nlink` names may not leave, or null. A directory or a single-named file is not refused here.
+ *
+ * THE ONE SINGLE-PATH HARD-LINK RULE (link-leaving-owner.plan.md stage 4): every check of one file asks this, and the walk
+ * owner, lib/finding-scope.mjs's firstLeadingOut, asks it for each file below a directory. ONE NAMED EXCEPTION (design
+ * LL-D2 A): the external arms' snapshot (lib/snapshot-surface.mjs) admits a hard link whose every name is inside the
+ * snapshot, since no outside content leaves through it, and a repository's own hard links would otherwise vanish from
+ * what the arms read; a hard link with a name outside is withheld there as here. The bench's re-judge names a hard
+ * link instead of refusing it, by the operator's 2026-10-31 rule (bench-second-opinion.mjs).
+ */
 export function hardLinkReason(st, where) {
   if (!st || typeof st.isFile !== 'function' || !st.isFile()) return null;
   const n = Number(st.nlink);

@@ -152,10 +152,11 @@ test('the doctrine names the panel among the conditions that flip the decision',
   const end = rest.search(/\n#{2,3} /);
   const section = end === -1 ? rest : rest.slice(0, end);
   assert.match(section, /external panel/i, 'the panel must be named as a condition');
-  // Since arms-read-surface: the stamp that records a run whose panel had nowhere safe to stand, and
-  // the measured limit — the reviewer's read-only sandbox does not bound reads.
-  assert.match(section, /PANEL-NO-SAFE-SURFACE/, 'and the stamp that records the no-surface case');
-  assert.match(section, /bounds writes, not reads/, 'and what the directory does NOT bound, as measured');
+  // Since arms-read-surface the arms read a directory built for them; what it holds, what it does NOT bound (reads), and
+  // the no-surface stamp are shared/external-reviewers.md's, and this section POINTS there and restates none of it (G-23
+  // of 20261122-014737-m3s7-b2-review-2, I-8): it carried a second copy of that mechanism, which could drift.
+  assert.match(section, /`shared\/external-reviewers\.md` owns that directory/, 'the section does not point at the owner');
+  assert.doesNotMatch(section, /PANEL-NO-SAFE-SURFACE|bounds writes, not reads/, "the section restates the owner's mechanism");
 });
 
 test('the arm constraints say not to read the run directory, and say it is not the boundary', () => {

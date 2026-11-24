@@ -9,6 +9,8 @@ test('the generators write their tracked output atomically', () => {
   for (const f of ['gen-gitleaks-config.mjs', 'gen-rule-text.mjs']) {
     const src = fs.readFileSync(new URL(`../scripts/${f}`, import.meta.url), 'utf8');
     assert.doesNotMatch(src, /\bfs\.writeFileSync\(/, `${f} truncates its output before writing it`);
-    assert.match(src, /\bwriteTextAtomic\(/, f);
+    // The owner's replace is atomic too: gen-gitleaks-config writes through it since G-2 of
+    // 20261122-204359-llo-remediation-review, so a link at .claude/hooks is refused.
+    assert.match(src, /\bwriteTextAtomic\(|\bconfined\([^)]*\)\.replace\(/, f);
   }
 });

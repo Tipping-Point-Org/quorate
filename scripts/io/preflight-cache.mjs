@@ -7,9 +7,9 @@ import crypto from 'node:crypto';
 import { gitSync } from './git.mjs';
 import { hostFs as fs } from '../platform/index.mjs';
 import { expandGlob, hashFiles } from './glob-walk.mjs';
-import { writeJsonAtomic } from './atomic.mjs';
-import { unsafeSegment } from './confined-path.mjs';
-import { isWithin, canonicalSpelling } from './finding-scope.mjs';
+import { unsafeSegment, confined } from './confined-path.mjs';
+import { hardLinkReason, hardLinkRefused } from '../lib/egress-read.mjs';
+import { isWithin, canonicalSpelling, firstLeadingOut, LEADS_OUT_KIND } from './finding-scope.mjs';
 import { MANIFEST_HEURISTIC, PREFLIGHT_COMMAND_KEYS, preflightCachePath, preflightEvidenceDir, preflightEvictions } from '../lib/preflight-cache.mjs';
 
 export * from '../lib/preflight-cache.mjs';
@@ -152,12 +152,32 @@ export function preflightInputHash({ repoRoot, contract = {}, contractSource = n
  * for a sharper reason here: a half-written entry that parsed would let a run claim evidence it
  * does not have.
  */
+// The file in a cached evidence folder naming the writer that copied it (G-5); never restored into a run.
+const EVIDENCE_WRITER_MARK = '.quorate-cache-writer';
+
 export function readPreflightCache(reviewsDir, hash) {
   try {
-    const entry = JSON.parse(fs.readFileSync(preflightCachePath(reviewsDir, hash), 'utf8'));
+    // THROUGH THE OWNER (G-10 of 20261122-193909-llo-delivery): a raw read followed a link at .preflight-cache or at the
+    // entry, so a JSON from outside the reviews root could stand in for a cached result. Refused, it reads as absent.
+    const segs = path.relative(reviewsDir, preflightCachePath(reviewsDir, hash)).split(path.sep);
+    const entry = JSON.parse(confined(reviewsDir).read(segs));
     if (!entry || typeof entry !== 'object') return null;
     if (typeof entry.input_sha256 !== 'string' || !entry.input_sha256) return null;
     if (!Array.isArray(entry.results)) return null;
+    // THE JSON NAMES THE EVIDENCE COPY IT WAS WRITTEN WITH (G-5 of 20261122-214154-llo-remediation-2-review): two writers
+    // of one hash published evidence and JSON separately, so one writer's results could stand beside the other's logs.
+    // An entry whose evidence is another writer's copy reads as absent: a re-run, never a mismatched citation.
+    if (entry.evidence_writer !== undefined) {
+      const evSegs = path.relative(reviewsDir, preflightEvidenceDir(reviewsDir, hash)).split(path.sep);
+      // Evidence that is gone is still a valid result whose gap the gate names (restorePreflightEvidence); evidence that
+      // is present and not this JSON's copy is not.
+      const own = confined(reviewsDir);
+      if (own.exists(evSegs)) {
+        let mark = null;
+        try { mark = String(own.read([...evSegs, EVIDENCE_WRITER_MARK])); } catch { /* unmarked: not this JSON's copy */ }
+        if (mark !== entry.evidence_writer) return null;
+      }
+    }
     return entry;
   } catch {
     return null;
@@ -180,18 +200,64 @@ export function readPreflightCache(reviewsDir, hash) {
  */
 // A directory below a run copied out, through its owner: every entry stat'ed after the walk, a link refused, a
 // directory descended, a file read and written into `dest` (a folder of the cache, not of a run).
-function copyOutOfRun(owner, segs, dest) {
-  fs.mkdirSync(dest, { recursive: true });
-  for (const name of owner.list(segs)) {
-    const st = owner.stat([...segs, name]);
-    if (st.isDirectory()) copyOutOfRun(owner, [...segs, name], path.join(dest, name));
-    else if (st.isFile()) fs.writeFileSync(path.join(dest, name), owner.read([...segs, name], null));
+// JUDGED WHOLE BEFORE IT WRITES (G-11, G-12 of 20261122-193909-llo-delivery): the walk ran with the writes, so a refusal
+// found late left the files before it in the cache, and a hard-linked file was copied, its content any file's. The tree
+// is listed first, every entry stat'ed through the owner (a link refused there) and every file asked hardLinkReason;
+// only a tree with nothing refused is written.
+// INTO THE CACHE THROUGH ITS OWNER, STAGED (G-4, G-5 of 20261122-204359-llo-remediation-review): `cache` is the owner of the
+// reviews folder and `stage` the segments of a folder of this writer's own, made exclusively below .preflight-cache; the
+// caller renames it into place only once the copy has succeeded, so a refused copy never removes the entry's evidence and
+// two writers of one hash never share a folder.
+function copyOutOfRun(owner, segs, cache, stage) {
+  // THE OWNER FIRST (ARCHITECTURE A-30; G-19 of 20261122-193909-llo-delivery), then the walk, which refuses an inward link
+  // too: stricter than the owner.
+  const out = firstLeadingOut(owner.resolve(segs), { leaving: true });
+  if (out) {
+    throw Object.assign(new Error(`confined path refused: ${[...segs, out.path].join('/')} in the run is `
+      + `${LEADS_OUT_KIND[out.kind] ?? out.kind}; nothing of the evidence is copied into the cache`), { code: 'ECONFINED', path: out.path });
+  }
+  const dirs = [[]];
+  const files = [];
+  const judge = (rel) => {
+    for (const name of owner.list([...segs, ...rel])) {
+      const here = [...rel, name];
+      const st = owner.stat([...segs, ...here]);
+      if (st.isDirectory()) { dirs.push(here); judge(here); } else if (st.isFile()) {
+        if (hardLinkReason(st)) throw hardLinkRefused([...segs, ...here].join('/'), st);
+        files.push(here);
+      } else {
+        // Not a regular file or a directory (G-3 of 20261122-204359-llo-remediation-review): refused, never dropped.
+        throw Object.assign(new Error(`confined path refused: ${[...segs, ...here].join('/')} in the run is not a regular file, `
+          + 'a directory or a link; nothing of the evidence is copied into the cache'), { code: 'ECONFINED', path: here.join('/') });
+      }
+    }
+  };
+  judge([]);
+  cache.dirNew(stage);
+  try {
+    for (const d of dirs) if (d.length) cache.dir([...stage, ...d]);
+    for (const f of files) cache.replace([...stage, ...f], owner.read([...segs, ...f], null));
+  } catch (e) {
+    try { cache.remove(stage, { recursive: true }); } catch { /* the copy's error is the one to report */ }
+    throw e;
   }
 }
 
-export function writePreflightCache(reviewsDir, hash, entry, { evidenceFrom = null, maxBytes, onCap = null } = {}) {
+// The segments of a cache path below the reviews folder, for its owner.
+const cacheSegs = (reviewsDir, p) => path.relative(path.resolve(reviewsDir), path.resolve(p)).split(path.sep);
+
+export function writePreflightCache(reviewsDir, hash, entry, { evidenceFrom = null, maxBytes, onCap = null, rename = (a, b) => fs.renameSync(a, b) } = {}) {
   const p = preflightCachePath(reviewsDir, hash);
-  fs.mkdirSync(path.dirname(p), { recursive: true });
+  // THE CACHE'S OWN FOLDER THROUGH AN OWNER (G-4 of 20261122-204359-llo-remediation-review; ARCHITECTURE A-30): a raw
+  // mkdir, rm and write followed a junction at .preflight-cache, so the documented pre-flight wrote and deleted
+  // hash-named entries outside the reviews root. Every write, remove and rename below goes through `cache`.
+  // The reviews folder itself is the caller's root, made when missing as before; the owner then refuses a link at it.
+  fs.mkdirSync(path.resolve(reviewsDir), { recursive: true });
+  const cache = confined(path.resolve(reviewsDir));
+  const jsonSegs = cacheSegs(reviewsDir, p);
+  cache.dir(jsonSegs.slice(0, -1));
+  let writer = null;
+  let lostRace = false;
   if (evidenceFrom) {
     // OUT OF THE RUN THROUGH ITS OWNER (run-dir-reads.plan.md stage 3): evidence/pre-flight is two levels below the run,
     // and its copy followed a link at either level or anywhere inside it, so a link planted in the run put a file from
@@ -203,15 +269,55 @@ export function writePreflightCache(reviewsDir, hash, entry, { evidenceFrom = nu
     }
     const { owner, segs } = evidenceFrom;
     if (owner.exists(segs)) {
-      const dest = preflightEvidenceDir(reviewsDir, hash);
-      fs.rmSync(dest, { recursive: true, force: true });
-      copyOutOfRun(owner, segs, dest);
+      // STAGED, THEN RENAMED (G-5 of 20261122-204359-llo-remediation-review): the destination was removed before the copy
+      // judged its source, so a refused copy destroyed valid evidence, and two writers of one hash interleaved their
+      // deletes and writes in one folder. The copy fills a folder of this writer's own (its name never matches an entry,
+      // which ends in `.evidence`); only a whole copy replaces the entry's evidence, and a refusal leaves it as it was.
+      const destSegs = cacheSegs(reviewsDir, preflightEvidenceDir(reviewsDir, hash));
+      const stage = [...destSegs.slice(0, -1), `${destSegs.at(-1)}.${process.pid}-${crypto.randomBytes(6).toString('hex')}.tmp`];
+      copyOutOfRun(owner, segs, cache, stage);
+      // This copy's mark, and the JSON below names it (G-5 of 20261122-214154-llo-remediation-2-review).
+      writer = `${process.pid}-${crypto.randomBytes(8).toString('hex')}`;
+      try { cache.replace([...stage, EVIDENCE_WRITER_MARK], writer); } catch (e) {
+        try { cache.remove(stage, { recursive: true }); } catch { /* the mark's error is the one to report */ }
+        throw e;
+      }
+      // NEVER AN ENTRY CITING ABSENT EVIDENCE (G-3 of 20261122-214154-llo-remediation-2-review): the old evidence was
+      // removed before the staged copy was renamed in, so a failed rename or a stop between the two left the old JSON, a
+      // reusable entry, citing logs that were gone. The JSON leaves first (readPreflightCache keys on it, so a stop below
+      // leaves no entry), the old evidence is renamed aside rather than removed, and a failed rename puts both back.
+      const aside = [...destSegs.slice(0, -1), `${destSegs.at(-1)}.${process.pid}-${crypto.randomBytes(6).toString('hex')}.old`];
+      const oldJson = cache.exists(jsonSegs) ? cache.read(jsonSegs, null) : null;
+      let moved = false;
+      try {
+        if (oldJson !== null) cache.remove(jsonSegs);
+        if (cache.exists(destSegs)) { rename(cache.resolve(destSegs), cache.resolve(aside)); moved = true; }
+        rename(cache.resolve(stage), cache.resolve(destSegs));
+      } catch (e) {
+        try { cache.remove(stage, { recursive: true }); } catch { /* the rename's error is the one to report */ }
+        // Another writer of the same hash renamed its whole copy in first. Its evidence is not this writer's (the same
+        // inputs do not make the same output: G-4 and G-5 of 20261122-214154-llo-remediation-2-review), so this writer's
+        // JSON is not written beside it; the other writer's JSON is the one that names it.
+        const raced = ['EEXIST', 'ENOTEMPTY', 'EPERM'].includes(e?.code) && cache.exists(destSegs);
+        if (raced) lostRace = true;
+        if (!raced) {
+          try {
+            if (moved) rename(cache.resolve(aside), cache.resolve(destSegs));
+            if (oldJson !== null) cache.replace(jsonSegs, oldJson);
+            moved = false;
+          } catch { /* the rename's error is the one to report */ }
+          throw e;
+        }
+      }
+      if (moved) cache.remove(aside, { recursive: true });
     }
   }
   // The JSON lands LAST. readPreflightCache keys on this file, so an interrupted copy above leaves
-  // no entry rather than an entry whose evidence is half there. Through the ONE atomic writer: this
-  // used its own fixed-name `.tmp`, so two runs writing the same entry shared one scratch file.
-  writeJsonAtomic(p, { schema_version: 1, input_sha256: hash, ...entry });
+  // no entry rather than an entry whose evidence is half there. Through the owner's atomic replace, a temporary name
+  // of its own per writer, so two runs writing the same entry never share one scratch file.
+  if (!lostRace) {
+    cache.replace(jsonSegs, `${JSON.stringify({ schema_version: 1, input_sha256: hash, ...entry, ...(writer ? { evidence_writer: writer } : {}) }, null, 2)}\n`);
+  }
   // BOUNDED (G-10): after the write, not before, so the entry just paid for is the one kept.
   // `maxBytes` undefined means the caller did not ask for eviction; null means uncapped by declaration.
   if (maxBytes !== undefined) {
@@ -253,9 +359,11 @@ function measuredEntries(reviewsDir) {
 /** Evict least-recently-used entries until the cache fits `maxBytes`; `keep` is never evicted. */
 export function evictPreflightCache(reviewsDir, { maxBytes, keep }) {
   const plan = preflightEvictions(measuredEntries(reviewsDir), { maxBytes, keep });
+  // Through the reviews folder's owner (G-4 of 20261122-204359-llo-remediation-review): a raw rm followed a junction.
+  const cache = plan.evict.length ? confined(path.resolve(reviewsDir)) : null;
   for (const hash of plan.evict) {
-    fs.rmSync(preflightCachePath(reviewsDir, hash), { force: true });
-    fs.rmSync(preflightEvidenceDir(reviewsDir, hash), { recursive: true, force: true });
+    cache.remove(cacheSegs(reviewsDir, preflightCachePath(reviewsDir, hash)));
+    cache.remove(cacheSegs(reviewsDir, preflightEvidenceDir(reviewsDir, hash)), { recursive: true });
   }
   return plan;
 }
@@ -307,7 +415,16 @@ export function restorePreflightEvidence(reviewsDir, hash, runOwner, { cacheFs =
       if (st.isSymbolicLink()) {
         throw Object.assign(new Error(`confined path refused: ${p} — a link or junction stands in the cached evidence; it is not installed in the run`), { code: 'ECONFINED', path: p });
       }
-      if (st.isDirectory()) { entries.push({ segs: [...segs, e.name], dir: true }); walk(p, [...segs, e.name]); } else if (st.isFile()) entries.push({ segs: [...segs, e.name], from: p });
+      // Nor a hard-linked file (link-leaving-owner.plan.md stage 3, LL-D4): its content may be any file's.
+      if (hardLinkReason(st)) {
+        throw Object.assign(new Error(`confined path refused: ${p} — a hard-linked file stands in the cached evidence; it is not installed in the run`), { code: 'ECONFINED', path: p });
+      }
+      if (st.isDirectory()) { entries.push({ segs: [...segs, e.name], dir: true }); walk(p, [...segs, e.name]); } else if (st.isFile()) {
+        // The cache's own mark of which writer copied this evidence (G-5) is the cache's, not the run's evidence.
+        if (!(segs.length === 0 && e.name === EVIDENCE_WRITER_MARK)) entries.push({ segs: [...segs, e.name], from: p });
+      }
+      // Anything else (a FIFO, a socket, a device node) is refused, not dropped (G-3 of 20261122-204359-llo-remediation-review).
+      else throw Object.assign(new Error(`confined path refused: ${p} — not a regular file, a directory or a link; it is not installed in the run`), { code: 'ECONFINED', path: p });
     }
   };
   walk(src, []);

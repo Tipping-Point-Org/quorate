@@ -19,6 +19,8 @@ export const findingScopeErrors = (f, opts) => pure.findingScopeErrors(f, { ...o
 export const isWithin = (parent, child) => pure.isWithin(parent, child, { caseInsensitive: hostPlatform().caseInsensitiveFs });
 // By the host's case rule, as isWithin is (G-2 of 20261105-154708-crsf-remediation-5-review).
 export const relativeBelow = (parent, child) => pure.relativeBelow(parent, child, { caseInsensitive: hostPlatform().caseInsensitiveFs });
+export const firstLeadingOut = (dir, mode) => pure.firstLeadingOut(dir, mode, hostPlatform());
+export const LEADS_OUT_KIND = pure.LEADS_OUT_KIND;
 export const firstLinkLeaving = (dir) => pure.firstLinkLeaving(dir, hostPlatform());
 export const firstLinkInto = (dir, into) => pure.firstLinkInto(dir, into, hostPlatform());
 export const firstLinkOnto = (dir, onto) => pure.firstLinkOnto(dir, onto, hostPlatform());

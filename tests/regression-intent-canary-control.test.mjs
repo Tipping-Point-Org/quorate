@@ -34,7 +34,11 @@ const SRC = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'new-run.mjs'), 'utf
 
 test('regression: the probe window is one constant, read by both the prompt and the candidates', () => {
   assert.match(SRC, /const INTENT_PROBE_LINES = \d+/, 'the window must be named once');
-  assert.match(SRC, /quote its first \$\{INTENT_PROBE_LINES\} non-empty lines/,
+  // The prompt is the prompt library's (consumer-owned-configuration.md AC2): the template asks for a window, and the
+  // script fills that window from the one constant.
+  const allowedPrompt = fs.readFileSync(path.join(REPO_ROOT, 'prompts', '_templates', 'intent-canary-allowed.md'), 'utf8');
+  assert.match(allowedPrompt, /quote its first \{\{lines\}\} non-empty lines/, 'the prompt must ask for a window by its slot');
+  assert.match(SRC, /readTemplate\('intent-canary-allowed\.md'\), \{ path: intentAllowed, lines: INTENT_PROBE_LINES \}/,
     'the prompt must ask for the named window, not a hardcoded count');
   assert.match(SRC, /\.slice\(0, INTENT_PROBE_LINES\)/,
     'the candidate set must be drawn from the same window the model was asked for');
@@ -144,7 +148,9 @@ test('regression: the two arms are separate turns, because sharing one made it i
   assert.ok(pStart >= 0 && positive.includes('prompt:'), 'could not find the positive arm prompt');
   assert.ok(!positive.includes('intentTarget'),
     'the positive arm must not ask about the denied file; its answer is the evidence');
-  assert.match(positive, /Do nothing else and read nothing else/);
+  assert.match(positive, /readTemplate\('intent-canary-allowed\.md'\)/, 'the positive arm asks with its own template');
+  assert.match(fs.readFileSync(path.join(REPO_ROOT, 'prompts', '_templates', 'intent-canary-allowed.md'), 'utf8'),
+    /Do nothing else and read nothing else/);
 
   // And the leak check reads the arm that actually asked for the source.
   assert.match(block, /sourceLines\.some\(\(l\) => intentDenyText\.includes\(l\.slice\(0, 50\)\)\)/,

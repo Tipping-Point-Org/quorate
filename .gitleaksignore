@@ -138,3 +138,16 @@ e2971cf163492de53b1ffb470b1993761eb38d2a:tests/regression-command-log.test.mjs:q
 2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-key-value:32
 2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-key-value-unquoted:32
 2a669ba03950ae28b347cf21895577cd362992d7:tests/regression-vendor-stderr-off-the-tracked-side.test.mjs:quorate-sk-api-key:32
+# M3 stage 8 (operator, 2026-11-23: "Fingerprint the 15 (Recommended)"): fixture strings in three tests before b4c45fee built
+# them at runtime; each read, none a credential.
+8def0c2150a05265aae1c2c1beb9abcc97168444:tests/regression-helpers-env-scrub.test.mjs:quorate-key-value:21
+c8ad4c721b06dfeed7c4d6cee6b1c3a848e7df64:tests/regression-extract-sessions-title-redaction.test.mjs:quorate-key-value:21
+c8ad4c721b06dfeed7c4d6cee6b1c3a848e7df64:tests/regression-extract-sessions-title-redaction.test.mjs:quorate-key-value:45
+f599c80233aefdf07fd9593285589014c91aef13:tests/regression-pr-comments.test.mjs:quorate-key-value-unquoted:26
+f599c80233aefdf07fd9593285589014c91aef13:tests/regression-pr-comments.test.mjs:quorate-key-value:64
+f599c80233aefdf07fd9593285589014c91aef13:tests/regression-pr-comments.test.mjs:quorate-key-value:65
+803daf2e1772555ae06484b0d8eb0b982fa05ac0:tests/regression-pr-comments.test.mjs:quorate-key-value-unquoted:26
+803daf2e1772555ae06484b0d8eb0b982fa05ac0:tests/regression-pr-comments.test.mjs:quorate-key-value:63
+803daf2e1772555ae06484b0d8eb0b982fa05ac0:tests/regression-pr-comments.test.mjs:quorate-key-value:64
+a40dee481e792565a63b37f678a5a748a43c9632:tests/regression-pr-comments.test.mjs:quorate-key-value-unquoted:26
+a40dee481e792565a63b37f678a5a748a43c9632:tests/regression-pr-comments.test.mjs:quorate-key-value:63

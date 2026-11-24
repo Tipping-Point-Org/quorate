@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgv, ArgvError } from './lib/argv.mjs';
 import { ARGV_SPECS } from './lib/argv-specs.mjs';
-import { callerRepoRoot, quorateHome, repoRunRoots } from './io/reviews-root.mjs';
+import { callerRepoRoot, quorateHome, repoRunRoots, readRunJson } from './io/reviews-root.mjs';
 import { readContract } from './io/contract-reader.mjs';
 import { writeRunRecord, writeClaimCheckRecord, writeBenchRecord, benchRecordPath, readRecords, notAMeasurement, ownerBelow, rootOf } from './io/telemetry-record.mjs';
 import { isWithin } from './io/finding-scope.mjs';
@@ -108,7 +108,8 @@ for (const root of runRoots) {
     if (!runHas('run.json')) return;
     if (!REBUILD && runHas('telemetry.json')) { present.push(dir); return; }
     let run;
-    try { run = JSON.parse(runOwner.read(['run.json'])); } catch (err) { failed.push(`${dir}: run.json: ${err.message}`); return; }
+    // Bounded as admitRun bounds it (G-8 of 20261124-160743-gsw-remediation-2-review-b, a symptom of G-3).
+    try { run = readRunJson(runOwner, ['run.json']); } catch (err) { failed.push(`${dir}: run.json: ${err.message}`); return; }
     const kind = run.remediates ? 'remediation' : 'review';
     if (kind === 'review' && !runHas('gate.json')) { skipped.push(`${dir}: no gate (not finished)`); return; }
     // A remediation is finished when remediate.mjs's own rule says it has ended (G-20 of 20261025-203513-tel-delivery): a

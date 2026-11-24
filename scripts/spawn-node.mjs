@@ -21,20 +21,20 @@ import { spawn, spawnSync } from 'node:child_process';
 import {
   SEVERITY_RUNGS, VERDICTS, clampSeverity, capVerdict, capVerdictKeepingInvariants, classifyResult, resolveAllowedBasis, scrubChildEnv,
   verdictFloorFromFindings, raiseVerdict, NODE_ID_RE, GROUP_ID_RE, denyToolsFor, nodeArgv, AUTH_MODES, timeoutForensics,
-  describeNodeExit, nodeExitMapping, gateSettingsErrors, runtimeSessionEnv } from './lib/decisions.mjs';
+  describeNodeExit, nodeExitMapping, gateSettingsErrors, runtimeSessionEnv, refusedNodeModel } from './lib/decisions.mjs';
 import { resolveFrameworkDirs, nodeInstructions } from './io/locate.mjs';
 import { coverPrefix, coversBelowPrefix } from './lib/contract-glob.mjs';
 import { selectAdapters, entrypoint, overrideLine } from './io/reviewers.mjs';
 import { renderTemplate } from './lib/template.mjs';
 import { schemaField } from './io/review-prompts.mjs';
 import { readTemplate } from './io/template.mjs';
-import { egressReadFile, egressRunReader, refusalCause } from './io/egress-read.mjs';
+import { egressReadFile, egressRunReader, refusalCause, refusedOrAbsent } from './io/egress-read.mjs';
 import { admitRun, callerRepoRoot } from './io/reviews-root.mjs';
 import { confined } from './io/confined-path.mjs';
 import {
   roleGaps, unbackedCapabilities, validateAssignment, CONSERVATIVE_BASIS,
 } from './lib/capabilities.mjs';
-import { findingScopeErrors, findingOutOfScope, declaredSurface, isWithin, withinThroughLinks, firstLinkInto, firstLinkOnto, evidenceOwnershipError, canonicalSpelling, rootSpelling } from './io/finding-scope.mjs';
+import { findingScopeErrors, findingOutOfScope, declaredSurface, isWithin, withinThroughLinks, firstLeadingOut, LEADS_OUT_KIND, evidenceOwnershipError, canonicalSpelling, rootSpelling } from './io/finding-scope.mjs';
 import { hostPlatform } from './platform/index.mjs';
 import { runChild, recordRunOutcome, stopPhrase } from './io/run-child.mjs';
 import { callEntry, runtimeAnswered, runtimeError, runtimeSubtype } from './lib/call-entry.mjs';
@@ -211,8 +211,10 @@ for (const d of args.addDir) {
   let st;
   try {
     st = fs.statSync(d);
-  } catch {
-    die(`--add-dir path does not exist: ${d}`);
+  } catch (e) {
+    // Only ENOENT is absence; any other failure is named by its code (G-15 of 20261122-144505-m3s7-b3-remediation-3-review).
+    if (e?.code === 'ENOENT') die(`--add-dir path does not exist: ${d}`);
+    die(`--add-dir path cannot be read (${e?.code ?? e?.message}): ${d}`);
   }
   if (!st.isDirectory()) {
     die(
@@ -281,15 +283,33 @@ if (mode === 'intent') {
     // Below the run, through its owner (run-dir-reads.plan.md stage 4): a link at any level is refused, not followed into
     // a directory test. A floor outside the run is the caller's directory.
     // A refusal waits for the source-tree checks below, so a link onto the source tree is named for what it exposes.
-    const absBelow = belowRun(abs);
+    // BY ITS REAL PATH TOO (CI run 45109110896): runDir is the admitted real path, and a floor spelled with an 8.3 short name
+    // (a Windows runner's RUNNER~1) is not below it as text, so the scan for a link leaving the floor was skipped. The
+    // lexical answer comes first, so a floor whose own spelling is below the run is still read through the run's owner.
+    let realAbs = null;
+    try { realAbs = fs.realpathSync.native(abs); } catch { /* absent: no real path to ask about */ }
+    const absBelow = belowRun(abs) ?? (realAbs ? belowRun(realAbs) : null);
     let isDir = false;
     let refusedBelowRun = null;
     if (absBelow) {
       try { isDir = confined(runDir).stat(absBelow).isDirectory(); } catch (e) { if (e.code !== 'ENOENT') refusedBelowRun = e.message; }
     } else isDir = fs.existsSync(abs) && fs.statSync(abs).isDirectory();
-    const intoRun = isDir ? firstLinkInto(abs, runDir) : null;
+    // THROUGH THE ONE LINK-LEAVING OWNER (link-leaving-owner.plan.md stage 2): each scan names what it found by kind, so a
+    // hard link or an unreadable entry is not reported as a link into the run, and a floor the walk cannot list is refused,
+    // not thrown (divergence 7 of link-leaving-owner.design.md).
+    const scan = (mode) => {
+      if (!isDir) return null;
+      try { return firstLeadingOut(abs, mode); } catch (e) { die(`intent node --add-dir ${abs} cannot be listed (${e?.code ?? e?.message}) (§5)`); }
+    };
+    const notLink = (hit) => {
+      if (hit && !['link', 'into', 'onto'].includes(hit.kind)) {
+        die(`intent node --add-dir ${abs} holds ${LEADS_OUT_KIND[hit.kind]} (${hit.path}), which cannot be shown to stay inside the floor (§5)`);
+      }
+      return hit;
+    };
+    const intoRun = notLink(scan({ into: runDir }));
     if (intoRun) {
-      die(`intent node --add-dir ${abs} holds a link into the run directory (${intoRun}), whose pre-flight logs name the `
+      die(`intent node --add-dir ${abs} holds a link into the run directory (${intoRun.path}), whose pre-flight logs name the `
         + `implementation intent must precede (§5)`);
     }
     for (const f of forbidden) {
@@ -313,12 +333,16 @@ if (mode === 'intent') {
       }
       // Nor a link beneath it onto that root or above it: the scan above looked only for links into the run directory,
       // so `src -> <repo>/scripts` inside the floor passed (G-17 of 20261025-104155-srf-remediation-3-review).
-      const ontoSource = isDir ? firstLinkOnto(abs, target) : null;
+      const ontoSource = notLink(scan({ onto: target }));
       if (ontoSource) {
-        die(`intent node --add-dir ${abs} holds a link (${ontoSource}) that would expose the source tree at ${target} (§5)`);
+        die(`intent node --add-dir ${abs} holds a link (${ontoSource.path}) that would expose the source tree at ${target} (§5)`);
       }
     }
     if (refusedBelowRun) die(`intent node --add-dir ${abs}: ${refusedBelowRun}`);
+    // Nor, in a floor below the run, a link to anywhere else: the scans above refuse a link into the run or onto a source
+    // root, and a link to an unrelated directory passed both (G-16 of 20261122-144505-m3s7-b3-remediation-3-review).
+    const leaving = absBelow ? notLink(scan({ leaving: true })) : null;
+    if (leaving) die(`intent node --add-dir ${abs} holds a link (${leaving.path}) that leads out of the sandbox floor (§5)`);
   }
 }
 
@@ -358,12 +382,16 @@ const FRAMEWORK = resolveFrameworkDirs(path.dirname(fileURLToPath(import.meta.ur
  * lib/capabilities.mjs does: absent configuration must not read as permission.
  */
 let _roster = null;
+// Why the roster could not be read, kept for the model guard, which fails closed on it (G-7 of
+// 20261123-020742-m3s7-b4-remediation-3-review); the ladder's conservative fallback above is unchanged.
+let _rosterError = null;
 function basisLadderRoster() {
   if (_roster) return _roster;
   try {
     _roster = JSON.parse(fs.readFileSync(path.join(FRAMEWORK.scriptsDir, 'lens-roster.json'), 'utf8'));
-  } catch {
+  } catch (e) {
     _roster = {};
+    _rosterError = e?.code ?? e?.message ?? String(e);
   }
   return _roster;
 }
@@ -389,9 +417,16 @@ if (!model) {
 // Model routing (disk-first-protocol.md §2 — judgment nodes are Opus). CHECKED AFTER RESOLUTION:
 // it ran above the fallback while the fallback was a literal, so it happened to test a real name.
 // With the model now resolved from configuration, testing it before resolution would have run
-// `/haiku/i` against `null` — a guard that passes because it was handed nothing.
-if (mode === 'lens' && /haiku/i.test(model)) {
-  die('refusing -mode lens with a haiku model: judgment nodes are Opus. See the Cheap Reviewer Paradox.');
+// the guard against `null` — a guard that passes because it was handed nothing. The refused names are lens-roster.json's
+// `lens_models_refused` (G-6 of 20261123-011514-m3s7-b4-remediation-2-review): a model name is configuration. Every mode
+// is held to it and an unreadable roster refuses (G-11 and G-7 of 20261123-020742-m3s7-b4-remediation-3-review).
+{
+  const roster = basisLadderRoster();
+  const check = refusedNodeModel({ mode, model, roster: _rosterError ? null : roster, rosterError: _rosterError });
+  if (check.error) die(`refusing --mode ${mode}: ${check.error}`);
+  if (check.refused) {
+    die(`refusing --mode ${mode} with model ${model}: lens-roster.json's lens_models_refused names "${check.refused}". See the Cheap Reviewer Paradox.`);
+  }
 }
 
 // THE RUNTIME, LOOKED UP BY NAME FROM THE TABLE — the orchestrator no longer knows a CLI.
@@ -560,7 +595,7 @@ function writeStatusAtomic(obj) {
 }
 
 // ---------------------------------------------------------------------------- schema variants
-// fileURLToPath, not URL.pathname: on Windows the latter yields "/F:/full%20local%20search/..."
+// fileURLToPath, not URL.pathname: on Windows the latter yields a slash, the drive letter and its colon, then the folder
 // — a leading slash that path.join turns into a doubled drive letter, and percent-encoded
 // spaces that never decode. It happens to work on POSIX paths without spaces, which is why it
 // survived the first delivery.
@@ -1310,7 +1345,9 @@ const isSandboxedCwd = mode === 'intent' || mode === 'reconcile';
 // The status is tracked, so the cause is said relative to the run, in the owner's words; the error's own message names
 // this host's run directory and goes to stderr only.
 // The cause is the owner's sentence (lib/egress-read.mjs refusalCause; G-28 of 20261116-221234-m2-9a-high-2): an absence
-// was said here as "refused (ENOENT)", in words run-graph never used.
+// was said here as "refused (ENOENT)", in words run-graph never used. Only a refusal or an absence blocks here; any other
+// failure is re-thrown to the last-resort flush (G-7 of 20261123-011514-m3s7-b4-remediation-2-review), so an unexpected
+// I/O or programming error is recorded as the crash it is, not as a policy refusal.
 function blockBeforeLaunch(msg, e = null) {
   console.error(`spawn-node: ${msg}${e?.message ? ` (${e.message})` : ''}`);
   status.state = 'BLOCKED';
@@ -1325,7 +1362,7 @@ if (mode === 'intent') {
   // THROUGH THE ONE OWNER (G-18 of 20261023-014400-rdt-delivery; run-dir-descendants stage 2): a junction planted at
   // sandbox/<node-id> pointing at the implementation passed every lexical check and gave intent-capture the source. The
   // owner refuses a link at sandbox/ or sandbox/<node-id>, wherever it leads.
-  try { cwd = owner.dir(['sandbox', nodeId]); } catch (e) { blockBeforeLaunch(`sandbox/${nodeId}: ${refusalCause(e)}; refusing to start an intent node there`, e); }
+  try { cwd = owner.dir(['sandbox', nodeId]); } catch (e) { if (!refusedOrAbsent(e)) throw e; blockBeforeLaunch(`sandbox/${nodeId}: ${refusalCause(e)}; refusing to start an intent node there`, e); }
 } else {
   cwd = isSandboxedCwd ? runDir : repoRoot;
 }
@@ -1337,7 +1374,7 @@ if (mode === 'intent' && !owner.isFree(['nodes', path.basename(briefPath)])) {
   // so a file with a second name, a hard link the confined owner's lstat cannot see, is refused, as A-30 holds every
   // other read bound for the sandbox.
   let briefBytes;
-  try { briefBytes = egressRunReader(runDir).read(['nodes', path.basename(briefPath)], null); } catch (e) { blockBeforeLaunch(`nodes/${path.basename(briefPath)}: ${refusalCause(e)}; refusing to copy it into the intent sandbox`, e); }
+  try { briefBytes = egressRunReader(runDir).read(['nodes', path.basename(briefPath)], null); } catch (e) { if (!refusedOrAbsent(e)) throw e; blockBeforeLaunch(`nodes/${path.basename(briefPath)}: ${refusalCause(e)}; refusing to copy it into the intent sandbox`, e); }
   owner.replace(['sandbox', nodeId, 'brief.md'], briefBytes);
 }
 status.sandbox_cwd = path.relative(runDir, cwd).replace(/\\/g, '/');
@@ -1412,6 +1449,10 @@ const rendered = nodeArgv(RUNTIME, {
   sandboxed: !unsandboxed,
   budgetUsd: budgetUncapped ? '' : budgetUsd,
   sessionId,
+  // Rendered only by a runtime that declares a timeout slot (wall_clock_bound); this run's outer kill bounds it either way.
+  // Never below one second: a sub-second timeout floored to 0, which a runtime may read as expire now or as no deadline
+  // (G-18 of 20261122-144505-m3s7-b3-remediation-3-review).
+  timeoutSeconds: Number.isFinite(timeoutMs) ? Math.max(1, Math.floor(timeoutMs / 1000)) : '',
 });
 const argv = rendered.argv;
 
@@ -1806,7 +1847,7 @@ status.file_size_ceiling_bytes = launch.ceilingBytes;
 // The child's two output files are opened by runChild; their names are checked through the owner first, so a link planted
 // at either is refused rather than written through (run-dir-descendants stage 2). Between this check and the open is the
 // owner's stated residual (D-D1 A).
-try { owner.resolve(['evidence', nodeId, 'stdout.json']); owner.resolve(['evidence', nodeId, 'stderr.log']); } catch (e) { blockBeforeLaunch(`evidence/${nodeId}/stdout.json or stderr.log: ${refusalCause(e)}; refusing to launch the node's runtime`, e); }
+try { owner.resolve(['evidence', nodeId, 'stdout.json']); owner.resolve(['evidence', nodeId, 'stderr.log']); } catch (e) { if (!refusedOrAbsent(e)) throw e; blockBeforeLaunch(`evidence/${nodeId}/stdout.json or stderr.log: ${refusalCause(e)}; refusing to launch the node's runtime`, e); }
 const res = await runChild({
   cmd: launch.cmd, args: launch.args, cwd, env: childEnv, stdoutPath, stderrPath, timeoutMs, outputCapBytes,
   // The prompt on stdin, as nodeArgv rendered it (decision-panel-seats.plan.md stage 2; DP-D1 A); null keeps 'ignore'.

@@ -376,8 +376,15 @@ export function usableCost(value) {
  * (that tier is stamped UNCAPPED-BUDGET). Returns null when admitted, otherwise the reason, for the gate.
  */
 export function admitSpend({ spent, reserve, budgetRun, what = 'another node' }) {
+  // An uncapped reserve has no size, so it fits only while something is left: at spent === budgetRun the budget is
+  // exhausted, as the refusal says (G-3 of 20261123-174149-m3s9-remediation-review-b: `spent + 0 <= budgetRun` admitted it).
   const r = Number.isFinite(reserve) ? reserve : 0;
-  if (spent + r <= budgetRun) return null;
+  // Dollars are compared in whole micro-dollars, not as raw binary floats (G-5 of 20261124-021129-m3s9-remediation-2-
+  // review-b: 0.10 + 0.20 <= 0.30 was false, so an exact-boundary admission was refused). An uncapped run stays Infinity.
+  const micro = (usd) => (Number.isFinite(usd) ? Math.round(usd * 1e6) : usd);
+  // The rule itself, applied to the micro-dollar amounts: what is spent plus what this launch reserves, within the run.
+  const fits = (spent, r, budgetRun) => spent + r <= budgetRun;
+  if (Number.isFinite(reserve) ? fits(micro(spent), micro(r), micro(budgetRun)) : micro(spent) < micro(budgetRun)) return null;
   return r
     ? `run budget cannot cover ${what}: $${spent.toFixed(2)} spent + $${r} reserved > $${budgetRun}`
     : `run budget exhausted before launch: $${spent.toFixed(2)} >= $${budgetRun}`;
@@ -861,6 +868,9 @@ export function classifyPanelProbe(envelope, reviewer) {
   if (envelope.source !== reviewer) {
     return { state: 'malformed', reason: `envelope source ${JSON.stringify(envelope.source)} != ${reviewer}` };
   }
+  // The name matched LITERALLY (G-2 of 20261121-214741-m3s7-b1-remediation-2-review): `x(y` threw and `a.b` over-matched.
+  // Escaped in place, after its last use as a name, so the marker below stays the one line a corpus seed patches.
+  reviewer = String(reviewer).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Match the EXACT item `unavailable()` writes — `external reviewer 'codex'` / `external
   // proposer 'codex'` — not merely an item mentioning the reviewer's name. A substring test read
   // any entry containing the word as proof the arm never ran, so once the adapter began naming an
@@ -1042,7 +1052,7 @@ export function engineLocationEnv(sourceEnv) {
   return Object.fromEntries(ENGINE_LOCATION_KEYS.filter((k) => sourceEnv?.[k]).map((k) => [k, sourceEnv[k]]));
 }
 
-export function reviewerEnv(reviewer, sourceEnv, { depth, prefixes = null, names = null } = {}) {
+export function reviewerEnv(reviewer, sourceEnv, { depth, prefixes = null, names = null, caseFold = true } = {}) {
   // NO `= process.env` DEFAULT (G-8, panel-codex-contract). This is the pure decision layer — I-1
   // says inputs arrive as explicit caller-supplied values, and §2 calls it "no I/O, no clock, no
   // environment". A default made the machine's environment reachable by omission, and arch-review
@@ -1112,13 +1122,16 @@ export function reviewerEnv(reviewer, sourceEnv, { depth, prefixes = null, names
   // EXACT names from a consumer-declared reviewer (G-12): matched whole, never as a prefix.
   // Every match is FOLDED (G-8 of 20261023-214545-ger-remediation-review): Windows keeps a variable's stored case
   // (`OpenAI_API_KEY`) and the CLI reads it case-insensitively, so an exact comparison omitted the credential.
-  const exact = new Set((Array.isArray(names) ? names : []).filter((n) => typeof n === 'string' && /^[A-Za-z_][A-Za-z0-9_]*$/.test(n)).map((n) => n.toUpperCase()));
-  const folded = resolved.map((p) => p.toUpperCase());
+  // FOLDED ON WINDOWS ONLY (G-3 of 20261121-214741-m3s7-b1-remediation-2-review): a POSIX environment is case-sensitive,
+  // so folding there let a `Home` cross as the allow-listed `HOME`. The caller states its platform's rule in `caseFold`.
+  const fold = caseFold ? (s) => s.toUpperCase() : (s) => s;
+  const exact = new Set((Array.isArray(names) ? names : []).filter((n) => typeof n === 'string' && /^[A-Za-z_][A-Za-z0-9_]*$/.test(n)).map(fold));
+  const folded = resolved.map(fold);
   const env = { GRAPH_NODE_DEPTH: String(depth) };
   const passed = [];
   for (const [k, v] of Object.entries(sourceEnv)) {
-    const K = String(k).toUpperCase();
-    if (REVIEWER_ENV_EXACT_FOLDED.has(K) || exact.has(K) || folded.some((p) => K.startsWith(p))) {
+    const K = fold(String(k));
+    if ((caseFold ? REVIEWER_ENV_EXACT_FOLDED : REVIEWER_ENV_EXACT).has(K) || exact.has(K) || folded.some((p) => K.startsWith(p))) {
       env[k] = v;
       passed.push(k);
     }
@@ -1166,13 +1179,19 @@ function runtimeAuthTest(runtime, who) {
   const folded = new Set((Array.isArray(declared) ? declared : []).filter((n) => typeof n === 'string' && n).map((n) => n.toUpperCase()));
   return (k) => folded.has(String(k).toUpperCase());
 }
+// GIT'S ENVIRONMENT CONFIG, the whole tuple (G-12 of 20261123-161216-m3s9-review): GIT_CONFIG_PARAMETERS and
+// GIT_CONFIG_VALUE_<n> can carry an http.extraheader Authorization header and SECRET_NAME matches neither, while `_KEY`
+// dropped GIT_CONFIG_KEY_<n> alone and left the half-tuple git rejects. A node and the release scan need none of it, so
+// all of it goes. GIT_CONFIG_GLOBAL / SYSTEM / NOSYSTEM name files, carry no value, and cross. Folded, as SECRET_NAME is.
+// Exported for every other scrub of a child that needs none of git's config (gh, G-1 of 20261123-174149-m3s9-remediation-review-b).
+export const isGitConfigCarrier = (k) => /^GIT_CONFIG_(PARAMETERS|COUNT|KEY_\d+|VALUE_\d+)$/.test(String(k).toUpperCase());
 export function scrubChildEnv(sourceEnv, { runtime } = {}) {
   const keeps = runtimeAuthTest(runtime, 'scrubChildEnv');
   const env = {};
   const scrubbed = [];
   for (const [k, v] of Object.entries(sourceEnv)) {
     // The keep-set is matched folded, as the secret test is (G-9 of 20261023-214545-ger-remediation-review).
-    if (SECRET_NAME.test(k) && !keeps(k)) { scrubbed.push(k); continue; }
+    if ((SECRET_NAME.test(k) || isGitConfigCarrier(k)) && !keeps(k)) { scrubbed.push(k); continue; }
     env[k] = v;
   }
   return { env, scrubbed };
@@ -1248,8 +1267,11 @@ const isName = (name) => (k) => String(k).toUpperCase() === name;
 export function gitEnvFor(sourceEnv, { commit = false } = {}) {
   const env = envLessSecrets(sourceEnv ?? {}, commitEnvKeeps);
   const depth = Object.entries(env).find(([k]) => isName('GRAPH_NODE_DEPTH')(k))?.[1];
+  // A read call loses git's environment config, the whole tuple (G-4 of 20261124-140633-gsw-remediation-review-b):
+  // GIT_CONFIG_PARAMETERS and GIT_CONFIG_VALUE_<n> may carry an http.extraheader credential, and the helpers a read-only
+  // git starts (diff drivers, filters, fsmonitor) need none of it. The commit keeps its tuple, as commitEnvFor does.
   for (const k of Object.keys(env)) {
-    if (isName('GRAPH_NODE_DEPTH')(k) || (!commit && isName('SSH_AUTH_SOCK')(k))) delete env[k];
+    if (isName('GRAPH_NODE_DEPTH')(k) || (!commit && (isName('SSH_AUTH_SOCK')(k) || isGitConfigCarrier(k)))) delete env[k];
   }
   const d = Number(depth);
   env.GRAPH_NODE_DEPTH = String(Number.isInteger(d) && d > 1 ? d : 1);
@@ -1511,7 +1533,9 @@ export function panelSilent({ enabled, armStates = [] }) {
  * which this admits. The ids are engine-composed, not operator input, so the case-insensitive
  * filesystem question does not arise.
  */
-export const NODE_ID_RE = /^[A-Za-z0-9-]+$/;
+// Not a name Windows reserves as a device, in any case: a node id becomes a directory name (G-8 of
+// 20261122-144505-m3s7-b3-remediation-3-review).
+export const NODE_ID_RE = /^(?!(?:CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$)[A-Za-z0-9-]+$/i;
 
 /**
  * The shape of a finding-group id, in ONE place (G-38).
@@ -1568,9 +1592,15 @@ export function capArmSeverity(severity, ceiling = 'MEDIUM') {
  * carries; an embedded quote is refused rather than escaped, because a reviewer CLI argument that
  * needs shell escaping is a thing to notice, not to paper over.
  */
+// `%NAME%`, which cmd.exe expands inside double quotes or not, before it parses them. One percent sign expands nothing.
+// ONE owner for windowsShellArgv and briefArg, which each typed it (G-9 of 20261122-144505-m3s7-b3-remediation-3-review).
+export const CMD_EXPANSION_SRC = '%[^%]+%';
 export function windowsShellArgv(argv) {
   return (argv ?? []).map((a) => {
     const s = String(a);
+    // Refused, as briefArg refuses it (G-4 of 20261121-214741-m3s7-b1-remediation-2-review).
+    const expands = s.match(new RegExp(CMD_EXPANSION_SRC));
+    if (expands) throw new Error(`refusing an argument cmd.exe would expand (${expands[0]}): ${s}`);
     if (!/[\s&|^<>()]/.test(s)) return s;
     if (s.includes('"')) throw new Error(`refusing to shell-quote an argument containing a double quote: ${s}`);
     return `"${s}"`;
@@ -1615,6 +1645,30 @@ export function windowsShellArgv(argv) {
  */
 
 /**
+ * Whether a node may run on `model`, by lens-roster.json's `lens_models_refused` (shared/external-reviewers.md, Model
+ * policy: never a cheap reviewer for a verification node). Returns { refused: <the listed name> } when the model contains
+ * one of them, case-insensitively, { error } when the list cannot be applied, and {} otherwise.
+ *
+ * Fails closed (G-7 of 20261123-020742-m3s7-b4-remediation-3-review): a roster that could not be read, or that declares
+ * no list of names, is an error, never an empty list, because absent policy must not read as permission. Every mode is
+ * held to it (G-11 of the same run): every mode spawn-node runs resolves the judgment tier, so a lens-only check left
+ * reconcile and the second opinion unguarded. `mode` is accepted for the message only.
+ */
+export function refusedNodeModel({ mode = null, model, roster, rosterError = null }) {
+  const where = mode ? ` for --mode ${mode}` : '';
+  if (rosterError || !roster || typeof roster !== 'object') {
+    return { error: `cannot check the model${where} against lens-roster.json's lens_models_refused: the roster could not be read (${rosterError ?? 'no roster'}); refusing rather than treating absent policy as permission` };
+  }
+  const list = roster.lens_models_refused;
+  if (!Array.isArray(list) || !list.length || list.some((m) => typeof m !== 'string' || !m.trim())) {
+    return { error: `lens-roster.json's lens_models_refused is not a non-empty list of model names${where}; refusing rather than treating absent policy as permission` };
+  }
+  const name = String(model ?? '').toLowerCase();
+  const refused = list.find((m) => name.includes(m.trim().toLowerCase()));
+  return refused ? { refused } : {};
+}
+
+/**
  * The full deny set for a mode, from the runtime that will enforce it.
  *
  * A runtime that declares no tool vocabulary gets an EMPTY deny list and the caller is expected to
@@ -1629,6 +1683,10 @@ export function denyToolsFor(mode, runtime = null) {
   if (mode === 'intent') return [...always, ...intent];
   // A REMEDIATE node keeps every denial except the runtime's edit tools, which its policy grants through path rules
   // (remediate-rebuild stage 3). A runtime that declares no edit_tools denies them all, which fails closed.
+  // RESIDUAL, named as the read-only subagent's is below (G-11 of 20261121-233915-m3s7-b2-review; m3-stage7-fixes.md):
+  // the remediation node is not denied the runtime's content tools (Grep), because it must search the tree for every
+  // instance of the defect it fixes. Its policy confines Edit and Write to the contract's globs; it does not confine
+  // what those tools read, so the node can read any file the operator's account can, inside the repository or out.
   if (mode === 'remediate') {
     const edit = new Set(toolList(runtime, 'edit_tools'));
     return always.filter((t) => !edit.has(t));
@@ -1677,7 +1735,7 @@ export function denyToolsFor(mode, runtime = null) {
  */
 export function nodeArgv(runtime, {
   prompt = '', model = '', effort = '', schemaJson = '', settingsPath = '',
-  addDirs = [], denyTools = [], sandboxed = true, budgetUsd = '', sessionId = '',
+  addDirs = [], denyTools = [], sandboxed = true, budgetUsd = '', sessionId = '', timeoutSeconds = '',
 } = {}) {
   const r = runtime ?? {};
   if (!r.cmd) throw new Error('nodeArgv: the runtime declares no cmd');
@@ -1717,6 +1775,9 @@ export function nodeArgv(runtime, {
     if (value) argv.push(spec.permission_mode.flag, String(value));
   }
   pair(spec.budget, budgetUsd);
+  // The runtime's own deadline, in whole seconds (G-15 of 20261122-055431-m3s7-b3-remediation-2-review): validated as
+  // backing wall_clock_bound and never rendered, so a runtime declaring it received no deadline.
+  pair(spec.timeout, timeoutSeconds);
   pair(spec.session, sessionId);
   if (Array.isArray(spec.always)) argv.push(...spec.always.map(String));
 
@@ -1797,9 +1858,11 @@ export function sandboxCanaryFailures({ sawDenial, allowWorked }) {
   const failures = [];
   if (!sawDenial) {
     failures.push(allowWorked
-      ? 'no permission denial was recorded, and no file was created either. The policy DID load — '
-        + 'the allow-listed command ran under it — so the probe neither ran the denied command nor '
-        + 'was refused by a rule. Enforcement is unproven. Check that the canary prompt still names '
+      // NOT TOLD WHETHER THE DENIED COPY WROTE ITS FILE (G-7 of 20261124-160743-gsw-remediation-2-review-b): new-run says
+      // that beside this, so "no file was created" and "neither ran the denied command" were claims it could not make.
+      ? 'no permission denial was recorded. The policy DID load — '
+        + 'the allow-listed command ran under it — so no rule refused the probe: it did not attempt the denied '
+        + 'command, or ran it unrefused. Enforcement is unproven. Check that the canary prompt still names '
         + 'a command the deny list covers; a tool disabled by --disallowedTools records nothing'
       : 'no permission denial was recorded, and the allow-listed command did not run either — '
         + 'node-settings.json was probably not loaded at all');
@@ -1873,7 +1936,7 @@ export const briefArg = (p) => {
   // quoting, and a newline or carriage return ends the command and begins another.
   // `%NAME%` TOO (G-3 of 20261108-060730-si-remediation-6-review-b): cmd.exe expands it inside double
   // quotes, before it parses them, so its value can end the quoting. One percent sign expands nothing.
-  const hostile = slashed.match(/["`$\n\r]|%[^%]+%/);
+  const hostile = slashed.match(new RegExp(`["\`$\\n\\r]|${CMD_EXPANSION_SRC}`));
   if (hostile) {
     throw new Error(
       `a path bound for a node brief cannot be quoted safely for every shell: ${JSON.stringify(slashed)} `
@@ -1883,6 +1946,23 @@ export const briefArg = (p) => {
     );
   }
   return `"${slashed}"`;
+};
+
+/**
+ * A COMMAND HEAD bound for a node brief (G-24 of 20261121-204740-m3s7-b1-remediation-review; I-9): the script a node runs,
+ * which its permission allow-list prefix-matches, so it cannot be quoted (see briefArg's comment) and must not be left
+ * bare when a shell would split or expand it. Separators are made forward slashes; a head holding whitespace, a quote, or
+ * anything briefArg refuses throws, so the launch is refused rather than handing the node a command that runs elsewhere.
+ */
+export const briefHead = (p) => {
+  const slashed = String(p ?? '').split('\\').join('/');
+  briefArg(slashed);   // the characters no shell's quoting neutralises
+  const bad = slashed.match(/[\s'"&|;<>()*?[\]{}]/);
+  if (!slashed || bad) {
+    const what = bad ? `contains ${JSON.stringify(bad[0])}` : 'is empty';
+    throw new Error(`a command head bound for a node brief cannot be left unquoted: ${JSON.stringify(slashed)} ${what}, and quoting it would change the prefix the node's permission allow-list matches`);
+  }
+  return slashed;
 };
 
 /**

@@ -15,7 +15,7 @@
 // the diagnosis is corrected, which is the part that was actively misleading.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sandboxCanaryFailures } from '../scripts/lib/decisions.mjs';
+import { sandboxCanaryFailures, briefArg } from '../scripts/lib/decisions.mjs';
 
 test('a recorded denial proves the policy loaded, so the message must not blame it', () => {
   const [why] = sandboxCanaryFailures({ sawDenial: true, allowWorked: false });
@@ -43,6 +43,16 @@ test('the other two outcomes are unchanged', () => {
 
   assert.deepEqual(sandboxCanaryFailures({ sawDenial: true, allowWorked: true }), [],
     'both arms did their job — this is the only combination that mints');
+});
+
+// G-7 of 20261124-160743-gsw-remediation-2-review-b: with no denial and the allow-listed command run, the message said "no
+// file was created either" and that the probe "neither ran the denied command", then that a command ran. It is not told
+// whether the denied copy wrote its file (new-run reports that beside it, as `the copy SUCCEEDED`), so it claims neither.
+test('G-7: the no-denial diagnosis claims no file was absent and no command was not run', () => {
+  const [enforcement] = sandboxCanaryFailures({ sawDenial: false, allowWorked: true });
+  assert.doesNotMatch(enforcement, /no file was created/, 'it contradicts the allow-listed command that ran');
+  assert.doesNotMatch(enforcement, /neither ran the denied command/, 'whether the copy ran is new-run\'s wroteFile, not known here');
+  assert.match(enforcement, /the allow-listed command ran/);
 });
 
 // ---------------------------------------------------------------- the retry, and its boundaries
@@ -120,9 +130,15 @@ test('the prompt forbids the reconnaissance that caused the flake', () => {
 // by the POSIX shell, so capture.mjs looked for the run dir under a garbled relative path".
 
 test('every path the canary prompt interpolates is shell-safe', () => {
-  assert.match(NEW_RUN, /const sh = \(v\) => `"\$\{String\(v\)\.split\('\\\\'\)\.join\('\/'\)\}"`;/,
-    'forward slashes AND quotes: node accepts / on Windows, quoting survives all three shells, and '
-    + 'either alone leaves a path with a space or a backslash to chance');
+  // THROUGH briefArg, THE ONE OWNER (G-7 of 20261121-214741-m3s7-b1-remediation-2-review): the inline quote-and-slash rule
+  // this test pinned left `%NAME%`, `$` and a backtick live. Updated by hand on the operator's word ("I update the 2
+  // tests, then retry (Recommended)").
+  assert.match(NEW_RUN, /const sh = briefArg;/, 'the canary quotes its paths through briefArg, the shared owner');
+  // What that owner does, driven: forward slashes and quotes, and a refusal of what quotes do not neutralise.
+  assert.equal(briefArg('C:\\Users\\a b\\run'), '"C:/Users/a b/run"', 'forward slashes AND quotes');
+  for (const hostile of ['C:/x/%PATH%/r', '/x/$(id)/r', '/x/`id`/r', '/x/"/r']) {
+    assert.throws(() => briefArg(hostile), /cannot be quoted safely/, `${hostile} must be refused, not quoted`);
+  }
 
   for (const arg of ['sh(CAPTURE_REL)', 'sh(runDir)', 'sh(settingsPath)', 'sh(canaryPath)']) {
     assert.ok(NEW_RUN.includes(arg), `${arg} must go through the shell-safe helper`);

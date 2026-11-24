@@ -63,6 +63,7 @@ export const PROBE_CODE_FILES = [
   'scripts/platform/win32/index.mjs',
   'prompts/_templates/reviewer-probe-propose.md', 'prompts/_templates/reviewer-probe-review.md',
   'prompts/_templates/tie-break.md', 'prompts/_templates/tie-break-constraints.md', 'prompts/_templates/tie-break-excerpt-missing.md',
+  'prompts/_templates/tie-break-excerpt.md',
   'prompts/_templates/tie-break-no-positions.md', 'prompts/_templates/tie-break-no-votes.md',
   // Read into every tie-break probe by buildTieBreakPrompt (G-12 of 20261016-214749-sp-bugs-remediation-2-review); a test
   // holds this list to every template building the probe's prompts opens.

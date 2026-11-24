@@ -16,6 +16,11 @@ QUORATE_BENCH=1 node scripts/bench-lenses.mjs --model sonnet --effort xhigh
 framework root instead and **will silently mask the flag for that lens** — so when you read a result,
 read the per-node `effort` the result records, never the flag that was passed.
 
+**Unmeasured at 1.0** (m3-v1.plan.md Q5; operator, 2026-11-20: "State it in the release (Recommended)"): the model and
+effort of `arch-review`, `perf-audit`, `ui-audit` and `feature-verify`. The corpus has no seed for any of them, so no
+pass has spawned them, and each runs at the adopted lens setting by inheritance, not by evidence (2026-09-20, "What this
+does not measure", below). 1.0 ships them that way, and its release notes say so.
+
 ---
 
 ## 2026-10-13 — the agy judge's effort: not separable on this corpus
@@ -642,8 +647,12 @@ The comparison the three earlier attempts could not make. Both halves at commit 
 
 | setting | recall | fp candidates | tokens | node-minutes | Anthropic $ |
 |---|---|---|---|---|---|
-| **opus/medium** (in force) | 7 / 7 | 7 | 7,550,856 | 18.2 | $10.16 |
-| **opus/low** | **7 / 7** | **1** | **4,348,374** | **10.1** | **$7.26** |
+| **opus/medium** (in force) | 7 / 7 | 7 | 7,537,298 | 18.2 | $10.16 |
+| **opus/low** | **7 / 7** | **1** | **4,345,509** | **10.1** | **$7.26** |
+
+Token totals corrected 2026-11-22 (G-3 of 20261122-035227-m3s7-b3-review): these rows first read 7,550,856 and
+4,348,374, which added each run's top-level `thinking_tokens` (13,558 and 2,865) to `output_tokens` that already
+contains them (`scripts/lib/bench-settings.mjs`, `RESTATED_TOKEN_KEYS`). The verdict below does not change.
 
 `bench-admit --fp-tolerance 0` → **ADMITTED**, by **dominance**: better or equal on tokens,
 wall-clock and false-positive candidates, strictly better on all three. Not one seed lost.

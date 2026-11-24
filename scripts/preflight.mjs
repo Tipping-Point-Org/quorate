@@ -37,11 +37,12 @@ import { fileURLToPath } from 'node:url';
 
 import { CONTRACT_CANDIDATES, chooseContractSource } from './lib/contract-source.mjs';
 import { parseContractYaml } from './lib/contract-yaml.mjs';
+import { contractVersionGap, contractVersionMessage, declaredContractVersion } from './lib/contract-version.mjs';
 import { contractGlobErrors } from './lib/contract-glob.mjs';
 import { codeIndexContractErrors } from './lib/code-index-contract.mjs';
 import { candidateEnvErrors } from './lib/decisions.mjs';
 import { defaultReviewsRoot, quorateHome, reviewsRootAllowed, ensureReviewsIgnore, reviewsIgnoreWarning } from './io/reviews-root.mjs';
-import { isWithin } from './io/finding-scope.mjs';
+import { isWithin, escapesBeforeCreate } from './io/finding-scope.mjs';
 import {
   preflightInputHash, readPreflightCache, preflightDecision, PREFLIGHT_COMMAND_KEYS,
 } from './io/preflight-cache.mjs';
@@ -102,6 +103,15 @@ try {
 } catch (e) {
   die(`could not parse the graph_contract block in ${chosen.path}: ${e.message}`);
 }
+// THE VERSION, HELD AS new-run HOLDS IT (G-13 of 20261124-040316-m3s9-remediation-4-review-b): an invalid or ahead
+// contract is refused there, and `--run` executes the commands this one declares, so it is refused here too; `behind`
+// is named and read, as there.
+{
+  const declaredVersion = declaredContractVersion(contract);
+  const gap = contractVersionGap(declaredVersion.value, undefined, declaredVersion.key);
+  if (gap.state === 'invalid' || gap.state === 'ahead') die(contractVersionMessage(gap));
+  if (gap.state === 'behind') console.error(`preflight: ${contractVersionMessage(gap)}`);
+}
 // A CONTRACT GLOB IS IN THE GRAMMAR (contract-glob-grammar.plan.md, stage 2): refused here as at new-run, through the
 // same validator, since seeding a cache over an input set that silently lost an entry is the stale result this refuses.
 {
@@ -131,6 +141,13 @@ const reviewsRoot = (() => {
     repoRoot, home: quorateHome(), candidate: path.resolve(repoRoot, declaredReviews), isWithin,
   });
   if (!allowed.ok) die(allowed.why);
+  // AND THROUGH LINKS, as new-run checks it (G-16 of 20261121-193516-m3s7-b1-review): lexical containment alone let a
+  // reviews_dir routed through a symlink or junction seed the cache outside the container that accepted it.
+  if (allowed.where === 'quorate home') fs.mkdirSync(allowed.container, { recursive: true });
+  if (escapesBeforeCreate(allowed.container, allowed.dir)) {
+    die(`review.reviews_dir (${allowed.dir}) resolves outside the ${allowed.where} it was `
+      + `accepted against (${allowed.container}) — a link in its path escapes that boundary`);
+  }
   return allowed.dir;
 })();
 

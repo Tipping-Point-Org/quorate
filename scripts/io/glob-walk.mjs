@@ -16,6 +16,7 @@
 // MOVED OUT OF lib/ (os-platform-adapters stage 4): this module exists to do I/O, and lib/ does none.
 // It reaches the filesystem through the platform layer, resolved at call time — see hostFs.
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { hostFs as fs } from '../platform/index.mjs';
 import { isWithin } from '../lib/finding-scope.mjs';
 import { isSkippedDir, digestInputs, linkBody } from '../lib/walk-rules.mjs';
@@ -58,8 +59,9 @@ export function expandGlob(repoRoot, pattern, prune = () => false) {
     throw new Error(`the glob ${JSON.stringify(clean)} walks from outside the repository; a contract glob names files in the project`);
   }
   const out = [];
-  // lstat, and a visited set of REAL paths — the same rule lib/worktree.mjs walks by, and for the
-  // same reason. statSync FOLLOWS directory links, so a declared tree containing a link to an
+  // lstat, and a visited set of REAL paths — the rule lib/worktree.mjs walks by for links, and for the
+  // same reason. NOT its rule for an entry that cannot be read: worktree records one, this walk skips it, because it
+  // selects files and guards no boundary (link-leaving-owner.plan.md stage 4, design LL-D3). statSync FOLLOWS directory links, so a declared tree containing a link to an
   // ancestor recursed until the stack died and took run CREATION down with it (G-19). A link is
   // recorded as the file it is and never traversed; two routes to one directory are walked once.
   const visited = new Set();
@@ -111,14 +113,20 @@ export function expandGlob(repoRoot, pattern, prune = () => false) {
  */
 export function hashFiles(hash, repoRoot, files) {
   // This function READS; the order and framing that make the key are digestInputs's (G-7), and how a
-  // link is represented is linkBody's. An unreadable file is left out, exactly as before.
+  // link is represented is linkBody's. A file that is GONE (ENOENT, ENOTDIR) is left out, as before; one that stands and
+  // cannot be read gets a body no other digest shares (G-4 of 20261122-014737-m3s7-b2-review-2): left out, it hashed as
+  // absent, and a cached result was reused for an input set whose unreadable member could have changed. An input that
+  // cannot be read cannot be shown unchanged, so its digest matches no stored result.
   const rel = (f) => path.relative(repoRoot, f).split(path.sep).join('/');
   // One file in memory at a time (G-8): each body is read when digestInputs reaches it, not up front.
   const read = (f) => {
     try {
       const st = fs.lstatSync(f);
       return st.isSymbolicLink() ? Buffer.from(linkBody(fs.readlinkSync(f))) : fs.readFileSync(f);
-    } catch { return null; }
+    } catch (e) {
+      if (e?.code === 'ENOENT' || e?.code === 'ENOTDIR') return null;
+      return Buffer.from(`unreadable ${e?.code ?? 'error'} ${randomUUID()}`);
+    }
   };
   return digestInputs(hash, [...files].map((f) => ({ rel: rel(f), body: () => read(f) })));
 }

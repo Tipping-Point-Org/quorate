@@ -13,7 +13,8 @@
 
 import { parseArgv, ArgvError } from './lib/argv.mjs';
 import { ARGV_SPECS } from './lib/argv-specs.mjs';
-import { guardDecision, hasOpenTurn, holdsTurnEvent, turnStartEvents, stopFailureEvent } from './lib/stop-record.mjs';
+// From io/, which gives guardDecision its block messages from the prompt library (consumer-owned-configuration.md AC2).
+import { guardDecision, hasOpenTurn, holdsTurnEvent, turnStartEvents, stopFailureEvent } from './io/stop-record.mjs';
 import { appendStopEvent, readSessionTail } from './io/stop-log.mjs';
 import { gitSync } from './io/git.mjs';
 import { readHookInput } from './io/hook-input.mjs';
@@ -45,10 +46,15 @@ async function turnStartRunLinesOf(repoRoot, session, at) {
   // The table this repository runs, read once and handed to both (G-6 of 20261105-021654-ar-d1-c-remediation-2-review): the
   // cache-only read prints a notice only from a cache computed for it. No table read is no notice.
   // With its review block, so the cache key names the contract's runtime (contract-runtime-and-session-files stage 1).
+  // From the hook's one in-process read (contractOf), not the engine's contract reader, which spawns new-run on every turn
+  // start of a long run (G-15 of 20261123-161216-m3s9-review). Unreadable, it is the reader's error outcome: no notice.
   const { reviewersFromOutcome } = await import('./io/reviewers.mjs');
-  const { readContract } = await import('./io/contract-reader.mjs');
   let declared = null; let contract = null;
-  try { const outcome = readContract({ cwd: repoRoot }); declared = reviewersFromOutcome(outcome, 'stop-guard'); contract = outcome?.contract ?? null; } catch { /* no notice; the refresh says nothing either */ }
+  try {
+    const read = contractOf(repoRoot);
+    const outcome = read.unreadable ? { error: read.unreadable } : { contract: read.contract };
+    declared = reviewersFromOutcome(outcome, 'stop-guard'); contract = outcome.contract ?? null;
+  } catch { /* no notice; the refresh says nothing either */ }
   let fresh = [];
   if (declared) { try { fresh = checkFreshness({ cacheOnly: true, now: new Date(at), declared, contract }); } catch { /* an unusable cache: the refresh rebuilds it */ } }
   const lines = [runStateText(state, at), ...fresh];
@@ -64,8 +70,23 @@ async function turnStartRunLinesOf(repoRoot, session, at) {
 const contracts = new Map();
 const contractOf = (repoRoot) => { if (!contracts.has(repoRoot)) contracts.set(repoRoot, sessionContract(repoRoot)); return contracts.get(repoRoot); };
 
-function decisionPanelHere(repoRoot) {
-  try { return panelUsable(contractOf(repoRoot).review).ok ? 'on' : 'off'; } catch { return 'off'; }
+// AN UNREAD CONTRACT IS SAID, NEVER TAKEN FOR THE PANEL OFF (G-7 of 20261123-174149-m3s9-remediation-review-b): the
+// decision falls back to the rules without the panel, as it must, but stderr names why, and the value is 'unknown', so
+// the record does not claim a panel state nobody read (lib/stop-record.mjs keeps only 'on' and 'off' as a state).
+// Said only where a decision is made (the Stop): a turn start or a StopFailure decides nothing, so it records 'unknown'
+// without a sentence about a decision that is not being taken.
+const panelSaid = new Set();
+function decisionPanelHere(repoRoot, { deciding = false } = {}) {
+  const say = (why) => {
+    if (deciding && !panelSaid.has(repoRoot)) console.error(`stop-guard: the contract could not be read (${why}); the decision panel is taken as not on for this decision`);
+    if (deciding) panelSaid.add(repoRoot);
+    return 'unknown';
+  };
+  try {
+    const read = contractOf(repoRoot);
+    if (read.unreadable) return say(read.unreadable);
+    return panelUsable(read.review).ok ? 'on' : 'off';
+  } catch (e) { return say(e?.message ?? String(e)); }
 }
 // The retention age from the contract, asked for only on a session's first write. A value the key refuses (a negative
 // or fractional number) falls back to the default here, said on stderr: the contract's own checks report it, and a
@@ -154,7 +175,7 @@ try {
     const rulesPath = `${PROFILE_DIR}/session-rules.md`;
     // DEPTH READ, NOT A GUARD: the depth tells a graph node from the working session; this hook never aborts on it.
     const depthNow = nodeDepth(process.env).depth ?? 0;
-    const panel = decisionPanelHere(repoRoot);
+    const panel = decisionPanelHere(repoRoot, { deciding: true });
     const d = guardDecision(input, { ...(existsSync(path.join(repoRoot, rulesPath)) ? { rulesPath } : {}), nodeDepth: depthNow, decisionPanel: panel });
     // The panel's state rides on every turn end, so the summary can set flag-on stops beside flag-off ones (stage 8).
     appendStopEvent(repoRoot, { ...contextFor(input, 'stops', repoRoot), at, event: d.block ? 'blocked' : 'end', ...d.record, panel, session, ...(process.env.QUORATE_RUN_ID ? { run: process.env.QUORATE_RUN_ID } : {}) }, { retentionDays: retentionOf(repoRoot) });

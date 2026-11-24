@@ -34,7 +34,8 @@ import { parseArgv, ArgvError } from './lib/argv.mjs';
 import { ARGV_SPECS } from './lib/argv-specs.mjs';
 import { gitSync, gitCommitSync } from './io/git.mjs';
 import { quorateHome } from './io/reviews-root.mjs';
-import { isWithin } from './io/finding-scope.mjs';
+import { isWithin, firstLeadingOut, LEADS_OUT_KIND } from './io/finding-scope.mjs';
+import { confined } from './io/confined-path.mjs';
 import { secretScanConfig, secretScanDirArgv, SECRET_LEAK_EXIT } from './lib/push-gate.mjs';
 import { contractBlocks } from './lib/contract-source.mjs';
 import { commandEnvFor, scrubChildEnv } from './lib/decisions.mjs';
@@ -74,8 +75,11 @@ if (a['write-public-contract']) {
   if (path.isAbsolute(target) || target.split(/[\\/]/).includes('..')) refuse(`${MANIFEST}: the published contract ${target} is not a path inside the repository`);
   const made = publicContractText(fs.readFileSync(path.join(here, 'CLAUDE.md'), 'utf8'));
   if (made.error) refuse(made.error);
-  fs.mkdirSync(path.dirname(path.join(here, target)), { recursive: true });
-  fs.writeFileSync(path.join(here, target), made.text);
+  // Through the confined owner (G-33 of 20261122-035227-m3s7-b3-review): a link or junction at any level below the
+  // repository is refused, never written through to a file outside it.
+  try { confined(fs.realpathSync.native(here)).replace(target.split(/[\\/]/).filter(Boolean), made.text); } catch (e) {
+    refuse(`${MANIFEST}: the published contract ${target} could not be written: ${e.message}`);
+  }
   console.log(`publish: wrote ${target} from CLAUDE.md`);
   process.exit(0);
 }
@@ -162,20 +166,21 @@ if (entry.error && !dryRun) refuse(entry.error);
 if (entry.error) console.log(`publish: CHANGELOG: ${entry.error}`);
 
 // 3. the snapshot.
-const ls = git(['ls-tree', '-r', '--name-only', '-z', sourceCommit]);
-if (ls.status !== 0) refuse(`git ls-tree failed: ${ls.stderr.trim()}`);
-// Only regular files ship: copyFileSync follows a symbolic link, so a tracked link (120000) would ship bytes from outside
-// the commit, and a gitlink (160000) is another repository's commit, not content (G-24 of 20261116-200635-m2-9a-high).
+// ONE LISTING OF THE COMMIT (G-7 of 20261122-204359-llo-remediation-review): the names and the modes were two full
+// `ls-tree -r` runs of the same tree; every name is in the listing with its mode.
 const modes = git(['ls-tree', '-r', '-z', sourceCommit]);
 if (modes.status !== 0) refuse(`git ls-tree failed: ${modes.stderr.trim()}`);
-const irregular = modes.stdout.split('\0').filter(Boolean).map((l) => {
+const treeEntries = modes.stdout.split('\0').filter(Boolean).map((l) => {
   const tab = l.indexOf('\t');
   return { mode: l.slice(0, tab).split(' ')[0], file: l.slice(tab + 1) };
-}).filter((e) => !shipsAsRegularFile(e.mode));
+});
+// Only regular files ship: copyFileSync follows a symbolic link, so a tracked link (120000) would ship bytes from outside
+// the commit, and a gitlink (160000) is another repository's commit, not content (G-24 of 20261116-200635-m2-9a-high).
+const irregular = treeEntries.filter((e) => !shipsAsRegularFile(e.mode));
 if (irregular.length) {
   refuse(irregular.map((e) => `${e.file} is ${e.mode === '120000' ? 'a symbolic link' : `not a regular file (mode ${e.mode})`}; only regular files ship`).join('\n'));
 }
-const plan = planSnapshot(ls.stdout.split('\0').filter(Boolean), manifest);
+const plan = planSnapshot(treeEntries.map((e) => e.file), manifest);
 if (plan.errors.length) refuse(plan.errors.join('\n'));
 // I-4: the private CLAUDE.md never ships as itself; the manifest must replace it (G-28 of 20261116-200635-m2-9a-high),
 // and the drift and staleness checks below run only on a replacement.
@@ -207,18 +212,17 @@ try {
     const buf = fs.readFileSync(path.join(staging, rel));
     // The manifest declares the markers, so it is the one file not held to them; its patterns still apply. A binary or
     // UTF-16 file is scanned too: gitleaks never sees the identity patterns (G-22 of 20261116-221234-m2-9a-high-2).
-    hits.push(...scanShipped(rel, buf, { patterns, markers: rel === MANIFEST ? [] : manifest.markers }));
+    // One at a time, never spread (G-7 of 20261122-214154-llo-remediation-2-review): a spread passes every hit as an
+    // argument, and enough hits in one file exceed the engine's argument limit and throw instead of refusing the publish.
+    for (const h of scanShipped(rel, buf, { patterns, markers: rel === MANIFEST ? [] : manifest.markers })) hits.push(h);
   }
 
   const config = secretScanConfig({ repoRoot: staging, frameworkRoot: FRAMEWORK_ROOT, exists: fs.existsSync });
-  // The scanner's command: `gitleaks`, or QUORATE_PUBLISH_GITLEAKS (a JSON argv prefix), the tests' stand-in. An
-  // override is printed, so a publish that scanned with something else never reads as a gitleaks scan.
-  let glCmd = ['gitleaks'];
-  if (process.env.QUORATE_PUBLISH_GITLEAKS) {
-    try { glCmd = JSON.parse(process.env.QUORATE_PUBLISH_GITLEAKS); } catch { stop('QUORATE_PUBLISH_GITLEAKS is not a JSON argv'); }
-    if (!Array.isArray(glCmd) || !glCmd.length || glCmd.some((s) => typeof s !== 'string')) stop('QUORATE_PUBLISH_GITLEAKS is not a JSON argv');
-    console.log(`publish: the secret scanner is OVERRIDDEN by QUORATE_PUBLISH_GITLEAKS: ${glCmd.join(' ')}`);
-  }
+  // The scanner is `gitleaks` on PATH and nothing else. An environment override (QUORATE_PUBLISH_GITLEAKS) was obeyed on a
+  // committing publish too, so an inherited value ran in place of the release's scan and could pass it (G-11 of
+  // 20261122-144505-m3s7-b3-remediation-3-review; operator: "Fake gitleaks on PATH, drop the override (Recommended)").
+  // The tests put a stand-in gitleaks first on PATH.
+  const glCmd = ['gitleaks'];
   const report = path.join(work, 'gitleaks.json');
   // Suppression comes from the manifest's allow list only (I-2; G-23 of 20261116-221234-m2-9a-high-2). gitleaks reads a
   // .gitleaksignore from its ignore path (the working directory by default) and from the scanned directory, so the ignore
@@ -246,14 +250,25 @@ try {
   // Each gitleaks finding as a hit of its own, by file, line and rule (G3: every finding is resolved, so every one is
   // named); the secret itself stays redacted, and the report stays in the throwaway folder.
   let reportRead = false;
+  // Each staged file read and split once, however many findings name it (G-16 of
+  // 20261122-044843-m3s7-b3-remediation-review); null is a file that could not be read.
+  const stagedLines = new Map();
+  const linesOf = (rel) => {
+    if (!stagedLines.has(rel)) {
+      let lines = null;
+      try { lines = fs.readFileSync(path.join(staging, rel), 'utf8').split(/\r?\n/); } catch { /* unread: no allowance can match it */ }
+      stagedLines.set(rel, lines);
+    }
+    return stagedLines.get(rel);
+  };
   try {
     for (const l of JSON.parse(fs.readFileSync(report, 'utf8'))) {
       const seen = path.relative(staging, path.resolve(staging, String(l.File ?? ''))).split(path.sep).join('/');
       const rel = ignoreShipped && seen === IGNORE_ASIDE ? IGNORE_FILE : seen;
       // The line named by its hash, read from the staged copy (an allowance names one line: lineSha256); the text itself
       // is never printed or kept, since it holds what gitleaks matched.
-      let lineHash = null;
-      try { lineHash = lineSha256(fs.readFileSync(path.join(staging, rel), 'utf8').split(/\r?\n/)[Number(l.StartLine) - 1] ?? ''); } catch { /* unread: no allowance can match it */ }
+      const lines = linesOf(rel);
+      const lineHash = lines ? lineSha256(lines[Number(l.StartLine) - 1] ?? '') : null;
       hits.push({ path: rel, line: l.StartLine, name: `gitleaks:${l.RuleID}`, excerpt: '(redacted)', line_sha256: lineHash });
     }
     reportRead = true;
@@ -305,8 +320,14 @@ try {
     const checksLog = () => {
       if (!logDir) {
         const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*$/, '').replace('T', '-');
-        logDir = path.join(quorateHome(), 'publish', `${stamp}-${sourceCommit.slice(0, 12)}`);
-        fs.mkdirSync(logDir, { recursive: true });
+        // One folder per publish (G-36 of 20261122-035227-m3s7-b3-review): the stamp is to the second, so the folder is
+        // made exclusively and a name already taken gets a suffix, never shared with an earlier publish's logs.
+        const parent = path.join(quorateHome(), 'publish');
+        fs.mkdirSync(parent, { recursive: true });
+        for (let n = 1; !logDir; n += 1) {
+          const dir = path.join(parent, `${stamp}-${sourceCommit.slice(0, 12)}${n > 1 ? `-${n}` : ''}`);
+          try { fs.mkdirSync(dir); logDir = dir; } catch (e) { if (e.code !== 'EEXIST') throw e; }
+        }
       }
       return logDir;
     };
@@ -370,6 +391,12 @@ try {
     // null is an unborn branch: a fresh clone of an empty repository.
     const priorHead = og(['rev-parse', '--verify', '--quiet', 'HEAD^{commit}']);
     const prior = priorHead.status === 0 ? priorHead.stdout.trim() : null;
+    // An unborn branch has nothing tracked: --out is clean, so its index is its HEAD's. A HEAD that cannot be read while
+    // files are tracked is a failed read, never an unborn branch (G-12 of 20261122-055431-m3s7-b3-remediation-2-review):
+    // read as one, a rollback deleted HEAD instead of restoring the earlier release.
+    if (prior === null && listed.stdout.split('\0').some(Boolean)) {
+      stop(`git rev-parse HEAD in --out failed (exit ${priorHead.status ?? priorHead.error?.code}) with files tracked; nothing was changed`);
+    }
     const gitDir = og(['rev-parse', '--absolute-git-dir']);
     if (gitDir.status !== 0) stop(`git rev-parse --absolute-git-dir in --out failed: ${(gitDir.stderr ?? '').trim()}`);
     // No link is followed below --out (G-35 of 20261117-013640-m2-9a-final): each level of a path deleted or written there
@@ -379,31 +406,120 @@ try {
       const parts = rel.split(/[\\/]/).filter(Boolean);
       for (let i = 1; i <= parts.length; i++) {
         let st;
-        try { st = fs.lstatSync(path.join(out, ...parts.slice(0, i))); } catch { return null; }
+        // Only absence ends the walk: a path about to be written does not exist yet. Any other failure is not known to be no
+        // link, so the publish stops before deleting or writing through it (link-leaving-owner.plan.md stage 2; divergence 8).
+        try { st = fs.lstatSync(path.join(out, ...parts.slice(0, i))); } catch (e) {
+          if (e?.code === 'ENOENT' || e?.code === 'ENOTDIR') return null;   // absent, or below a regular file: no link there
+          stop(`--out ${out}: ${parts.slice(0, i).join('/')} cannot be read (${e?.code ?? e?.message}), so it is not known to be no link; nothing was changed`);
+        }
         if (st.isSymbolicLink()) return parts.slice(0, i).join('/');
       }
       return null;
     };
-    for (const f of listed.stdout.split('\0').filter(Boolean)) {
-      const link = linkBelowOut(path.dirname(f) === '.' ? '' : path.dirname(f));
-      if (link) stop(`--out ${out}: ${link} is a link; nothing below --out is deleted through one`);
-      fs.rmSync(path.join(out, f), { force: true });
-    }
+    // The rewrite and the commit, with a way back (G-13 of 20261122-055431-m3s7-b3-remediation-2-review): a copy, an add
+    // or a commit that failed once left --out with its earlier release deleted and the snapshot half written. --out was
+    // clean before this publish (checked above), so restoring its HEAD and removing what is untracked and not ignored
+    // loses nothing of the operator's.
+    const restoreBeforeCommit = () => {
+      if (prior) return og(['reset', '--quiet', '--hard', prior]).status === 0 && og(['clean', '-q', '-f', '-d']).status === 0;
+      const ok = og(['read-tree', '--empty']).status === 0;
+      if (ok) for (const { path: rel } of plan.ship) fs.rmSync(path.join(out, rel), { force: true });
+      return ok;
+    };
+    // The branch HEAD names before the commit, so the commit read afterwards is known to be this publish's (G-14 of
+    // 20261122-055431-m3s7-b3-remediation-2-review). Empty is a detached HEAD.
+    const branchBefore = og(['symbolic-ref', '-q', 'HEAD']);
+    if (branchBefore.status !== 0 && branchBefore.status !== 1) stop(`git symbolic-ref HEAD in --out failed: ${(branchBefore.stderr ?? '').trim()}`);
+    const branchName = branchBefore.status === 0 ? branchBefore.stdout.trim() : '';
+    // An ignored file at a path that ships would be overwritten, and the clean check above never sees an ignored file, so
+    // no rollback could restore its bytes (G-13 of 20261122-144505-m3s7-b3-remediation-3-review). --out is clean, so an
+    // untracked file standing there is an ignored one. Refused before anything below --out changes.
+    const trackedInOut = new Set(listed.stdout.split('\0').filter(Boolean));
+    // --OUT JUDGED WHOLE BY THE OWNER BEFORE ANYTHING BELOW IT CHANGES (G-15 of 20261122-193909-llo-delivery; ARCHITECTURE
+    // A-30): linkBelowOut judged only symbolic links, and only on the paths about to be touched, so a link leading out that
+    // git does not see, a hard-linked file, a dangling link or an unreadable entry passed. The clone's git directory is not
+    // judged: a local clone hard-links its objects, and nothing is deleted or written there. linkBelowOut stays below as
+    // the per-path check, which refuses an inward link too.
+    const gitDirAbs = path.resolve(gitDir.stdout.trim());
+    let leads;
+    try {
+      leads = firstLeadingOut(out, { leaving: true, skip: (full) => full === path.join(out, '.git') || path.resolve(full) === gitDirAbs });
+    } catch (e) { stop(`--out ${out} cannot be read (${e?.code ?? e?.message}); nothing was changed`); }
+    if (leads) stop(`--out ${out}: ${leads.path} is ${LEADS_OUT_KIND[leads.kind] ?? leads.kind}; nothing below --out is deleted or written while it stands there, so nothing was changed`);
     for (const { path: rel } of plan.ship) {
-      const link = linkBelowOut(rel);
-      if (link) stop(`--out ${out}: ${link} is a link; nothing below --out is written through one`);
-      const dest = path.join(out, rel);
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      fs.copyFileSync(path.join(staging, rel), dest);
+      if (trackedInOut.has(rel) || linkBelowOut(rel)) continue;
+      let st = null;
+      try { st = fs.lstatSync(path.join(out, rel)); } catch (e) {
+        if (e?.code !== 'ENOENT' && e?.code !== 'ENOTDIR') stop(`--out ${out}: ${rel} cannot be read (${e?.code ?? e?.message}); nothing was changed`);
+      }
+      if (st) stop(`an ignored file in --out at a path that ships: ${rel}; it would be overwritten, so nothing was changed`);
     }
-    if (og(['add', '-A']).status !== 0) stop('git add in --out failed');
-    const msgFile = path.join(work, 'message.txt');
-    fs.writeFileSync(msgFile, commitMessage({ version, entry, sourceCommit }));
-    const c = gitCommitSync(['commit', '--quiet', '--allow-empty', '-F', msgFile], { cwd: out, encoding: 'utf8', gitVars: {
-      GIT_AUTHOR_NAME: identity.name, GIT_AUTHOR_EMAIL: identity.email,
-      GIT_COMMITTER_NAME: identity.name, GIT_COMMITTER_EMAIL: identity.email } });
-    if (c.status !== 0) stop(`the commit in --out failed: ${(c.stderr ?? '').trim()}`);
-    const head = (og(['rev-parse', 'HEAD']).stdout ?? '').trim() || '(HEAD unread)';
+    try {
+      for (const f of listed.stdout.split('\0').filter(Boolean)) {
+        const link = linkBelowOut(path.dirname(f) === '.' ? '' : path.dirname(f));
+        if (link) stop(`--out ${out}: ${link} is a link; nothing below --out is deleted through one`);
+        fs.rmSync(path.join(out, f), { force: true });
+      }
+      for (const { path: rel } of plan.ship) {
+        const link = linkBelowOut(rel);
+        if (link) stop(`--out ${out}: ${link} is a link; nothing below --out is written through one`);
+        const dest = path.join(out, rel);
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.copyFileSync(path.join(staging, rel), dest);
+      }
+      if (og(['add', '-A']).status !== 0) throw new Error('git add in --out failed');
+      // Every shipped file, though a .gitignore matches it: `add -A` skips one, and the release would omit it (G-13 of
+      // 20261122-144505-m3s7-b3-remediation-3-review). Forced by name, so nothing else ignored in --out is added.
+      const shipList = path.join(work, 'ship-paths.txt');
+      fs.writeFileSync(shipList, plan.ship.map(({ path: rel }) => rel).join('\0'));
+      // LITERAL pathspecs (G-10 of 20261122-154951-m3s7-b3-remediation-4-review): a shipped name such as `[ab].txt` or
+      // `:!x` is pathspec magic otherwise, and matched an ignored file of the operator's in --out.
+      if (plan.ship.length && og(['--literal-pathspecs', 'add', '--force', `--pathspec-from-file=${shipList}`, '--pathspec-file-nul']).status !== 0) {
+        throw new Error('git add of the shipped files in --out failed');
+      }
+      const msgFile = path.join(work, 'message.txt');
+      fs.writeFileSync(msgFile, commitMessage({ version, entry, sourceCommit }));
+      const c = gitCommitSync(['commit', '--quiet', '--allow-empty', '-F', msgFile], { cwd: out, encoding: 'utf8', gitVars: {
+        GIT_AUTHOR_NAME: identity.name, GIT_AUTHOR_EMAIL: identity.email,
+        GIT_COMMITTER_NAME: identity.name, GIT_COMMITTER_EMAIL: identity.email } });
+      if (c.status !== 0) throw new Error(`the commit in --out failed: ${(c.stderr ?? '').trim()}`);
+    } catch (e) {
+      let ok = false;
+      try { ok = restoreBeforeCommit(); } catch { /* said below */ }
+      stop(`${e.message}; ${ok ? `--out is back at ${prior ?? 'its unborn branch'}`
+        : `restoring it FAILED: reset --out by hand with git -C ${out} reset --hard ${prior ?? '(empty the index)'} and git clean -fd`}`);
+    }
+    // Returns --out to where it was before this publish; true when it got there. --out was clean before this publish
+    // (checked above), so this loses nothing of the operator's. An unborn branch has no prior commit: the ref is deleted,
+    // the index emptied and the shipped files removed.
+    const undo = () => {
+      if (prior) return og(['reset', '--quiet', '--hard', prior]).status === 0;
+      const ok = og(['update-ref', '-d', 'HEAD']).status === 0 && og(['read-tree', '--empty']).status === 0;
+      if (ok) for (const { path: rel } of plan.ship) fs.rmSync(path.join(out, rel), { force: true });
+      return ok;
+    };
+    const undoneSay = (ok) => (ok ? `the commit was undone, --out is back at ${prior ?? 'its unborn branch'}`
+      : `undoing it FAILED: do not push; reset --out by hand with git -C ${out} reset --hard ${prior ?? '(delete HEAD)'}`);
+    // A commit that cannot be named is not a verified publish (I-13; G-37 of 20261122-035227-m3s7-b3-review): it once went
+    // on as '(HEAD unread)' through the scan and the success line.
+    const hr = og(['rev-parse', 'HEAD']);
+    const head = hr.status === 0 ? String(hr.stdout ?? '').trim() : '';
+    if (!head) {
+      let ok = false;
+      try { ok = undo(); } catch { /* said below */ }
+      stop(`git rev-parse HEAD in --out failed after the commit (exit ${hr.status ?? hr.error?.code}), so the published commit is unknown: ${undoneSay(ok)}`);
+    }
+    // The HEAD read is this publish's commit only when it is on the branch HEAD named before and its parent is the earlier
+    // release (none on an unborn branch). A hook that moved HEAD once had the scan and the success line name another
+    // commit (G-14 of 20261122-055431-m3s7-b3-remediation-2-review). Where HEAD now points is not this publish's to reset.
+    const branchAfter = og(['symbolic-ref', '-q', 'HEAD']);
+    const parent = og(['rev-parse', '--verify', '--quiet', 'HEAD^1']);
+    const onBranch = (branchAfter.status === 0 ? branchAfter.stdout.trim() : '') === branchName && (branchAfter.status === 0 || branchAfter.status === 1);
+    const parentOk = prior ? parent.status === 0 && parent.stdout.trim() === prior : parent.status !== 0;
+    if (!onBranch || !parentOk) {
+      stop(`HEAD in --out (${head}${branchAfter.status === 0 ? ` on ${branchAfter.stdout.trim()}` : ', detached'}) is not the publish commit `
+        + `made on ${branchName || 'a detached HEAD'} after ${prior ?? 'an unborn branch'}; a hook may have moved it: do not push, inspect --out`);
+    }
     // The public repository's CI secret scan, run here as it runs there: the published tree's own check-secrets over
     // --out's WHOLE history, with the shipped rules and .gitleaksignore (M2 stage 9c, 2026-11-19; operator: "Build the
     // fakes at runtime (Recommended)"). 2a669ba0 passed every check above and failed this one on GitHub, since the
@@ -420,28 +536,30 @@ try {
     // Nothing between the commit and the undo may throw (G-11 of 20261119-055149-m2-9c-secret-scan-remediation-review): a
     // record that could not be written once threw past the undo, leaving the rejected commit at HEAD. A failed record is
     // said, and the undo below runs either way.
+    // NEVER THROUGH A LINK (G-10 of 20261122-214154-llo-remediation-2-review): the git directory is skipped by the owner's
+    // walk above, so the record's folder and file are judged here. A link or junction at the folder is refused, and the
+    // file is removed and created new, so a link or hard link standing at its name is never written through.
     let recorded;
     try {
-      fs.mkdirSync(path.dirname(csLog), { recursive: true });
+      const csDir = path.dirname(csLog);
+      let dirSt = null;
+      try { dirSt = fs.lstatSync(csDir); } catch (e) { if (e?.code !== 'ENOENT') throw e; }
+      if (dirSt && !dirSt.isDirectory()) throw new Error(`${csDir} is ${dirSt.isSymbolicLink() ? 'a link or junction' : 'not a directory'}`);
+      if (!dirSt) fs.mkdirSync(csDir);
+      fs.rmSync(csLog, { force: true });
       fs.writeFileSync(csLog, `# publish: the public CI's secret scan: node ${PUBLIC_SCAN}, in --out, over its whole history\n`
-        + `# commit ${head} (source commit ${sourceCommit})\n# exit ${csExit}${cs.error ? ` (${cs.error.message})` : ''}\n${csText}`);
+        + `# commit ${head} (source commit ${sourceCommit})\n# exit ${csExit}${cs.error ? ` (${cs.error.message})` : ''}\n${csText}`, { flag: 'wx' });
       recorded = `recorded in ${csLog}`;
     } catch (e) {
       recorded = `its result could not be recorded in ${csLog} (${e.message}); its output is above`;
     }
     if (cs.status !== 0) {
-      // --out was clean before this publish (checked above), so returning it to its prior commit loses nothing of the
-      // operator's. An unborn branch has no prior commit: the ref is deleted, the index emptied and the shipped files removed.
-      let undone;
-      if (prior) {
-        undone = og(['reset', '--quiet', '--hard', prior]).status === 0;
-      } else {
-        undone = og(['update-ref', '-d', 'HEAD']).status === 0 && og(['read-tree', '--empty']).status === 0;
-        if (undone) for (const { path: rel } of plan.ship) fs.rmSync(path.join(out, rel), { force: true });
-      }
+      // Guarded like every other undo (G-11 of 20261122-214154-llo-remediation-2-review): a throwing rmSync escaped to the
+      // outer handler and left --out partly restored with nothing said.
+      let undone = false;
+      try { undone = undo(); } catch { /* said below */ }
       stop(`the public CI's secret scan (${PUBLIC_SCAN} in --out, over its whole history) fails on ${head} (exit ${csExit}), `
-        + `${recorded}: ${undone ? `the commit was undone, --out is back at ${prior ?? 'its unborn branch'}; fix the finding and publish again`
-          : `undoing it FAILED: do not push; reset --out by hand with git -C ${out} reset --hard ${prior ?? '(delete HEAD)'}`}`);
+        + `${recorded}: ${undoneSay(undone)}${undone ? '; fix the finding and publish again' : ''}`);
     }
     console.log(`publish: the public CI's secret scan passes over --out's whole history (${PUBLIC_SCAN}); ${recorded}`);
     console.log(`publish: committed ${head} in ${out} as ${identity.name} <${identity.email}>; not pushed (the operator's step)`);

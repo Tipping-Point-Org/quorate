@@ -71,7 +71,9 @@ export function vendorLabel(reviewer, table = null, io = null) {
   // Without a table, io is REQUIRED: the old fallback swallowed any failure to read the table into `{}`,
   // and a missing io would then have silently printed the raw id instead of failing.
   if (!table) requireIo(io, 'vendorLabel');
-  const adapters = table ?? (() => { try { return builtinReviewers(io); } catch { return {}; } })();
+  // A table that cannot be read or parsed FAILS here (G-15 of 20261122-002915-m3s7-b2-remediation-review): the catch that
+  // turned it into `{}` was the fallback this comment says is gone, and it printed the raw id instead.
+  const adapters = table ?? builtinReviewers(io);
   const label = adapters?.[id]?.label;
   return typeof label === 'string' && label.trim() ? label : id;
 }
@@ -122,24 +124,41 @@ export function stripCaptureSection(brief, io) {
   // inert-feature sweep needs, so an arm told to run it was given no path. It returns RELATIVE to the repository
   // root, which is the arm's working directory; a detector outside the repository is not handed over.
   const section = nextHeading === -1 ? rest : rest.slice(0, 1 + nextHeading + 1);
-  const detectorRel = armDetectorPath(text, section);
+  const detector = armDetectorPath(text, section);
+  // A path holding whitespace goes QUOTED, whole; a detector outside the arm's working directory is SAID to be absent,
+  // never dropped with no word (G-15 of 20261122-014737-m3s7-b2-review-2).
+  const detectorText = detector?.rel
+    ? renderTemplate(readTemplate('arm-detector-command.md', io), { detector_rel: /\s/.test(detector.rel) ? `"${detector.rel}"` : detector.rel }, 'arm-detector-command.md')
+    : detector?.outside ? readTemplate('arm-detector-absent.md', io) : '';
   const replacement = String.fromCharCode(35, 35) + ' Evidence' + String.fromCharCode(10)
     + readTemplate('arm-evidence-contract.md', io)
-    + (detectorRel ? renderTemplate(readTemplate('arm-detector-command.md', io), { detector_rel: detectorRel }, 'arm-detector-command.md') : '');
+    + detectorText;
   return text.slice(0, start + 1) + replacement + String.fromCharCode(10) + after;
 }
 
-/** The detector's path relative to the brief's `repository_root`, or null when either is absent or it lies outside. */
+/**
+ * The detector named in the section: `{ rel }`, its path relative to the brief's `repository_root`; `{ outside: true }`
+ * when it lies outside that root (or cannot be made relative); null when the section names none or the brief no root.
+ *
+ * The path is everything after the LAST `node ` before `find-inert-features.mjs` on its line, an optional quote
+ * stripped: `\S*` cut a path holding a space, and the arm silently got no command (G-15 of
+ * 20261122-014737-m3s7-b2-review-2).
+ */
 function armDetectorPath(brief, section) {
   const rootLine = /^repository_root:[ \t]*(.+?)[ \t]*$/m.exec(brief);
-  const det = /node[ \t]+(\S*find-inert-features\.mjs)/.exec(section);
-  if (!rootLine || !det) return null;
+  const line = section.split(/\r?\n/).find((l) => l.includes('find-inert-features.mjs'));
+  if (!rootLine || line === undefined) return null;
+  const head = line.slice(0, line.indexOf('find-inert-features.mjs') + 'find-inert-features.mjs'.length);
+  const starts = /(?:^|[ \t])node[ \t]+/g;
+  let from = -1;
+  for (let m = starts.exec(head); m; m = starts.exec(head)) from = m.index + m[0].length;
+  if (from === -1) return null;
   const norm = (p) => p.replace(/\\/g, '/').replace(/\/+$/, '');
   const root = norm(rootLine[1]);
-  const abs = norm(det[1]);
-  if (!root || abs.slice(0, root.length + 1).toLowerCase() !== `${root}/`.toLowerCase()) return null;
+  const abs = norm(head.slice(from).replace(/^["']/, ''));
+  if (!root || abs.slice(0, root.length + 1).toLowerCase() !== `${root}/`.toLowerCase()) return { outside: true };
   const rel = abs.slice(root.length + 1);
-  return rel.split('/').some((s) => s === '..' || s === '') ? null : rel;
+  return rel.split('/').some((s) => s === '..' || s === '') ? { outside: true } : { rel };
 }
 
 /**
@@ -355,12 +374,10 @@ export function buildTieBreakPrompt({
   // The excerpt the doctrine promises. Its ABSENCE is stated rather than left blank: a tie-breaker
   // that cannot see the code must know that is why, so it can rule "the evidence here does not
   // settle it" instead of guessing at a file it was never shown.
+  // The excerpt's header tells the judge how to read it, so it is the prompt library's (consumer-owned-configuration.md AC2).
   const excerptBlock = excerpt?.ok
-    ? `\`${file}\` lines ${excerpt.from}-${excerpt.to} of ${excerpt.of} (\`>\` marks the cited line):
-
-\`\`\`
-${excerpt.body}
-\`\`\``
+    ? renderTemplate(readTemplate('tie-break-excerpt.md', io),
+      { file, from: excerpt.from, to: excerpt.to, of: excerpt.of, body: excerpt.body }, 'tie-break-excerpt.md').trim()
     : renderTemplate(readTemplate('tie-break-excerpt-missing.md', io),
       { why: excerpt?.why ?? 'no excerpt was supplied' }, 'tie-break-excerpt-missing.md').trim();
 
@@ -398,7 +415,10 @@ export function buildClaimCheckArmPrompt({ checker, draftPath, repoRoot, transcr
     checker: String(checker ?? ''),
     draft: String(draftPath ?? ''),
     repo: String(repoRoot ?? ''),
-    transcript: transcriptPath ? `- The session transcript, redacted: \`${transcriptPath}\`\n` : '',
+    // The line's prose is a template's (G-16 of 20261121-233915-m3s7-b2-review): only whether it is sent is decided here.
+    transcript: transcriptPath
+      ? renderTemplate(readTemplate('claim-check-arm-transcript.md', io), { path: String(transcriptPath) }, 'claim-check-arm-transcript.md').trim() + '\n'
+      : '',
   }, 'claim-check-arm.md');
 }
 
@@ -454,7 +474,9 @@ export function buildDecisionModeratorPrompt({ state, hardCap, io }) {
  * THE REVOTE NOTE'S AUTHOR'S BRIEF (decision-records.plan.md stage 5; design DR-D1 A): a fresh subagent, given ONLY the
  * question, its options and the work context, writes the note the revote's seats read. It takes those three fields by
  * name, so nothing else (round 1, the seats' replies, the asking session's text, a transcript path) can reach it through
- * here; it runs outside the repository (runtimeCall), so it cannot read them from the record either.
+ * here. It runs outside the repository (runtimeCall), which keeps it from DISCOVERING the decision records by looking
+ * around its working directory; it does not stop a read of an absolute path, so what keeps the record out of the note is
+ * that nothing here names one (G-16 of 20261122-014737-m3s7-b2-review-2).
  */
 export function buildRevoteAuthorPrompt({ question, options, context, io }) {
   requireIo(io, 'buildRevoteAuthorPrompt');
@@ -477,18 +499,24 @@ export function buildRevoteAuthorPrompt({ question, options, context, io }) {
 export function buildClaimCheckSameFamilyBrief({ checker, draftPath, resultPath, repoRoot, transcriptPath = null, armClaims = null, io }) {
   requireIo(io, 'buildClaimCheckSameFamilyBrief');
   const scope = armClaims
-    ? renderTemplate(readTemplate('claim-check-claude-scope.md', io), {
+    ? renderTemplate(readTemplate('claim-check-same-family-scope.md', io), {
       claims: JSON.stringify(armClaims.map(({ id, text, kind }) => ({ id, text, kind })), null, 2),
-    }, 'claim-check-claude-scope.md')
+    }, 'claim-check-same-family-scope.md')
     : '';
-  return renderTemplate(readTemplate('claim-check-claude.md', io), {
+  // The templates are named for the role, not a vendor (A-9; G-19 of 20261122-002915-m3s7-b2-remediation-review), and the
+  // transcript line is prose from the prompt library (G-20 there).
+  const transcript = transcriptPath
+    ? renderTemplate(readTemplate('claim-check-same-family-transcript.md', io), { path: String(transcriptPath) },
+      'claim-check-same-family-transcript.md').trim() + '\n'
+    : '';
+  return renderTemplate(readTemplate('claim-check-same-family.md', io), {
     checker: String(checker ?? ''),
     draft: String(draftPath ?? ''),
     result: String(resultPath ?? ''),
     repo: String(repoRoot ?? ''),
-    transcript: transcriptPath ? `- The session transcript: \`${transcriptPath}\`\n` : '',
+    transcript,
     scope,
-  }, 'claim-check-claude.md');
+  }, 'claim-check-same-family.md');
 }
 
 /**

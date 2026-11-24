@@ -9,7 +9,7 @@ import { hostPlatform, hostFs } from '../platform/index.mjs';
 import { writeTextAtomic } from './atomic.mjs';
 import { readContract } from './contract-reader.mjs';
 import { confined } from './confined-path.mjs';
-import { isWithin, canonicalSpelling, rootSpelling } from './finding-scope.mjs';
+import { isWithin, canonicalSpelling, rootSpelling, firstLeadingOut, LEADS_OUT_KIND } from './finding-scope.mjs';
 
 export * from '../lib/reviews-root.mjs';
 
@@ -137,6 +137,11 @@ export function archiveRun(plan, { withholdEvidence = false, skip = [], rm = hos
   try {
     hostFs.mkdirSync(path.dirname(plan.tmp), { recursive: true });
     rm(plan.tmp, { recursive: true, force: true });
+    // NOTHING THAT LEADS OUT IS COPIED (link-leaving-owner.plan.md stage 3, LL-D4): cpSync keeps a link as a link and copies
+    // a hard-linked file's content, so the tree is judged by the one owner first and a run holding either stays staged,
+    // named, through the caller's catch (archiveStagedRun never throws). What is withheld is not copied, so not judged.
+    const out = firstLeadingOut(plan.from, { leaving: true, skip: (src) => withheld(src) });
+    if (out) throw new Error(`${out.path} in the run is ${LEADS_OUT_KIND[out.kind] ?? out.kind}; nothing that leads out of a run is archived`);
     hostFs.cpSync(plan.from, plan.tmp, { recursive: true, filter: (src) => !withheld(src) });
     hostFs.renameSync(plan.tmp, plan.to);
   } catch (e) {

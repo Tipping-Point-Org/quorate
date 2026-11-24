@@ -85,5 +85,6 @@ test('G-9: a file name in the diff summary cannot close the summary\'s fence', (
 test('G-14: a held lock is read through the confined-path owner, not by a raw read', () => {
   const src = read('scripts/remediate.mjs');
   assert.doesNotMatch(src, /fs\.readFileSync\(lockPath/, 'the held lock is read raw, following a link at its path');
-  assert.match(src, /held = owner\.read\(\['remediate\.lock'\]\)/);
+  // By the owner's name since G-3 of 20261121-204740-m3s7-b1-remediation-review.
+  assert.match(src, /held = owner\.read\(\[REMEDIATE_LOCK\]\)/);
 });

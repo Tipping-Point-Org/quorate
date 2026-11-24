@@ -29,7 +29,6 @@ import { sessionContract } from './io/session-contract.mjs';
 import { gitSync } from './io/git.mjs';
 import { checkFreshness, refreshFreshnessDetached } from './io/cli-freshness.mjs';
 import { reviewersFromOutcome } from './io/reviewers.mjs';
-import { readContract } from './io/contract-reader.mjs';
 import { confined } from './io/confined-path.mjs';
 import { relativeBelow } from './io/finding-scope.mjs';
 import { noticeText } from './io/template.mjs';
@@ -76,7 +75,13 @@ if (v['session-start']) {
       // With its review block, so the runtime the cache is keyed by is the contract's (contract-runtime-and-session-files
       // stage 1).
       let declared = null; let contract = null;
-      try { const outcome = readContract({ cwd: repoRoot }); declared = reviewersFromOutcome(outcome, 'run-session'); contract = outcome?.contract ?? null; } catch { /* no table, no notice */ }
+      // In process, through the session hooks' reader, as the freshness refresh reads it (G-12 of
+      // 20261124-030759-m3s9-remediation-3-review-b: this hook still spawned new-run --print-contract).
+      try {
+        const read = sessionContract(repoRoot);
+        const outcome = read.absent ? { absent: true } : read.unreadable ? { error: read.unreadable } : { contract: read.contract };
+        declared = reviewersFromOutcome(outcome, 'run-session'); contract = outcome?.contract ?? null;
+      } catch { /* no table, no notice */ }
       if (declared) {
         try { for (const d of checkFreshness({ cacheOnly: true, declared, contract })) process.stdout.write(`${d}\n`); } catch { /* an unusable cache: the refresh rebuilds it */ }
         // An override the refresh runs is named here, its own output being ignored (G-3 of 20261105-013235-ar-d1-c-remediation-review).

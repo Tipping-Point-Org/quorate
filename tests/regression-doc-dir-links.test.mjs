@@ -39,14 +39,19 @@ test('G-20: a link beneath a doc directory that leaves it is found, however deep
   assert.equal(scope.firstLinkLeaving(at('docs'), io), 'deep/leak.md');
 });
 
-test('G-20: a link that stays inside the directory, and a dangling one, leave nothing', () => {
+test('G-20: a link that stays inside the directory leaves nothing; a dangling one leads out', () => {
+  // A DANGLING LINK LEADS OUT (link-leaving-owner.plan.md stage 1): its target cannot be resolved, so it cannot be shown
+  // inside. This test said it "reveals nothing", which was true of what it pointed at and not of what a later write puts there.
   const io = fakeIo({
     [at('docs')]: 'dir', [at('docs', 'a.md')]: 'file',
     [at('docs', 'alias.md')]: { link: at('docs', 'a.md') },
-    [at('docs', 'gone.md')]: { link: null },
   });
-  io.fs.realpathSync = ((real) => (p) => { if (path.resolve(p) === at('docs', 'gone.md')) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' }); return real(p); })(io.fs.realpathSync);
   assert.equal(scope.firstLinkLeaving(at('docs'), io), null);
+  const dangling = fakeIo({
+    [at('docs')]: 'dir', [at('docs', 'a.md')]: 'file', [at('docs', 'gone.md')]: { link: null },
+  });
+  dangling.fs.realpathSync = ((real) => (p) => { if (path.resolve(p) === at('docs', 'gone.md')) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' }); return real(p); })(dangling.fs.realpathSync);
+  assert.deepEqual(scope.firstLeadingOut(at('docs'), undefined, dangling), { path: 'gone.md', kind: 'dangling' });
   assert.throws(() => scope.firstLinkLeaving(at('docs')), /firstLinkLeaving: an io/);
 });
 

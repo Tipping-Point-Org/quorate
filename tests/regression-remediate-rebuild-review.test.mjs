@@ -68,7 +68,11 @@ test('G-3: a case variant of the runtime\'s auth or the run pin is removed too',
 test('G-12, G-18: the runner writes run.json atomically and forwards the frozen runtime', () => {
   const src = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'remediate.mjs'), 'utf8');
   // Atomic through the owner of the directory written since run-dir-descendants.plan.md stage 2 (writeJsonAtomic before).
-  assert.match(src, /const saveRun = \(patch, dir = runDir\) => \(dir === runDir \? owner : confined\(dir\)\)\.replace\(\['run\.json'\]/);
+  // Through patchRunJson since G-11 of 20261124-180917-gsw-remediation-4-review-b, whose write is the owner's replace.
+  assert.match(src, /const saveRun = \(patch, dir = runDir\) => patchRunJson\(dir === runDir \? owner : confined\(dir\), patch\b/);
+  const lib = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'lib', 'reviews-root.mjs'), 'utf8');
+  const patcher = lib.slice(lib.indexOf('export function patchRunJson('), lib.indexOf('export function admitRun('));
+  assert.match(patcher, /owner\.replace\(\['run\.json'\]/, 'patchRunJson writes run.json through the owner\'s atomic replace');
   assert.doesNotMatch(src, /fs\.writeFileSync\([^)]*run\.json/);
   // The frozen runtime, chosen by the one owner since contract-runtime-and-session-files.plan.md stage 1 and always passed.
   assert.match(src, /'--runtime', nodeRuntime\(\)/);

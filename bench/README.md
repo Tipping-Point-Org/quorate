@@ -33,7 +33,7 @@ manifest field as `validateManifest` checks it, how the anchor resolves — and 
 the fields itself, and kept listing `defect.line` after the validator began refusing it, because nothing compared the two
 (`.claude/requests/bench-corpus-format.md`).
 
-**Why a seed strips its regression tests.** A defect the suite catches never reaches a lens — the
+**Why a seed strips its regression tests, where it has any.** A defect the suite catches never reaches a lens — the
 pre-flight barrier fails first, and the benchmark measures the tests instead of the reviewers.
 Seeds recreate the *pre-discovery* state, which is the state a review exists for. The offline
 corpus-integrity test enforces that patches apply cleanly; a patch that stops applying after a

@@ -79,7 +79,9 @@ function main() {
 function report(r, sha, jobs) {
   let failed = false;
   say(`ci-watch: ${r.workflowName} on ${r.event} ${r.headBranch} @ ${sha.slice(0, 8)}: ${jobs.conclusion} — ${jobs.url}`);
-  for (const j of jobs.jobs) say(`  ${j.conclusion === 'success' ? 'ok  ' : 'FAIL'} ${j.name}`);
+  // A job its `if:` skipped (checks.yml's install job on a pull request) is not a failure, and printing FAIL beside a
+  // successful run reads as one.
+  for (const j of jobs.jobs) say(`  ${j.conclusion === 'success' ? 'ok  ' : j.conclusion === 'skipped' ? 'skip' : 'FAIL'} ${j.name}`);
   if (jobs.conclusion !== 'success') {
     failed = true;
     let log = '';

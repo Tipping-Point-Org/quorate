@@ -59,13 +59,24 @@ export const REQUESTS_DIR = '.claude/requests';
  * the repository once it is, returns null and the caller treats requests as absent — which degrades
  * to the recovery path rather than trusting a redirected one.
  *
- * `mustExist: false` resolves the PARENT instead, so a directory that does not exist yet can still
- * be proved contained before it is created.
+ * `mustExist: false` resolves the PARENT instead, but only when nothing stands at the leaf, so a
+ * directory that does not exist yet can still be proved contained before it is created. An entry that
+ * already stands there, a link included, is resolved itself (G-13 of 20261121-233915-m3s7-b2-review:
+ * the parent alone let a link at `.claude/requests` leading out of the repository pass).
  */
 export function resolvedRequestsDir(repoRoot, { mustExist = true, io } = {}) {
   requireIo(io, 'resolvedRequestsDir');
   const lexical = resolveFrom(repoRoot, 'resolvedRequestsDir: repoRoot', REQUESTS_DIR);
-  const probe = mustExist ? lexical : path.dirname(lexical);
+  let leafStands = true;
+  if (!mustExist) {
+    // Only ENOENT or ENOTDIR says nothing stands at the leaf (G-12 of 20261122-002915-m3s7-b2-remediation-review): an
+    // EACCES or EIO there is a leaf that may stand, and proving only its parent contained would reopen G-13's gap.
+    try { io.fs.lstatSync(lexical); } catch (e) {
+      if (e?.code !== 'ENOENT' && e?.code !== 'ENOTDIR') return null;
+      leafStands = false;
+    }
+  }
+  const probe = leafStands ? lexical : path.dirname(lexical);
   let real;
   let realRoot;
   try {
@@ -80,11 +91,11 @@ export function resolvedRequestsDir(repoRoot, { mustExist = true, io } = {}) {
   // Found while moving this module onto `io` (os-platform-adapters stage 3).
   const inside = isWithin(realRoot, real);
   if (!inside) return null;
-  return mustExist ? real : path.join(real, path.basename(lexical));
+  return leafStands ? real : path.join(real, path.basename(lexical));
 }
 
 /**
- * A request document's status: the FIRST `status:` line, which is its frontmatter.
+ * A request document's status: the one `status:` line of its frontmatter (two or more is no status).
  *
  * ONE OWNER because the two readers disagreed (G-20, contract-audit against I-21, which requires a
  * draft to be invisible to discovery). Discovery counted a file as approved when ANY line matched
@@ -106,11 +117,10 @@ export function requestStatus(text) {
   if (lines[0] !== '---') return null;
   const close = lines.indexOf('---', 1);
   if (close < 0) return null;
-  for (const line of lines.slice(1, close)) {
-    const m = /^status:\s*(\S+)/.exec(line);
-    if (m) return m[1];
-  }
-  return null;
+  // A header with more than one `status:` line has no status (G-13 of 20261122-002915-m3s7-b2-remediation-review):
+  // taking the first let a later, conflicting line pass unseen.
+  const found = lines.slice(1, close).map((line) => /^status:\s*(\S+)/.exec(line)).filter(Boolean);
+  return found.length === 1 ? found[0][1] : null;
 }
 
 /** Approved means approved in the frontmatter — the one question discovery and acceptance both ask. */

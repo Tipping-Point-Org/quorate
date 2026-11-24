@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { confined } from './confined-path.mjs';
 import { hostPlatform } from '../platform/index.mjs';
 import { selectAdapters } from './reviewers.mjs';
-import { quorateHome } from './reviews-root.mjs';
+import { quorateHome, readRunJson } from './reviews-root.mjs';
 import { isWithin, canonicalSpelling, belowRoot, isBelowRoot } from './finding-scope.mjs';
 
 // The adapter table a family is asked of (runtime-call-telemetry.plan.md stage 1): the built-ins, with the overrides the
@@ -67,6 +67,9 @@ const ownJson = (own, segs) => {
   try { text = own.read(segs); } catch (e) { if (e.code === 'ENOENT') return null; throw e; }
   return JSON.parse(text);
 };
+const ownRunJson = (own) => {
+  try { return readRunJson(own, ['run.json']); } catch (e) { if (e.code === 'ENOENT') return null; throw e; }
+};
 const ownStdout = (own, segs) => {
   let text;
   try { text = own.read(segs); } catch (e) { if (e.code === 'ENOENT') return null; throw e; }
@@ -100,6 +103,7 @@ export function ownerBelow(dir, repoRoot) {
     const at = (segs) => [...pre, ...segs];
     return {
       read: (segs, enc) => own.read(at(segs), enc),
+      readBounded: (segs, max) => own.readBounded(at(segs), max),
       readLines: (segs, onLine, o) => own.readLines(at(segs), onLine, o),
       exists: (segs) => own.exists(at(segs)),
       list: (segs, o) => own.list(at(segs), o),
@@ -148,7 +152,9 @@ export function writeRunRecord(runDir, { recordKind, repoRoot, run: parsed = nul
     // Rooted at the repository, or at the engine's home for a staged run (G-12 of 20261105-052942-crsf-delivery): rooted
     // at the run itself, a link at .claude/reviews or between the home and a staged run was followed.
     const own = ownerBelow(runDir, rootOf(runDir, repoRoot));
-    const run = parsed ?? ownJson(own, ['run.json']) ?? {};
+    // Held to readRunJson's bound (G-6 of 20261124-170802-gsw-remediation-3-review-b): run-graph and remediate pass no
+    // parsed record, and this read the file whole; a record over the bound throws EFBIG, which becomes the note.
+    const run = parsed ?? ownRunJson(own) ?? {};
     const { statuses, stdouts } = runStatuses(own);
     const record = buildRunRecord({
       kind: recordKind, run, statuses, stdouts, roster: roster(),

@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { escapesAfterRealpath } from '../scripts/io/finding-scope.mjs';
+import { makeLink } from './helpers.mjs';
 
 test('a doc-shaped symlink pointing outside the repo is not snapshot material', (t) => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'quorate-snap-'));
@@ -36,11 +37,7 @@ test('a doc-shaped symlink pointing outside the repo is not snapshot material', 
     fs.writeFileSync(secret, 'ANTHROPIC_API_KEY=sk-do-not-copy-me\n');
 
     const link = path.join(docs, 'leak.md');
-    try {
-      fs.symlinkSync(secret, link, 'file');
-    } catch {
-      return t.skip('this platform/user cannot create symlinks');
-    }
+    if (!makeLink(t, { target: secret, at: link, type: 'file' })) return;
 
     // The walk's own test: `withFileTypes` reports the LINK's type, so it is not a directory and
     // reaches the `.md` branch exactly like `real.md` does.

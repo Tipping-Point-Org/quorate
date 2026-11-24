@@ -53,7 +53,7 @@ const NAMED = [
   ['scripts/decide.mjs', "try { st = confined(e.root).stat(e.rel.split('/')); }", "the question's intake: splits the owner's `rel`"],
   ['scripts/io/decision-run.mjs', 'const seg = (...names) =>', "a decision record's own file names"],
   ['scripts/remediate.mjs', "const segs = String(rel).split(/[\\\\/]/).filter((x) => x && x !== '.');", "installReplay: a candidate file's repository path, as git spells it, not a cited capture"],
-  ['scripts/remediate.mjs', 'if (st.stdout_path) nodeRecord.terminal_reason = JSON.parse(owner.read(String(st.stdout_path).split(', "the node's own stdout path, written by spawn-node, not a cited capture"],
+  ['scripts/remediate.mjs', 'const envelope = JSON.parse(owner.read(String(st.stdout_path).split(', "the node's own stdout path, written by spawn-node, not a cited capture"],
   ['scripts/lib/remediation-chain.mjs', "const norm = (p) => String(p).split('\\\\').join('/');", 'treeGuardRefusals: repository paths and the run directory, not a cited capture'],
   ['scripts/lib/remediation-chain.mjs', "const fileKey = (p) => pathKey(String(p).split('\\\\').join('/'), { caseInsensitive });", "a test file's repository path, compared by pathKey (the plan's stage 2 exception)"],
   // Reader calls: the intakes, and readers given the intakes' results.

@@ -26,12 +26,15 @@ so "every module, as a derived set" is the response's file list.
 
 ```yaml
 code_index:
-  python:
-    extractor: "python .claude/skills/quorate/extractors/python/extract.py"
-    globs: ["src/**/*.py"]
-    options: { import_roots: ["src"] }
+  <language>:
+    extractor: "<the extractor command>"
+    globs: ["<the files it reads>"]
+    options: {}
     env: []
 ```
+
+The extractors that ship, their commands and their options are `extractors/README.md`'s, which owns what ships; this
+page owns what each key means.
 
 - `extractor`: the command. Empty means this language answers `not_configured`.
 - `globs`: the files this language's extractor reads. The file→language mapping is declared here, never detected.
@@ -110,7 +113,8 @@ lines), and `enclosing`: the qualified symbol of its containing function or clas
 
 - `definitions` — `name`, `qualified`, `kind` (`function`, `class` or `field`), `signature` (functions and classes),
   and for a field its `annotation` source text and its default: `default` when it is a literal (or null), else
-  `default_text`, its source text, so a literal `"f()"` and the expression `f()` are never the same fact.
+  `default_text`, its source text, so a literal `"f()"` and the expression `f()` are never the same fact. A row
+  giving both is refused (rule `default-or-default-text`).
 - `calls` — `callee`: the target resolved one hop (see "Scope"), or `null`; `resolved`, whether it was; `in_manifest`,
   optional, whether a resolved target lies in a requested file (the manifest), processed or not; `callee_text` as written; `args`, each with `keyword` (or `null`), `text`, `kind` (`name`, `attribute`, `call`,
   `literal` or `other`), and for an attribute chain its dotted `path`.

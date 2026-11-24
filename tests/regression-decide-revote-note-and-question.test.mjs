@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { runScript } from './helpers.mjs';
+import { runScript, makeLink } from './helpers.mjs';
 
 const Q = { question: 'Which bound?', options: [{ label: 'Size cap' }, { label: 'Age cap' }], category: 'delegable' };
 const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
@@ -27,7 +27,7 @@ function repo() {
 // G-9's note.md half is gone with the note itself: decision-records.plan.md stage 5 has a fresh blind subagent write the
 // revote's note, and decide.mjs reads no note.md (tests/regression-decision-seat-inputs.test.mjs holds that).
 
-test('G-9: a question.json that is a link is refused before the revote reads it', () => {
+test('G-9: a question.json that is a link is refused before the revote reads it', (t) => {
   const dir = repo();
   const outside = tmp('decide-q-outside-');
   try {
@@ -39,7 +39,7 @@ test('G-9: a question.json that is a link is refused before the revote reads it'
     fs.writeFileSync(path.join(rec, 'outcome.json'), JSON.stringify({ outcome: 'revote' }));
     fs.writeFileSync(path.join(rec, 'note.md'), 'the note');
     // A file link where the platform allows one; otherwise a junction, which is a link to lstat all the same.
-    try { fs.symlinkSync(real, path.join(rec, 'question.json'), 'file'); } catch { fs.symlinkSync(outside, path.join(rec, 'question.json'), 'junction'); }
+    if (!makeLink(t, { target: real, at: path.join(rec, 'question.json'), type: 'file', fallback: { dir: outside } })) return;
     const r = runScript('decide.mjs', ['--revote', id, '--repo-root', dir]);
     assert.equal(r.status, 2, r.output);
     // Refused by the one owner since decision-records.plan.md stage 6, in its words (ARCHITECTURE A-30).

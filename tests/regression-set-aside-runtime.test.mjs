@@ -78,10 +78,16 @@ test('G-13: the pathState file-link row reports a skip where a file link cannot 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'q-link-probe-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(path.join(dir, 'target'), 'x');
-  let canLink = true;
-  try { fs.symlinkSync(path.join(dir, 'target'), path.join(dir, 'link'), 'file'); } catch (err) {
-    if (err.code !== 'EPERM' || process.platform !== 'win32') throw err;
-    canLink = false;
+  // The probe runs in a child, so its failure is an exit status read below rather than a caught error (G-5 of
+  // 20261120-212536-spl-remediation-review: a `link fallback: none` diagnostic excused a conditional rethrow). Only
+  // EPERM on win32 means "this host makes no file symlink"; any other failure fails the test.
+  const probe = spawnSync(process.execPath, ['-e', "try { require('fs').symlinkSync(process.argv[1], process.argv[2], 'file'); } catch (e) { console.error(e.code); process.exit(3); }",
+    path.join(dir, 'target'), path.join(dir, 'link')], { encoding: 'utf8' });
+  const canLink = probe.status === 0;
+  if (!canLink) {
+    assert.ok(probe.status === 3 && probe.stderr.trim() === 'EPERM' && process.platform === 'win32',
+      `the file-link probe failed for another reason: status ${probe.status}, ${probe.stderr}`);
+    t.diagnostic('this host makes no file symlink (EPERM), so the row must report its skip');
   }
   const env = { ...process.env };
   delete env.NODE_TEST_CONTEXT;

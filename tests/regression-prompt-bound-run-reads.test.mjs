@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { REPO_ROOT, runScript, mintedRunDir } from './helpers.mjs';
+import { REPO_ROOT, runScript, mintedRunDir, makeLink } from './helpers.mjs';
 import { egressRunReader, EGRESS_MAX_FILE_BYTES } from '../scripts/io/egress-read.mjs';
 
 const read = (f) => fs.readFileSync(path.join(REPO_ROOT, f), 'utf8');
@@ -42,7 +42,7 @@ test('the owner refuses a run file with a second name, naming the path and the c
   const outside = path.join(d, 'secret.txt');
   fs.writeFileSync(outside, 'not the run\'s');
   const inside = path.join(d, 'run', 'evidence', 'reconcile', 'payload.json');
-  try { fs.linkSync(outside, inside); } catch (e) { t.skip(`this filesystem refuses a hard link here (${e.code})`); return; }
+  if (!makeLink(t, { target: outside, at: inside, type: 'hard' })) { t.skip('this filesystem refuses a hard link here'); return; }
   assert.throws(() => egressRunReader(path.join(d, 'run')).read(['evidence', 'reconcile', 'payload.json']),
     (e) => e.code === 'ECONFINED' && e.refusal === 'hard-link' && /2 names/.test(e.message) && e.message.includes('payload.json'));
 });
@@ -108,7 +108,7 @@ const NAMED = [
   ['scripts/spawn-node.mjs', "try { briefText = owner.read(['nodes', path.basename(briefPath)]); }", 'the brief, checked by pattern, sent nowhere'],
   ['scripts/spawn-node.mjs', "try { intentText = owner.read(['intent.md']); }", 'intent.md, parsed for its criterion ids'],
   ['scripts/spawn-node.mjs', "try { stdoutText = owner.read(['evidence', nodeId, 'stdout.json']); }", 'the node\'s own answer, coming back'],
-  ['scripts/remediate.mjs', "try { held = owner.read(['remediate.lock']); }", 'the lock\'s holder, named in a refusal'],
+  ['scripts/remediate.mjs', 'try { held = owner.read([REMEDIATE_LOCK]); }', 'the lock\'s holder, named in a refusal'],
   ['scripts/remediate.mjs', 'const readOr = (f, parse) => { try { return parse(owner.read(path.relative(runDir, f).split(path.sep))); }', 'run records the runner reads for itself'],
   ['scripts/remediate.mjs', "try { payload = JSON.parse(owner.read(['evidence', nodeId, 'payload.json'])); }", 'the node\'s answer, coming back'],
   ['scripts/remediate.mjs', "try { nodeState = JSON.parse(owner.read(['nodes', `${nodeId}.status.json`])).state ?? null; }", 'the node\'s state, read by the runner'],
@@ -117,7 +117,7 @@ const NAMED = [
   ['scripts/remediate.mjs', "try { report = JSON.parse(owner.read(['evidence', 'remediation', 'payload.json'])); }", 'the node\'s answer, read by the runner'],
   ['scripts/remediate.mjs', "try { saved = JSON.parse(owner.read(['evidence', 'remediation', 'payload.json'])); }", 'the node\'s answer, read by the runner'],
   ['scripts/remediate.mjs', "const st = JSON.parse(owner.read(['nodes', 'remediation.status.json']));", 'the node\'s status, read by the runner'],
-  ['scripts/remediate.mjs', 'if (st.stdout_path) nodeRecord.terminal_reason = JSON.parse(owner.read(String(st.stdout_path).split(/[\\\\/]/))).terminal_reason ?? null;', 'the node\'s stop reason, recorded'],
+  ['scripts/remediate.mjs', 'const envelope = JSON.parse(owner.read(String(st.stdout_path).split(/[\\\\/]/)));', 'the node\'s envelope, for its stop reason, recorded'],
   ['scripts/remediate.mjs', "try { nodeState = JSON.parse(owner.read(['nodes', 'remediation.status.json'])).state ?? null; }", 'the node\'s state, read by the runner'],
   ['scripts/decide.mjs', "const q = JSON.parse(held(() => owner.read(D(n, 'question.json'))));", 'a postponed decision\'s question, listed for the operator'],
   ['scripts/decide.mjs', "try { q = JSON.parse(held(() => owner.read(D(d.id, 'question.json')))).question ?? ''; }", 'a decision\'s question, listed for the operator\'s sample'],
@@ -133,7 +133,9 @@ const NAMED = [
   // already the egress owner, and none reads below a run directory, so none is a run read the run entry should take.
   ['scripts/io/egress-read.mjs', "export function egressReadFile(file, encoding = 'utf8', opts = {}) {", 'the owner itself: a single named file'],
   ['scripts/io/egress-read.mjs', 'export function egressReadLines(file, onLine, readOpts = undefined, opts = {}) {', 'the owner itself: a file read by lines'],
-  ['scripts/run-graph.mjs', "skillMarkdown: egressReadFile(skillPath, 'utf8', { repoRoot: FRAMEWORK.frameworkRoot }),", 'a lens\'s instructions, a framework file, not a run file'],
+  // G-28 of 20261121-204740-m3s7-b1-remediation-review: newestRequestDoc's entries, read through the egress owner.
+  ['scripts/run-graph.mjs', "try { text = egressReadFile(c.abs, 'utf8', { repoRoot }); } catch (e) {", 'a request document under .claude/requests, a repository file read through the egress owner, not a run file'],
+  ['scripts/run-graph.mjs', "try { armSkill = egressReadFile(skillPath, 'utf8', { repoRoot: FRAMEWORK.frameworkRoot }); } catch (e) {", 'a lens\'s instructions, a framework file, not a run file'],
   ['scripts/spawn-node.mjs', "const base = JSON.parse(egressReadFile(BASE_SCHEMA_PATH, 'utf8', { repoRoot: FRAMEWORK.frameworkRoot }));", 'the base schema, a framework file'],
   ['scripts/spawn-node.mjs', "instructions: egressReadFile(file, 'utf8', { repoRoot: FRAMEWORK.frameworkRoot }),", 'a node\'s instructions, a framework file'],
   ['scripts/decide.mjs', 'try { questionText = egressReadFile(path.resolve(String(opts.question)), \'utf8\', { repoRoot: REPO_REAL }); }', 'the question file the caller named, not a run file'],
@@ -147,7 +149,12 @@ const NAMED = [
   ['scripts/lib/template.mjs', "return egress({ root: dir, io }).read([name], 'utf8');", 'a prompt template, a framework file'],
   ['scripts/lib/excerpt.mjs', "try { text = egress({ root, io }).read(rel.split('/'), 'utf8'); }", 'a reviewed source file excerpted for a judge, rooted at the repository'],
   ['scripts/new-run.mjs', "return { path: rel, abs, text: fs.existsSync(abs) ? egressReadFile(abs, 'utf8', { repoRoot }) : null };", 'the contract, a repository file, before the run is written'],
-  ['scripts/io/preflight-cache.mjs', 'else if (st.isFile()) fs.writeFileSync(path.join(dest, name), owner.read([...segs, name], null));', 'a run\'s evidence copied into the local pre-flight cache'],
+  // The copy judged whole before it writes (G-11, G-12 of 20261122-193909-llo-delivery): the same read, now after the walk.
+  ['scripts/io/preflight-cache.mjs', 'for (const f of files) cache.replace([...stage, ...f], owner.read([...segs, ...f], null));', 'a run\'s evidence copied into the local pre-flight cache'],
+  // The cached entry read through the reviews root's owner (G-10 of 20261122-193909-llo-delivery), not a raw read.
+  ['scripts/io/preflight-cache.mjs', 'const entry = JSON.parse(confined(reviewsDir).read(segs));', 'a cached pre-flight result, parsed to decide its reuse; a file of the local cache, not of a run'],
+  // The writer mark beside a cached evidence folder (G-5 of 20261122-214154-llo-remediation-2-review), compared with the JSON.
+  ['scripts/io/preflight-cache.mjs', 'try { mark = String(own.read([...evSegs, EVIDENCE_WRITER_MARK])); }', 'a cached evidence copy\'s writer mark, compared with its entry to decide reuse; a file of the local cache, not of a run'],
   ['scripts/io/telemetry-record.mjs', "try { text = own.read(segs); } catch (e) { if (e.code === 'ENOENT') return { entries: [], unparsed: null }; throw e; }", 'a check\'s journal, read for a local telemetry record'],
   ['scripts/io/telemetry-record.mjs', "try { text = own.read(segs); } catch (e) { if (e.code === 'ENOENT') return null; throw e; }", 'a local telemetry file, read for the report'],
   ['scripts/io/telemetry-record.mjs', 'read: (segs, enc) => own.read(at(segs), enc),', 'the telemetry folder\'s owner, read for local records'],
@@ -340,10 +347,10 @@ function mint(t, repo) {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
-// A second name for `file`, outside the run and the repository; null where the filesystem refuses one.
+// A second name for `file`, outside the run and the repository; null, with `t` skipped, where the filesystem refuses one.
 function secondName(t, file) {
   const other = path.join(tmpDir(t, 'q-pbr-other-'), 'second-name');
-  try { fs.linkSync(file, other); return other; } catch (e) { return null; }
+  return makeLink(t, { target: file, at: other, type: 'hard' }) ? other : null;
 }
 function runGraph(repo, dir, fake) {
   return runScript('run-graph.mjs', ['--run-dir', dir, '--repo-root', repo, '--only', 'contract-audit', '--skip-panel', '--no-archive', '--runtime-bin', fake.bin],
@@ -356,7 +363,7 @@ const notChecked = (dir) => JSON.parse(fs.readFileSync(path.join(dir, 'gate.json
 test('run: a hard-linked contract snapshot starts no intent node; it is BLOCKED with the cause, and the gate is written', (t) => {
   const repo = consumer(t);
   const dir = mint(t, repo);
-  if (!secondName(t, path.join(dir, 'contract.snapshot.md'))) { t.skip('this filesystem made no hard link'); return; }
+  if (!secondName(t, path.join(dir, 'contract.snapshot.md'))) return;
   const fake = fakeRuntime(t);
   const r = runGraph(repo, dir, fake);
   assert.equal(intentCalls(fake.calls()).length, 0, 'the intent node was spawned on a refused contract snapshot');
@@ -390,7 +397,7 @@ test('run: a link standing at the sandbox directory is the same class, never thr
   const repo = consumer(t);
   const dir = mint(t, repo);
   const elsewhere = tmpDir(t, 'q-pbr-elsewhere-');
-  try { fs.symlinkSync(elsewhere, path.join(dir, 'sandbox'), 'junction'); } catch { t.skip('this filesystem made no link'); return; }
+  if (!makeLink(t, { target: elsewhere, at: path.join(dir, 'sandbox'), type: 'junction' })) { t.skip('this filesystem made no link'); return; }
   const fake = fakeRuntime(t);
   const r = runGraph(repo, dir, fake);
   assert.equal(intentCalls(fake.calls()).length, 0, 'the intent node was spawned below a linked sandbox');
@@ -405,7 +412,7 @@ test('run: a link standing at the sandbox directory is the same class, never thr
 // A CONTEXT INPUT REFUSED: it is left out, named in the brief and in the gate, and the node still starts.
 test('run: a hard-linked declared document is left out, named in the brief and the gate, and the intent node still runs', (t) => {
   const repo = consumer(t);
-  if (!secondName(t, path.join(repo, 'docs', 'guide.md'))) { t.skip('this filesystem made no hard link'); return; }
+  if (!secondName(t, path.join(repo, 'docs', 'guide.md'))) return;
   const dir = mint(t, repo);
   const fake = fakeRuntime(t);
   runGraph(repo, dir, fake);
@@ -426,7 +433,7 @@ test('run: a hard-linked linked-remediation payload is left out and named in the
   const payload = path.join(linked, 'evidence', 'remediation', 'payload.json');
   fs.mkdirSync(path.dirname(payload), { recursive: true });
   fs.writeFileSync(payload, JSON.stringify({ groups: [] }));
-  if (!secondName(t, payload)) { t.skip('this filesystem made no hard link'); return; }
+  if (!secondName(t, payload)) return;
   const runJsonPath = path.join(dir, 'run.json');
   const rj = JSON.parse(fs.readFileSync(runJsonPath, 'utf8'));
   const linkedId = JSON.parse(fs.readFileSync(path.join(linked, 'run.json'), 'utf8')).run_id;
@@ -447,7 +454,7 @@ test('run: spawn-node refused a hard-linked intent brief writes a BLOCKED status
   const dir = mint(t, repo);
   const brief = path.join(dir, 'nodes', 'intent-capture-brief.md');
   fs.writeFileSync(brief, '# brief\n');
-  if (!secondName(t, brief)) { t.skip('this filesystem made no hard link'); return; }
+  if (!secondName(t, brief)) return;
   const fake = fakeRuntime(t);
   const r = runScript('spawn-node.mjs', ['--run-dir', dir, '--repo-root', repo, '--node-id', 'intent-capture', '--mode', 'intent',
     '--schema-variant', 'intent', '--skill-command', '/intent-capture', '--runtime-bin', fake.bin], { cwd: repo, env: fake.env });
@@ -584,7 +591,7 @@ test('run: a link standing at a node\'s stdout.json leaves it BLOCKED with the c
   const { st, fake } = spawnContractAudit(t, [], (dir) => {
     const at = path.join(dir, 'evidence', 'contract-audit', 'stdout.json');
     fs.mkdirSync(path.dirname(at), { recursive: true });
-    try { fs.symlinkSync(target, at, 'junction'); } catch { linked = false; }
+    linked = makeLink(t, { target, at, type: 'junction' }) !== null;
   });
   if (!linked) { t.skip('this filesystem refuses a link'); return; }
   assert.equal(st.state, 'BLOCKED', `the refused stdout.json left the node ${st.state}`);
@@ -678,7 +685,8 @@ test('an arm whose external-review refused its prompt file is recorded BLOCKED, 
   const src = read('scripts/run-graph.mjs');
   const at = src.indexOf("if (probe.state !== 'reachable') {");
   assert.ok(at > 0, 'the unreachable-arm branch is not where this test looks');
-  assert.match(src.slice(at, at + 200), /writeStatusStub\(arm\.id, armUnreachableState\(probe\), \{/,
+  // Held in `unreachable` since G-31 of 20261121-204740-m3s7-b1-remediation-review, which decides `launched` from it too.
+  assert.match(src.slice(at, at + 500), /const unreachable = armUnreachableState\(probe\);\s*writeStatusStub\(arm\.id, unreachable, \{/,
     'the unreachable-arm branch records DEGRADED for a refused prompt file, not the state armUnreachableState decides');
   const { armUnreachableState } = await import('../scripts/lib/reviewer-probe.mjs');
   assert.equal(armUnreachableState({ state: 'unavailable', reason: 'prompt file refused: a hard link stands at prompt.md' }), 'BLOCKED');

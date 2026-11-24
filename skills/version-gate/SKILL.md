@@ -47,13 +47,27 @@ size budget; nothing does so at the moment you read it.
 
 1. **Build the checklist first, from the roadmap** — before opening any run. Assembling it from
    what the runs happen to have checked guarantees a pass and measures nothing.
-2. **Map each gate item to evidence.** For each item, find the run and the node that
-   demonstrates it, and record `run_id`, `node_id`, and `report_sha256`. An item with no
-   mapping is **not verified**, which is distinct from failed.
-3. **Read the stamps, not just the verdict.** A run stamped `UNBUILT`, `UNTESTED`,
-   `INTENT-DRIFT`, `TREE-MOVED`, `UNSWEPT-DIFF`, `UNBENCHED`, `PANEL-ABSENT`, `CHECKS-SKIPPED` or
-   `CHECKS-INPUTS-INFERRED` has a ceiling below `PASS`, and an item resting on such a run inherits
-   that ceiling. A `PASS` under `UNBUILT` is not evidence that anything works.
+2. **Map each gate item to evidence of its kind.** First decide what the item is about, because
+   that decides what can show it:
+   - **Code or documents** — the item is shown by a review run. Find the run and the node that
+     demonstrates it, and record `run_id`, `node_id`, and `report_sha256`.
+   - **The repository's state** — a tag, a release, a repository's visibility, a CI result, an
+     install on a clean machine, a decision or deferral recorded in writing. No lens can report
+     these, so a review run cannot show them. The item is shown by a CI run (its id and the
+     result of each job the item needs), the forge's API (what it returned, and when), or a
+     written record (its path, and the words that settle the item, quoted).
+
+   Label each item with its kind of evidence. An item with no mapping is **not verified**, which
+   is distinct from failed. (This rule was the operator's for M2 first, 2026-11-20: "Amend I4,
+   accept CI/API evidence (Recommended)". Under the review-run rule alone a milestone with a
+   repository-state item could not pass by construction. It is written here by m3-v1.plan.md Q7:
+   "Same rule, written into the skill (Recommended)".)
+3. **Read the stamps, not just the verdict.** What each stamp caps is owned by the stamp table of
+   `shared/disk-first-protocol.md` §7, and an item resting on a run inherits whatever ceiling that
+   table gives the run's stamps. Stamps such as `UNBUILT`, `UNTESTED`, `INTENT-DRIFT` and `TREE-MOVED`
+   cap the run below `PASS`; others do not — `UNSWEPT-DIFF` permits `PASS` and prints the scope's
+   provenance, and `UNBENCHED` caps `perf-audit` alone — so read the owner's row, not a list here.
+   A `PASS` under `UNBUILT` is not evidence that anything works.
 
    `CHECKS-REUSED` needs its own look, because it does NOT cap and is the one stamp that changes
    *which tree* the evidence describes. The build and test results in that run were produced
@@ -76,8 +90,12 @@ size budget; nothing does so at the moment you read it.
 
 ## Rules
 
-1. **Evidence, not impressions.** Every `pass` cites a `run_id`, a `node_id`, and a
-   `report_sha256`. An item marked pass with prose instead of a hash is not passed.
+1. **Evidence, not impressions.** Every `pass` cites evidence of its item's kind (procedure step
+   2): a `run_id`, a `node_id` and a `report_sha256` for code or documents; a CI run id, a forge
+   API answer or a record's path for the repository's state. An item marked pass with prose
+   instead of one of these is not passed. A kind cannot stand in for another: a green CI run does
+   not show that code meets a criterion a lens judges, and a review run does not show a tag
+   exists.
 2. **A verdict you did not find is not a verdict.** Absent evidence is `not-verified`. Never
    promote "I read the code and it looks right" into a gate pass; that is precisely the
    unverified confidence the graph exists to eliminate.
@@ -96,14 +114,17 @@ size budget; nothing does so at the moment you read it.
 ```markdown
 ## Version gate — <milestone>
 
-**Verdict:** PASS / FAIL (<n> of <m> items verified)
+**Verdict:** PASS / FAIL (<n> of <m> items verified; <k> by review runs, the rest by CI, API or record)
 **Evidence base:** <run-ids>, at base_commit <sha> — tree <clean|moved since>
 
 | # | Gate item (source §) | Status | Evidence |
 |---|---|---|---|
-| 1 | <item> (<roadmap> §N) | pass | `<run-id>` / `<node-id>` / `<sha256 prefix>` |
-| 2 | <item> (<roadmap> §N) | not-verified | no run covers this scope |
-| 3 | <item> (<roadmap> §N) | fail | `<run-id>` / `<node-id>` — FAIL, 3 findings |
+| 1 | <item> (<roadmap> §N) | pass (review) | `<run-id>` / `<node-id>` / `<sha256 prefix>` |
+| 2 | <item> (<roadmap> §N) | pass (CI) | run `<id>`: <the jobs the item needs, each green> |
+| 3 | <item> (<roadmap> §N) | pass (API) | <what the forge returned, and when> |
+| 4 | <item> (<roadmap> §N) | pass (record) | `<path>`: "<the words that settle it>" |
+| 5 | <item> (<roadmap> §N) | not-verified | no run covers this scope |
+| 6 | <item> (<roadmap> §N) | fail | `<run-id>` / `<node-id>` — FAIL, 3 findings |
 
 ### Remaining work (if not PASS)
 - <item> — <what would close it: the run and scope to execute>

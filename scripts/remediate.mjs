@@ -21,6 +21,7 @@
 //      this again; the node is not spawned twice.
 // The session that launched it then runs quorate:claim-check on the node's report (the node spawns nothing).
 import fs from 'node:fs';
+import { confirmedGroupIds } from './io/run-artifacts.mjs';
 import { nodeDepth } from './lib/node-depth.mjs';
 import { parseArgv, ArgvError } from './lib/argv.mjs';
 import { ARGV_SPECS } from './lib/argv-specs.mjs';
@@ -31,19 +32,21 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { resolveFrameworkDirs } from './io/locate.mjs';
 import { readTemplate } from './io/template.mjs';
-import { writeRunRecord } from './io/telemetry-record.mjs';
+import { writeRunRecord, ownerBelow, rootOf } from './io/telemetry-record.mjs';
 import { selectAdapters } from './io/reviewers.mjs';
 import { bestEffort } from './lib/telemetry-record.mjs';
 import { confined } from './io/confined-path.mjs';
 import { renderTemplate } from './lib/template.mjs';
-import { budgetOf, briefArg, printedArg, isGroupId } from './lib/decisions.mjs';
+import { budgetOf, briefArg, briefHead, printedArg, isGroupId, nodeExitMapping } from './lib/decisions.mjs';
+import { redactTree, redactClaim } from './lib/redact.mjs';
+import { REMEDIATE_LOCK, takeRemediateLock, setRemediateLockPhase, remediateLockTaken, releaseRemediateLock } from './lib/remediate-lock.mjs';
 import { gitSync, gitCommitSync } from './io/git.mjs';
 import { checkTimeoutMinutes } from './lib/check-timeout.mjs';
 import { testOneTemplate } from './lib/test-one.mjs';
 import { isWithin } from './io/finding-scope.mjs';
 import { roundCapState, walkChain, ROUND_CAP, statusEntriesV2, planClusterCommits, COMMIT_CHECK_KINDS, commitCheckStamps, commitGate, runnerPathIn, admitGroups, trailerError, isPending, remediationEnd, pendingClusterLines, resolveLinkedRun, remediationTimeoutMinutes, treeGuardRefusals, gitIgnoresCase, anyStillChanged, evidencePaths, retryMismatch, leftInTree, stopReasonChecks, treeGuardMessage, repairReportErrors, repairGreenErrors, repairFileAdmission, repairPassCap, clusterFileRule, repairFailingLines, readmissionDecision, evidenceRecordDifference, normalizeReport, setAsideRecovery, COMMIT_CHECK_STAMP, REPORT_CHECK_STAMP, lsTreeEntries } from './lib/remediation-chain.mjs';
 import { setAsideCapabilities, setAsideRefused, writeBackSetAside, SetAsideError } from './io/set-aside.mjs';
-import { repoRunRoots, archiveStagedRun, inArchive, admitRun, callerRepoRoot, printedRunDir, quorateHome } from './io/reviews-root.mjs';
+import { repoRunRoots, archiveStagedRun, inArchive, admitRun, callerRepoRoot, printedRunDir, quorateHome, readRunJson, patchRunJson } from './io/reviews-root.mjs';
 import { frameworkMountRefusals } from './io/framework-mount.mjs';
 import { hostPlatform } from './platform/index.mjs';
 import { PREFLIGHT_COMMAND_KEYS } from './io/preflight-cache.mjs';
@@ -186,7 +189,8 @@ if (args.replayNode) {
 }
 // THROUGH THE OWNER OF THE DIRECTORY READ (G-17 of 20261029-050428-rdd-delivery): a link at run.json, or at any level
 // below the run, is refused rather than followed. loadRun throws; readRun is the lookup that answers null instead.
-const loadRun = (dir) => JSON.parse((dir === runDir ? owner : confined(dir)).read(['run.json']));
+// Held to readRunJson's bound (G-10 of 20261124-170802-gsw-remediation-3-review-b): it read the record whole.
+const loadRun = (dir) => readRunJson(dir === runDir ? owner : confined(dir), ['run.json']);
 const readRun = (dir) => { try { return loadRun(dir); } catch { return null; } };
 // Through the owner too (run-dir-reads.plan.md stage 4): a link at run.json is refused here, not followed.
 try { if (!confined(runDir).exists(['run.json'])) die(`no run.json in ${runDir}`); } catch (e) { die(`run.json in ${runDir}: ${e.message}`); }
@@ -197,7 +201,7 @@ try { if (!confined(runDir).exists(['run.json'])) die(`no run.json in ${runDir}`
 // is the only witness. ONE `exit` handler releases it (die calls process.exit, so code after a die never runs) — except
 // while the node may have edited the working tree with no record of it (node-running, node-ran): re-running then would
 // retake dirty_at_start over those edits, so the lock is kept and says so. A lock is never removed automatically.
-const lockPath = path.join(runDir, 'remediate.lock');
+const lockPath = path.join(runDir, REMEDIATE_LOCK);
 // EVERY WRITE BELOW THE RUN THROUGH ITS ONE OWNER (run-dir-descendants.plan.md stage 2): the lock, run.json, the node's
 // brief and the runner's own folder (runnerPathIn was lexical). A link at any level below the run is refused.
 const owner = confined(runDir);
@@ -209,16 +213,17 @@ let repoLock = null;
 try {
   // Created exclusively WITH its content (G-3 of 20261009-041724-run-ownership-r1): an empty lock, killed before its
   // phase was written, gave the operator nothing to diagnose.
-  owner.create(['remediate.lock'], JSON.stringify({ pid: process.pid, started_at: lockStartedAt, phase: 'started' }));
+  // Through the lock's one owner, which archive-run.mjs takes it through too (G-3 of 20261121-193516-m3s7-b1-review).
+  takeRemediateLock(owner, { pid: process.pid, startedAt: lockStartedAt, phase: 'started' });
   lockPhase = 'started';
 } catch (e) {
   // The owner's exclusive create refuses a taken name before it opens, and `wx` refuses one taken in between (EEXIST).
-  const taken = e.code === 'EEXIST' || (e.code === 'ECONFINED' && e.refusal === 'taken');   // by the tag (G-4 of 20261107-220617-si-delivery)
+  const taken = remediateLockTaken(e);   // by the tag (G-4 of 20261107-220617-si-delivery)
   if (!taken) die(`cannot create ${lockPath}: ${e.message}`);
   let held = '';
   // THROUGH THE RUN'S OWNER (G-14 of 20261103-191032-dr-remediation-3-review): a raw read followed a link at the lock's
   // path and printed what it led to.
-  try { held = owner.read(['remediate.lock']); } catch { /* named without its content */ }
+  try { held = owner.read([REMEDIATE_LOCK]); } catch { /* named without its content */ }
   console.error(`remediate: another runner holds this run, or one was stopped while the node may have run: ${lockPath} ${held}`);
   console.error('remediate: if no runner is running, inspect the working tree (its phase says whether the node may have edited it:');
   console.error('  only "started" means it did not), then delete the lock. Nothing was changed.');
@@ -226,7 +231,7 @@ try {
 }
 const setLockPhase = (phase) => {
   lockPhase = phase;
-  owner.replace(['remediate.lock'], JSON.stringify({ pid: process.pid, started_at: lockStartedAt, phase }));
+  setRemediateLockPhase(owner, { pid: process.pid, startedAt: lockStartedAt, phase });
 };
 process.on('exit', (code) => {
   if (lockPhase === 'node-running' || lockPhase === 'node-ran') {
@@ -244,7 +249,7 @@ process.on('exit', (code) => {
   }
   try {
     if (args.testFailUnlink) throw Object.assign(new Error('test seam: unlink refused'), { code: 'EPERM' });
-    if (!owner.remove(['remediate.lock'])) throw Object.assign(new Error('already gone'), { code: 'ENOENT' });
+    if (!releaseRemediateLock(owner)) throw Object.assign(new Error('already gone'), { code: 'ENOENT' });
   } catch (e) {
     // Only "already gone" is ignored (G-5 of 20261009-035141-run-ownership-review): any other failure leaves a lock the
     // next invocation would refuse on as if the run were held, so it is named and the run exits 7.
@@ -324,9 +329,15 @@ const git = (...a) => gitFor(a[0])(a, { cwd: repo, encoding: 'utf8' });
 // Through the owner of the directory written: this run, or the archived one it became (run-dir-descendants stage 2).
 // The record is read STRICTLY (G-19 of 20261029-050428-rdd-delivery): a read or parse failure throws, where readRun's
 // null spread to nothing and the replace wrote a run.json holding only the patch.
-const saveRun = (patch, dir = runDir) => (dir === runDir ? owner : confined(dir)).replace(['run.json'], `${JSON.stringify({
-  ...loadRun(dir), ...patch, ...(patch.stamps instanceof Set ? { stamps: [...patch.stamps] } : {}),
-}, null, 2)}\n`);
+// REDACTED, as every tracked write is (G-23 of 20261121-204740-m3s7-b1-remediation-review; I-8): run.json is archived into
+// .claude/reviews and tracked, and its commit_check entries carry model prose.
+// THE PATCH, NOT THE WHOLE RECORD (G-9 of 20261121-214741-m3s7-b1-remediation-2-review): redacting the merged record
+// rewrote machine fields new-run wrote, such as repo_root, whenever a path segment was credential-shaped.
+// THROUGH patchRunJson (G-11 of 20261124-180917-gsw-remediation-4-review-b): the strict merge is an owner a test runs, not
+// a line of this script a test reads.
+const saveRun = (patch, dir = runDir) => patchRunJson(dir === runDir ? owner : confined(dir), patch, {
+  transform: (p) => redactTree({ ...p, ...(p.stamps instanceof Set ? { stamps: [...p.stamps] } : {}) }),
+});
 const stamps = new Set(run.stamps ?? []);   // written back as an array by saveRun
 // THE RUN'S OWN START, as run-graph records it (G-12 of 20261027-071443-trt-delivery): without it the telemetry record
 // started at the mint and counted the wait between the two commands as remediation time. A later runner keeps the first.
@@ -436,29 +447,37 @@ function nodeLimits() {
   } catch (e) { die(`the remediation node's limits cannot be decided: ${e.message}`); }
   return nodeLimitsCache;
 }
+/** One line of the node's brief, from its template in the prompt library, with its trailing newline dropped. */
+const briefLine = (name, vars) => renderTemplate(readTemplate(name), vars, name).replace(/\n+$/, '');
 /** WHAT THE NODE IS TOLD (stage 3): its narrow command, rendered from the frozen contract, and both limits. */
 function nodeBriefLines() {
   const { nodeTimeoutMinutes, captureLimitMinutes } = nodeLimits();
   // A REFUSED RUN DIRECTORY IS A DIAGNOSTIC (G-5 of 20261108-032104-si-remediation-4-review), not an uncaught throw.
   let runDirArg;
   try { runDirArg = briefArg(runDir); } catch (e) { die(`the node's brief cannot name its run directory: ${e.message}`); }
-  const captureStart = `node ${repoRel(path.join(FRAMEWORK.scriptsDir, 'capture.mjs'))} --run-dir ${runDirArg} --node remediation --name <slug> --`;
+  // THE HEAD IS CHECKED TOO (G-24 of 20261121-204740-m3s7-b1-remediation-review; I-9): it cannot be quoted, since the
+  // node's allow-list prefix-matches it, so one a shell would split or expand refuses the launch.
+  let captureHead;
+  try { captureHead = briefHead(repoRel(path.join(FRAMEWORK.scriptsDir, 'capture.mjs'))); } catch (e) { die(`the node's brief cannot name capture.mjs: ${e.message}`); }
+  const captureStart = `node ${captureHead} --run-dir ${runDirArg} --node remediation --name <slug> --`;
   const testOne = testOneTemplate(run.contract ?? {});
+  // The node's instructions are the prompt library's (consumer-owned-configuration.md AC2), filled from the run.
   const testOneLine = testOne.ok && testOne.argv
-    ? `test_one: ${captureStart} ${testOne.argv.join(' ')} — replace {file} with ONE test file (repository-relative, forward slashes); run red and green with it`
+    ? briefLine('remediation-test-one.md', { capture: captureStart, argv: testOne.argv.join(' ') })
     // G-7 of 20261013-220031-rv-delivery: the evidence gate admits only test_one captures, so telling the node to use the
     // full suite sent it to make evidence that could never commit (plan stage 8).
-    : 'test_one: none declared — the evidence gate admits only test_one captures, so a group with a red cannot commit in '
-      + 'this project; a group commits only when its claim is not expressible as a test (red "", with its no_red reason). Fix and report the '
-      + 'others with their files: the commit check names the missing key, and the operator declares commands.test_one';
-  const limitsLine = `limits: each capture may take ${captureLimitMinutes} minute(s) (review.check_timeout_minutes); `
-    + `this session ${nodeTimeoutMinutes} minute(s); every capture's header says how much of it has passed (its "# elapsed:" line, `
-    + "from the runner's clock), so read it there rather than guess. Run every capture in the foreground and wait for it.";
+    : briefLine('remediation-test-one-none.md', {});
+  const limitsLine = briefLine('remediation-limits.md', { capture_minutes: captureLimitMinutes, node_minutes: nodeTimeoutMinutes });
   return { capture_cmd: `${captureStart} <command>`, test_one: testOneLine, limits: limitsLine };
 }
 /** The runtime this run's nodes spawn on, chosen by the one owner from the run's frozen contract; refused if unknown. */
 function nodeRuntime() {
   try { return selectAdapters({ contract }).runtime; } catch (e) { die(e.message); }
+}
+/** That runtime's adapter entry, whose node_runtime.exit names the reason field (G-19 of 20261121-193516-m3s7-b1-review). */
+function nodeRuntimeAdapter() {
+  const a = selectAdapters({ contract });
+  return a.table[a.runtime] ?? {};
 }
 /** The argv spawn-node runs a remediation node with: `nodeId` its own, `variant` its report's schema. */
 function nodeSpawnArgv(nodeId, variant) {
@@ -1049,7 +1068,7 @@ function readmitEvidenceRefused() {
   try {
     const reconciled = reviewedJson('evidence', 'reconcile', 'payload.json').groups ?? [];
     severity = Object.fromEntries(reconciled.map((g) => [g.group_id, g.severity]));
-    confirmed = reconciled.filter((g) => g.decision === 'confirmed').map((g) => g.group_id);
+    confirmed = confirmedGroupIds({ groups: reconciled });
     for (const g of reconciled) if (g.decision === 'symptom' && typeof g.root_cause_group === 'string') symptoms[g.group_id] = g.root_cause_group;
   } catch (e) { die(`--readmit-evidence: the reviewed run's reconcile payload cannot be read, so the confirmed set is unknown: ${e.message}`); }
   const deferredSet = new Set(Array.isArray(frame?.groups) ? frame.deferred ?? [] : []);
@@ -1146,7 +1165,7 @@ if (args.retryCommits) {
   try {
     const reconciled = reviewedJson('evidence', 'reconcile', 'payload.json').groups ?? [];
     severity = Object.fromEntries(reconciled.map((g) => [g.group_id, g.severity]));
-    confirmed = reconciled.filter((g) => g.decision === 'confirmed').map((g) => g.group_id);
+    confirmed = confirmedGroupIds({ groups: reconciled });
     for (const g of reconciled) if (g.decision === 'symptom' && typeof g.root_cause_group === 'string') symptoms[g.group_id] = g.root_cause_group;
   } catch { /* severity only orders the clusters; without the links a joined cluster re-plans as two and is refused */ }
   const attempt = { at: new Date().toISOString(), trailers, clusters: [] };
@@ -1360,7 +1379,9 @@ if (!run.remediation_commits) {
     const censusUnread = [];
     for (const root of roots) {
       let entries = [];
-      try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch (e) {
+      // THROUGH THE OWNER ITS SIBLINGS LIST WITH (link-leaving-owner.plan.md stage 2; archive-run.mjs, telemetry.mjs): a raw
+      // readdirSync followed a link standing at a root, so the run.json files beyond it entered the chain census.
+      try { entries = ownerBelow(root, rootOf(root, repo)).list([], { withFileTypes: true }); } catch (e) {
         if (e.code !== 'ENOENT') censusUnread.push(`${root} (${e.code ?? e.message})`);
         continue;
       }
@@ -1407,8 +1428,8 @@ if (!run.remediation_commits) {
     // THE OPERATOR'S SCOPE (remediation-group-scope.md): a run minted with --groups works on those groups only, and the
     // rest are deferred by the operator, quoted, so the node neither fixes nor reports them.
     work_list: Array.isArray(frame.groups)
-      ? `Work list: ${frame.groups.join(', ')} — the operator's choice: "${frame.scope_quote}". Fix and report only these.\n`
-        + `Deferred by the operator: do not fix, do not report: ${(frame.deferred ?? []).join(', ') || 'none'}.`
+      ? briefLine('remediation-work-list.md', { groups: frame.groups.join(', '), quote: redactClaim(frame.scope_quote),
+        deferred: (frame.deferred ?? []).join(', ') || 'none' })
       : 'Work list: every confirmed group in reconciled.md.',
     frame: JSON.stringify({ run_id: frame.run_id, base: frame.base, base_commit: frame.base_commit,
       scope: frame.scope?.paths ?? [], request: frame.request?.path ?? null }),
@@ -1499,7 +1520,7 @@ if (!run.remediation_commits) {
   let confirmedKnown = false;
   try {
     const reconciled = reviewedJson('evidence', 'reconcile', 'payload.json').groups ?? [];
-    confirmed = reconciled.filter((g) => g.decision === 'confirmed').map((g) => g.group_id);
+    confirmed = confirmedGroupIds({ groups: reconciled });
     for (const g of reconciled) if (g.decision === 'symptom' && typeof g.root_cause_group === 'string') symptoms[g.group_id] = g.root_cause_group;
     confirmedKnown = true;
   } catch { reportCheck.push('the reviewed run\'s reconcile payload could not be read, so the confirmed set was not compared'); }
@@ -1540,7 +1561,13 @@ if (!run.remediation_commits) {
     try {
       const st = JSON.parse(owner.read(['nodes', 'remediation.status.json']));
       Object.assign(nodeRecord, { duration_ms: st.duration_ms, timeout_minutes: st.timeout_minutes, subtype: st.subtype, total_cost_usd: st.total_cost_usd });
-      if (st.stdout_path) nodeRecord.terminal_reason = JSON.parse(owner.read(String(st.stdout_path).split(/[\\/]/))).terminal_reason ?? null;
+      // The reason's field is the runtime adapter's exit.reason_field (G-19 of 20261121-193516-m3s7-b1-review), read as
+      // spawn-node reads it; a literal `.terminal_reason` recorded null for a runtime spelling it otherwise.
+      if (st.stdout_path) {
+        const envelope = JSON.parse(owner.read(String(st.stdout_path).split(/[\\/]/)));
+        const reasonField = nodeExitMapping(nodeRuntimeAdapter()).reasonField;
+        nodeRecord.terminal_reason = reasonField ? (envelope?.[reasonField] ?? null) : null;
+      }
     } catch { /* checked against what was read */ }
     const cap = String(review.budget_usd_per_node ?? '').trim();
     reportCheck.push(...stopReasonChecks(payload?.groups ?? [], nodeRecord, { budgetUsd: cap === '' || !Number.isFinite(Number(cap)) ? null : Number(cap) }));
@@ -1743,7 +1770,7 @@ if (end.why) {
   const tel = writeRunRecord(runDir, { recordKind: 'remediation', repoRoot: repo });
   if (!tel.ok) console.error(`remediate: ${tel.note}`);
 }
-const finalDir = archiveStagedRun({ runDir, archiveTo: run.archive_to, repoRoot: repo, skip: ['remediate.lock'],
+const finalDir = archiveStagedRun({ runDir, archiveTo: run.archive_to, repoRoot: repo, skip: [REMEDIATE_LOCK],
   log: (m) => console.error(`remediate: ${m}`) });
 // A REFUSED OR FAILED ARCHIVE returns the staged directory (G-12 of 20261015-220413-archive-fold-review): nothing is minted
 // from it, or the follow-up would record the stale staged path. archiveStagedRun has said why; the run is whole, staged.

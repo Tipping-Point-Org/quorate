@@ -95,18 +95,37 @@ function printCmd(extra, { contract = {} } = {}) {
 // decomposition is three checks that can each fail, rather than one name that cannot.
 test('the argv for a runtime the engine has never heard of is rendered from its adapter', () => {
   // THE ANSWER TO "what does yet mean". Declared only in the run's contract, never in the engine.
-  const { r, cmd } = printCmd(['--model', 'some-model', '--runtime', 'zed'],
+  const { r, cmd } = printCmd(['--model', 'some-model', '--runtime', 'zed', '--timeout-minutes', '7'],
     { contract: { reviewers: { zed: ZED } } });
   assert.equal(r.status, 0, `spawn refused a declared runtime:\n${r.output.slice(0, 400)}`);
   assert.equal(cmd[0], 'zed', 'the runtime supplies the binary');
   const flat = cmd.map(String);
-  for (const own of ['--ask', '-m', '--fmt', '--shape', '--policy', '--allow', '--forbid', '--mode', '--cap', '--sid', '--quiet']) {
+  // `--deadline` among them (G-15 of 20261122-055431-m3s7-b3-remediation-2-review): the timeout slot was validated and
+  // never rendered, so a runtime declaring wall_clock_bound received no deadline.
+  for (const own of ['--ask', '-m', '--fmt', '--shape', '--policy', '--allow', '--forbid', '--mode', '--cap', '--deadline', '--sid', '--quiet']) {
     assert.ok(flat.includes(own), `the runtime's own flag ${own} must be rendered`);
   }
+  assert.equal(flat[flat.indexOf('--deadline') + 1], '420', 'the deadline is the node\'s own timeout, in whole seconds');
   for (const claudeism of ['-p', '--json-schema', '--settings', '--add-dir', '--disallowedTools', '--permission-mode', '--no-chrome']) {
     assert.ok(!flat.includes(claudeism), `${claudeism} leaked into a foreign runtime's argv`);
   }
   assert.equal(flat[flat.indexOf('--mode') + 1], 'strict', 'the sandboxed spelling is the runtime\'s own');
+  // G-18 of 20261122-144505-m3s7-b3-remediation-3-review: a sub-second timeout floored to a deadline of 0, which a
+  // runtime may read as expire now or as no deadline. Whole seconds, never below one.
+  const sub = printCmd(['--model', 'some-model', '--runtime', 'zed', '--timeout-minutes', '0.005'], { contract: { reviewers: { zed: ZED } } });
+  assert.equal(sub.r.status, 0, `spawn refused a sub-second timeout:\n${sub.r.output.slice(0, 400)}`);
+  const subFlat = sub.cmd.map(String);
+  assert.equal(subFlat[subFlat.indexOf('--deadline') + 1], '1', 'a sub-second timeout rendered a deadline below one second');
+  // G-15 of the same review: every --add-dir stat failure was reported as "does not exist". A path through a file, or a
+  // component past the name limit, fails with another code where the platform says so, and the refusal names that code.
+  const codeOf = (p) => { try { fs.statSync(p); return null; } catch (e) { return e.code; } };
+  const tooLong = [path.join(REPO_ROOT, 'CLAUDE.md', 'x'), path.join(REPO_ROOT, 'x'.repeat(300))]
+    .find((p) => codeOf(p) !== 'ENOENT') ?? path.join(REPO_ROOT, 'x'.repeat(300));
+  const code = codeOf(tooLong);
+  const bad = printCmd(['--add-dir', tooLong]);
+  assert.notEqual(bad.r.status, 0, 'an unreadable --add-dir was accepted');
+  if (code === 'ENOENT') assert.match(bad.r.output, /--add-dir path does not exist/);
+  else assert.match(bad.r.output, new RegExp(`--add-dir path cannot be read \\(${code}\\)`), `stat failed with ${code}:\n${bad.r.output.slice(0, 400)}`);
 });
 
 test('the default runtime is a lookup, not a literal', () => {

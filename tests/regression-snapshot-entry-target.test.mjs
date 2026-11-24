@@ -25,6 +25,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { classifySnapshotEntry, snapshotAdmits, snapshotName } from '../scripts/lib/finding-scope.mjs';
+import { makeLink } from './helpers.mjs';
 
 function fixture(t) {
   const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'quorate-snapent-')));
@@ -51,7 +52,7 @@ function classify({ repo, docs }, name) {
 }
 
 function junction(t, target, link) {
-  try { fs.symlinkSync(target, link, 'junction'); return true; } catch { t.skip('cannot create a directory link here'); return false; }
+  return makeLink(t, { target, at: link, type: 'junction' }) !== null;
 }
 
 test('G-10: one rule for what a document is — an upper-case .MD is copied, not passed over', (t) => {

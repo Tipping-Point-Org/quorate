@@ -38,6 +38,7 @@ import { absolute, resolveFrom } from './paths.mjs';
 import { matchesAnyGlob } from './contract-glob.mjs';
 import { requireIo } from './io-param.mjs';
 import { confined } from './confined-path.mjs';
+import { hardLinkReason } from './egress-read.mjs';
 
 // NO node:fs HERE (os-platform-adapters stage 3). The functions below that must ask the filesystem
 // take the platform implementation as `io`; scripts/io/finding-scope.mjs binds them to the host for
@@ -132,26 +133,72 @@ export function relativeBelow(parent, child, { caseInsensitive = false } = {}) {
 const nativeRealpath = (io) => (io.fs.realpathSync?.native ? { ...io, fs: { ...io.fs, realpathSync: io.fs.realpathSync.native } } : io);
 
 /**
- * The first link beneath `dir` that resolves outside it, as a `/`-separated path relative to `dir`;
- * null when there is none (G-20). A live-mounted directory is read through, so one link inside it is
- * enough to put what it points at in front of the reader. Links are not descended — a link is judged
- * by where it resolves — and a dangling one reveals nothing, so it is not counted.
+ * THE ONE OWNER OF "DOES ANYTHING BELOW THIS DIRECTORY LEAD OUT OF IT" (link-leaving-owner.plan.md stage 1; design LL-D1 B,
+ * LL-D3 A). Every walk that guards what leaves the machine or enters a sandbox asks it, rather than carrying its own copy of
+ * part of the rule: the copies diverged, and each fix reached one walk and missed its siblings (G-12 of
+ * 20261122-154951-m3s7-b3-remediation-4-review, G-7 of 20261122-164811-m3s7-b3-remediation-5-review).
+ *
+ * Returns the first descendant of `dir` that leads out, as `{ path, kind }` (`path` `/`-separated, relative to `dir`), or
+ * null. What leads out, whatever `mode`:
+ * - `hard-link`: a regular file with more than one name, by `hardLinkReason` (lib/egress-read.mjs), the one single-path rule:
+ *   its content may be any file's, and a hard link has no target to judge;
+ * - `unreadable`: an entry that cannot be listed or `lstat`ed. Unknown is not inside (LL-D3 A), so a boundary refuses it;
+ * - `dangling`: a link whose target cannot be resolved, which therefore cannot be shown inside.
+ * And a symbolic link or junction (`lstat` reports a junction as one on Windows, measured 2026-11-22), judged by where it
+ * resolves and never descended, by `mode`:
+ * - `{ leaving: true }` (the default): `link` when it resolves outside `dir`;
+ * - `{ into }`: `into` when it resolves inside `into` but outside `dir`;
+ * - `{ onto }`: `onto` when it resolves inside `onto`, or onto a directory containing it, outside `dir`.
+ * `mode.skip(fullPath)`, when given, leaves out an entry the caller does not copy or read (a withheld folder), so what is
+ * not used is not judged. `dir` itself must be readable: a root that cannot be resolved throws, as before.
  */
-export function firstLinkLeaving(dir, io) {
-  requireIo(io, 'firstLinkLeaving');
+/** What each kind `firstLeadingOut` returns is, in the words a refusal uses: one wording for every caller. */
+export const LEADS_OUT_KIND = Object.freeze({
+  link: 'a link or junction leading out', into: 'a link into a forbidden directory', onto: 'a link onto a source root',
+  'hard-link': 'a hard-linked file', dangling: 'a dangling link', unreadable: 'an entry that cannot be read',
+});
+
+export function firstLeadingOut(dir, mode, io) {
+  requireIo(io, 'firstLeadingOut');
   io = nativeRealpath(io);
   const realDir = io.fs.realpathSync(dir);
+  const m = mode ?? { leaving: true };
+  let realInto = null;
+  let realOnto = null;
+  if (m.into != null) realInto = io.fs.realpathSync(m.into);
+  if (m.onto != null) {
+    try { realOnto = io.fs.realpathSync(m.onto); } catch { realOnto = absolute(m.onto, 'firstLeadingOut: onto'); }
+  }
+  const rel = (full) => path.relative(dir, full).split(path.sep).join('/');
+  const linkKind = (target) => {
+    if (isWithin(realDir, target)) return null;
+    if (realInto) return isWithin(realInto, target) ? 'into' : null;
+    if (realOnto) return (isWithin(realOnto, target) || isWithin(target, realOnto)) ? 'onto' : null;
+    return 'link';
+  };
   const visit = (d) => {
-    for (const name of io.fs.readdirSync(d)) {
+    let names;
+    try {
+      names = io.fs.readdirSync(d);
+    } catch (e) {
+      if (d === dir) throw e;   // the root itself: the caller's to report, as an unresolvable root is
+      return { path: rel(d), kind: 'unreadable' };
+    }
+    for (const name of names) {
       const full = path.join(d, name);
-      const st = io.fs.lstatSync(full);
+      if (m.skip?.(full)) continue;
+      let st;
+      try { st = io.fs.lstatSync(full); } catch { return { path: rel(full), kind: 'unreadable' }; }
       if (st.isSymbolicLink()) {
-        let target = null;
-        try { target = io.fs.realpathSync(full); } catch { continue; }
-        if (!isWithin(realDir, target)) return path.relative(dir, full).split(path.sep).join('/');
+        let target;
+        try { target = io.fs.realpathSync(full); } catch { return { path: rel(full), kind: 'dangling' }; }
+        const kind = linkKind(target);
+        if (kind) return { path: rel(full), kind };
       } else if (st.isDirectory()) {
         const hit = visit(full);
         if (hit) return hit;
+      } else if (hardLinkReason(st, full)) {
+        return { path: rel(full), kind: 'hard-link' };
       }
     }
     return null;
@@ -159,66 +206,31 @@ export function firstLinkLeaving(dir, io) {
   return visit(dir);
 }
 
+/** The first descendant of `dir` that leads out of it, through `firstLeadingOut`; its path, or null. */
+export function firstLinkLeaving(dir, io) {
+  requireIo(io, 'firstLinkLeaving');
+  return firstLeadingOut(dir, { leaving: true }, io)?.path ?? null;
+}
+
 /**
- * The first link beneath `dir` that resolves inside `into` but outside `dir` itself, `/`-separated relative to `dir`; null
- * when there is none. A sandbox floor sits inside the run directory, so a link in it onto evidence/pre-flight passed every
- * guard that judged the floor by its own path (G-13 of 20261025-095239-srf-remediation-2-review). Links are judged by
- * where they resolve, not descended, and a dangling one reveals nothing, as in firstLinkLeaving.
+ * The first descendant of `dir` that leads into `into` (a link resolving there, outside `dir`), or out by any kind every
+ * mode refuses (hard link, unreadable, dangling); its path, or null. A sandbox floor sits inside the run directory, so a
+ * link in it onto evidence/pre-flight passed every guard that judged the floor by its own path (G-13 of
+ * 20261025-095239-srf-remediation-2-review).
  */
 export function firstLinkInto(dir, into, io) {
   requireIo(io, 'firstLinkInto');
-  io = nativeRealpath(io);
-  const realDir = io.fs.realpathSync(dir);
-  const realInto = io.fs.realpathSync(into);
-  const visit = (d) => {
-    for (const name of io.fs.readdirSync(d)) {
-      const full = path.join(d, name);
-      const st = io.fs.lstatSync(full);
-      if (st.isSymbolicLink()) {
-        let target = null;
-        try { target = io.fs.realpathSync(full); } catch { continue; }
-        if (isWithin(realInto, target) && !isWithin(realDir, target)) return path.relative(dir, full).split(path.sep).join('/');
-      } else if (st.isDirectory()) {
-        const hit = visit(full);
-        if (hit) return hit;
-      }
-    }
-    return null;
-  };
-  return visit(dir);
+  return firstLeadingOut(dir, { into }, io)?.path ?? null;
 }
 
 /**
- * The first link beneath `dir` that resolves into `onto` OR onto a directory containing it, outside `dir` itself,
- * `/`-separated relative to `dir`; null when there is none. firstLinkInto's one direction is enough for the run
- * directory, whose ancestors hold nothing more; a source root is just as open through a link onto the repository or a
- * drive root above it. The intent node's floor was scanned only for links into the run directory, so `src -> <repo>/scripts`
- * inside it reached the implementation (G-17 of 20261025-104155-srf-remediation-3-review).
+ * The first descendant of `dir` that leads onto `onto` (a link resolving into it, or onto a directory containing it,
+ * outside `dir`), or out by any kind every mode refuses; its path, or null. A source root is just as open through a link
+ * onto the repository or a drive root above it (G-17 of 20261025-104155-srf-remediation-3-review).
  */
 export function firstLinkOnto(dir, onto, io) {
   requireIo(io, 'firstLinkOnto');
-  io = nativeRealpath(io);
-  const realDir = io.fs.realpathSync(dir);
-  let realOnto;
-  try { realOnto = io.fs.realpathSync(onto); } catch { realOnto = absolute(onto, 'firstLinkOnto: onto'); }
-  const visit = (d) => {
-    for (const name of io.fs.readdirSync(d)) {
-      const full = path.join(d, name);
-      const st = io.fs.lstatSync(full);
-      if (st.isSymbolicLink()) {
-        let target = null;
-        try { target = io.fs.realpathSync(full); } catch { continue; }
-        if ((isWithin(realOnto, target) || isWithin(target, realOnto)) && !isWithin(realDir, target)) {
-          return path.relative(dir, full).split(path.sep).join('/');
-        }
-      } else if (st.isDirectory()) {
-        const hit = visit(full);
-        if (hit) return hit;
-      }
-    }
-    return null;
-  };
-  return visit(dir);
+  return firstLeadingOut(dir, { onto }, io)?.path ?? null;
 }
 
 export function escapesAfterRealpath(root, abs, io) {
@@ -246,6 +258,13 @@ export function escapesAfterRealpath(root, abs, io) {
  * with an inline `startsWith` on the lexical path only, so a link beneath evidence/<node>/ to a file outside the run
  * passed as the node's own evidence (G-19 of 20261025-104155-srf-remediation-3-review).
  */
+/**
+ * The files spawn-node writes directly in evidence/<node>/ (G-34 of 20261121-193516-m3s7-b1-review), every one of them:
+ * denials.json is written before the findings are validated, and verdict.kept.json by their validation (G-5 of
+ * 20261121-204740-m3s7-b1-remediation-review). tests/regression-evidence-reserved-names.test.mjs holds this list to
+ * spawn-node's evidenceWrite calls.
+ */
+export const SPAWNER_EVIDENCE_FILES = Object.freeze(['stdout.json', 'stderr.log', 'payload.json', 'denials.json', 'verdict.kept.json']);
 export function evidenceOwnershipError(runDir, nodeId, evidencePath, io) {
   requireIo(io, 'evidenceOwnershipError');
   if (!evidencePath) return 'no evidence_path';
@@ -254,6 +273,13 @@ export function evidenceOwnershipError(runDir, nodeId, evidencePath, io) {
   const evAbs = resolveFrom(root, 'evidenceOwnershipError: runDir', evidencePath);
   if (evAbs === evOwn || !isWithin(evOwn, evAbs)) {
     return `evidence_path is outside evidence/${nodeId}/ — citing another node's evidence is how corroboration gets faked`;
+  }
+  // WHAT THE SPAWNER WRITES THERE IS NOT EVIDENCE (G-34 of 20261121-193516-m3s7-b1-review): the node's runtime transcript
+  // and its validated payload sit directly in evidence/<node>/, fresh and plain, and capture.mjs produced none of them.
+  // Compared case-blind, since a case-insensitive file system opens STDOUT.JSON as stdout.json.
+  const rel = path.relative(evOwn, evAbs).split(path.sep);
+  if (rel.length === 1 && SPAWNER_EVIDENCE_FILES.includes(rel[0].toLowerCase())) {
+    return `evidence_path ${evidencePath} was written by the spawner, not captured: cite a log capture.mjs printed`;
   }
   // THROUGH THE RUN'S OWNER (run-dir-reads.plan.md stage 3, R-D3 A): it was judged by real path, which admitted a link
   // resolving back inside evidence/<node>/, and what a link resolves to can change. Each level below the run is walked,
@@ -401,19 +427,34 @@ function ancestorSpelling(spelled, io, memo = null) {
   // WITH A MEMO, EACH ANCESTOR IS PLACED ONCE (G-5 of 20261118-142344-cpi-remediation-2-review): belowRoot asks the parent
   // of every candidate, and each walk re-joined the same missing names above it, 1+...+d walks per check. A missing path is
   // its parent's placement with its own name joined on, so one memoised step per ancestor gives the loop's answer.
+  // A LOOP, NOT A RECURSION (G-6 of 20261121-204740-m3s7-b1-remediation-review; I-14): each missing ancestor called this
+  // function on its parent, so the stack grew with the path's depth and a deep missing path raised RangeError. The missing
+  // names are climbed to the first ancestor already placed, existing, or the file system's root, then joined back down,
+  // each placement memoised as before.
   if (memo) {
     if (!memo.placed) memo.placed = new Map();
-    if (memo.placed.has(spelled)) return memo.placed.get(spelled);
+    const missing = [];
+    let at = spelled;
     let out;
-    if (!exists(spelled)) {
-      const up = path.dirname(spelled);
-      out = up === spelled ? spelled : path.join(ancestorSpelling(up, io, memo), path.basename(spelled));
-    } else {
+    for (;;) {
+      if (memo.placed.has(at)) { out = memo.placed.get(at); break; }
+      if (!exists(at)) {
+        const up = path.dirname(at);
+        if (up === at) { out = at; memo.placed.set(at, out); break; }
+        missing.push(at);
+        at = up;
+        continue;
+      }
       let real = null;
-      try { real = realOf(spelled); } catch { real = null; }
-      out = real === null || (isShare(real) && !isShare(spelled)) ? spelled : real;
+      try { real = realOf(at); } catch { real = null; }
+      out = real === null || (isShare(real) && !isShare(at)) ? at : real;
+      memo.placed.set(at, out);
+      break;
     }
-    memo.placed.set(spelled, out);
+    for (let i = missing.length - 1; i >= 0; i--) {
+      out = path.join(out, path.basename(missing[i]));
+      memo.placed.set(missing[i], out);
+    }
     return out;
   }
   const rest = [];

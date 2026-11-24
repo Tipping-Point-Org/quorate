@@ -22,6 +22,7 @@ import path from 'node:path';
 import { absolute, resolveFrom } from './paths.mjs';
 import { isWithin, escapesBeforeCreate, canonicalSpelling, rootSpelling, isBelowRoot } from './finding-scope.mjs';
 import crypto from 'node:crypto';
+import { confined } from './confined-path.mjs';
 
 // NO ENVIRONMENT OR HOME READ HERE (os-platform-adapters criterion 5): both arrive as arguments.
 // scripts/io/reviews-root.mjs supplies them from the platform for the orchestration scripts.
@@ -523,6 +524,33 @@ export function printedRunDir(output, repoRoot) {
  *
  * Returns { ok: true, dir, repoRoot, record, where, repository } or { ok: false, check, why }.
  */
+// The largest run.json admitRun reads (G-5 of 20261124-140633-gsw-remediation-review-b); a real one is a few kilobytes.
+export const RUN_RECORD_MAX_BYTES = 8 * 1024 * 1024;
+/**
+ * A run.json read through `owner` (a confined owner: its walk refuses a link at any level) and parsed, held to the bound
+ * admitRun holds it to (G-3 of 20261124-160743-gsw-remediation-2-review-b): a reader that enumerates sibling runs without
+ * admitting them read a record of any size whole. At most one byte past the bound is read; a longer record throws EFBIG.
+ */
+export function readRunJson(owner, segments) {
+  const buf = owner.readBounded(segments, RUN_RECORD_MAX_BYTES);
+  if (buf.length > RUN_RECORD_MAX_BYTES) {
+    throw Object.assign(new Error(`larger than the ${RUN_RECORD_MAX_BYTES}-byte bound on a run.json`), { code: 'EFBIG' });
+  }
+  return JSON.parse(buf.toString('utf8'));
+}
+/**
+ * A patch merged into a run's record, read STRICTLY through readRunJson (G-19 of 20261029-050428-rdd-delivery; G-11 of
+ * 20261124-180917-gsw-remediation-4-review-b): a record that cannot be read, cannot be parsed, or is not an object throws,
+ * and the file is left as it was. A null-on-error read spread to nothing and the replace wrote a run.json holding only
+ * the patch. `transform` is applied to the patch alone (remediate redacts the patch, never the record new-run wrote).
+ */
+export function patchRunJson(owner, patch, { transform = (p) => p } = {}) {
+  const current = readRunJson(owner, ['run.json']);
+  if (!current || typeof current !== 'object' || Array.isArray(current)) {
+    throw Object.assign(new Error('the run.json is not an object; a patch is merged only into a run record'), { code: 'ENOTRECORD' });
+  }
+  return owner.replace(['run.json'], `${JSON.stringify({ ...current, ...transform(patch) }, null, 2)}\n`);
+}
 export function admitRun({ runDir, repoRoot, home, project = null, declaredReviewsDir = null, io, need = {}, noRepository = false, repoSpellings = [] }) {
   if (!io?.fs || typeof io.caseInsensitiveFs !== 'boolean') throw new Error('admitRun: io (the platform) is required');
   const refuse = (check, why) => ({ ok: false, check, why });
@@ -569,7 +597,13 @@ export function admitRun({ runDir, repoRoot, home, project = null, declaredRevie
   try { st = io.fs.lstatSync(recordPath); } catch (e) { return refuse('record', `no readable run.json in ${dir} (${e.code ?? e.message})`); }
   if (st.isSymbolicLink()) return refuse('record', `the run.json in ${dir} is a link; a link below a run is refused`);
   if (!st.isFile()) return refuse('record', `the run.json in ${dir} is not a file`);
-  try { record = JSON.parse(io.fs.readFileSync(recordPath, 'utf8')); } catch (e) {
+  // BOUNDED BEFORE IT IS READ (G-5 of 20261124-140633-gsw-remediation-review-b): every entry point reaches this read, and
+  // a valid record of any size was allocated and parsed whole before its identity was checked.
+  // BY readRunJson, THE ONE OWNER OF THE BOUND (G-8 of 20261124-180917-gsw-remediation-4-review-b): an lstat size check
+  // followed by an unbounded read was a second implementation of the rule, and a record that grew between the two was
+  // allocated and parsed whole. The bounded read holds at most one byte past the bound, whatever the lstat said.
+  try { record = readRunJson(confined({ root: dir, io }), ['run.json']); } catch (e) {
+    if (e.code === 'EFBIG') return refuse('record', `the run.json in ${dir} is ${e.message}`);
     return refuse('record', `no readable run.json in ${dir} (${e.code ?? e.message})`);
   }
   if (!record || typeof record !== 'object' || Array.isArray(record)) return refuse('record', `the run.json in ${dir} is not an object`);

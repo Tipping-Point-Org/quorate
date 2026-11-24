@@ -13,6 +13,7 @@ import { requireIo } from './io-param.mjs';
 import { statusIsReview } from './decisions.mjs';
 import { redactClaim } from './redact.mjs';
 import { confined } from './confined-path.mjs';
+import { readRunJson } from './reviews-root.mjs';
 
 // NO node:fs HERE (os-platform-adapters stage 3c): the filesystem arrives as `io`, or through the
 // readers these functions already accepted. scripts/io/run-artifacts.mjs binds it to the host.
@@ -47,16 +48,33 @@ function whyNot(e) {
     if (e.refusal === 'link') return LINKED;
     if (e.refusal === 'not-a-directory') return 'is not reachable: a level above it is not a directory';
     if (e.refusal === 'not-a-file') return 'is not a file';
+    // The egress owner's refusals (G-8 of 20261121-001829-prc-remediation-review), for a caller that reads through it.
+    if (e.refusal === 'hard-link') return 'has a second name (a hard link), so what it holds may come from outside the run';
+    if (e.refusal === 'too-large') return 'is over the bound on a file that leaves the machine';
     return 'is refused below the run';
   }
   return `is unreadable (${e?.code ?? 'read error'})`;
 }
 
-function readJson(owner, segments) {
+function readJson(owner, segments, { parse = null } = {}) {
   const name = segments.join('/');
   // AN ERROR'S MESSAGE IS NOT A SAFE REASON (G-11a of 20260929-145942-ssr-review-r2): a filesystem error names the
   // absolute path it failed on, and a parse error quotes the text it failed on — run.json holds absolute paths. The
   // reason keeps the error's kind, or where the text stopped parsing, and nothing the file or the disk said.
+  // A READER THAT READS AND PARSES IN ONE (G-9 of 20261124-170802-gsw-remediation-3-review-b): run.json's bound is
+  // readRunJson's, its one owner, so readRunRecord passes it rather than restating the bound here. Its EFBIG message
+  // names the bound and nothing of the file.
+  if (parse) {
+    try { return { ok: true, value: parse(owner, segments) }; } catch (e) {
+      if (e?.code === 'EFBIG') return refuse(`${name} is ${e.message}`);
+      if (e instanceof SyntaxError) {
+        const at = /position (\d+)/.exec(String(e?.message))?.[1];
+        return refuse(`${name} is not valid JSON${at ? ` (at position ${at})` : ''}`);
+      }
+      const why = whyNot(e);
+      return why === 'absent' ? refuse(`${name} does not exist`, { missing: true }) : refuse(`${name} ${why}`);
+    }
+  }
   let text;
   try { text = owner.read(segments); } catch (e) {
     const why = whyNot(e);
@@ -108,7 +126,9 @@ export function readNodeStatus(run, nodeId, { io } = {}) {
 /** run.json: the run's record. Its absence is a refusal — a directory with no record is not a run. */
 export function readRunRecord(run, { io } = {}) {
   requireIo(io, 'readRunRecord');
-  const r = readJson(ownerOf(run, io), ['run.json']);
+  // Held to admitRun's bound (G-3 of 20261124-160743-gsw-remediation-2-review-b), through its one owner (G-9 of
+  // 20261124-170802-gsw-remediation-3-review-b).
+  const r = readJson(ownerOf(run, io), ['run.json'], { parse: readRunJson });
   if (!r.ok) return r;
   if (!isObject(r.value)) return refuse('run.json is not a run record (not an object)');
   // A RECORD NAMES ITS RUN (G-9 of 20260929-124952-ssr-review): an empty or unrelated object authorised the directory
@@ -164,6 +184,16 @@ export function readReconcileArtifacts(run, { io } = {}) {
   };
   return { payload: artifact('evidence', 'reconcile', 'payload.json'), groups: artifact('finding-groups.json'), refused };
 }
+
+/**
+ * THE CONFIRMED SET OF A RECONCILED RUN, ONE OWNER (pr-review-comments.md AC2): the groups of its reconcile payload whose
+ * `decision` is `confirmed`, in the payload's order. new-run's `--remediates`, remediate.mjs and pr-comments.mjs each
+ * filtered the payload themselves; three filters of one set can come to disagree. `payload` is readReconcileArtifacts'
+ * `payload` (an object holding a list of groups) or null, which confirms nothing. Pure.
+ */
+export const confirmedGroups = (payload) => (Array.isArray(payload?.groups) ? payload.groups : [])
+  .filter((g) => g && typeof g === 'object' && g.decision === 'confirmed');
+export const confirmedGroupIds = (payload) => confirmedGroups(payload).map((g) => g.group_id);
 
 export function collectRun(run, { io } = {}) {
   requireIo(io, 'collectRun');

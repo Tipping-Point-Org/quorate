@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { makeLink } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
@@ -118,7 +119,7 @@ test('G-11: clearRunState does not remove the state while a bind holds the lock'
 // G-9: readRunState read run-state.json raw, so a link at the file itself was followed to outside JSON.
 // Where a file symlink needs a privilege the host lacks, a junction at the file's name stands in: the raw read followed it
 // to the directory it leads to (EISDIR), the owner refuses it as a link.
-test('G-9: readRunState refuses a link at run-state.json', async () => {
+test('G-9: readRunState refuses a link at run-state.json', async (t) => {
   const { readRunState, runStatePath } = await import('../scripts/io/run-state.mjs');
   const home = tmp('rs-home-'); const repo = tmp('rs-repo-'); const outDir = tmp('rs-out-');
   try {
@@ -126,7 +127,7 @@ test('G-9: readRunState refuses a link at run-state.json', async () => {
     fs.mkdirSync(path.dirname(p), { recursive: true });
     const outside = path.join(outDir, 'state.json');
     fs.writeFileSync(outside, '{}');
-    try { fs.symlinkSync(outside, p, 'file'); } catch (e) { if (e.code !== 'EPERM') throw e; junction(outDir, p); }
+    if (!makeLink(t, { target: outside, at: p, type: 'file', fallback: { dir: outDir } })) return;
     assert.throws(() => readRunState(repo, { home }), /link or junction/);
   } finally { for (const d of [home, repo, outDir]) fs.rmSync(d, { recursive: true, force: true }); }
 });

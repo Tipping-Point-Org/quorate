@@ -25,9 +25,10 @@ import { builtinReviewers, rawTable } from '../scripts/io/reviewers.mjs';
 import { CONTRACT_CANDIDATES, chooseContractSource } from '../scripts/lib/contract-source.mjs';
 import { parseContractYaml } from '../scripts/lib/contract-yaml.mjs';
 import { defaultReviewsRoot } from '../scripts/lib/reviews-root.mjs';
+import { commitEnvFor } from '../scripts/lib/decisions.mjs';
 
-// fileURLToPath, not new URL(...).pathname: on Windows the latter yields "/F:/full%20local%20search"
-// — a path that does not exist, with the space still percent-encoded. That exact bug shipped once.
+// fileURLToPath, not new URL(...).pathname: on Windows the latter yields a slash, the drive letter and its colon, then
+// the folder with each space percent-encoded — a path that does not exist. That exact bug shipped once.
 export const TESTS_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const SCRIPTS_DIR = path.resolve(TESTS_DIR, '..', 'scripts');
 
@@ -62,6 +63,16 @@ export const REPO_ROOT = (() => {
 })();
 
 /**
+ * The repository's release tags, for lib/compatibility.mjs's preRelease: the freeze must equal its owner until 1.0 is
+ * TAGGED, not until VERSION reads 1.0.0 (G-16 of 20261123-161216-m3s9-review). A clone that fetched no tags reads none,
+ * which keeps an untagged 1.0.0 to equality, the stricter side.
+ */
+export function releaseTags() {
+  const r = spawnSync('git', ['tag', '--list', 'v*'], { encoding: 'utf8', cwd: REPO_ROOT });
+  return r.status === 0 ? r.stdout.split(/\r?\n/).filter(Boolean) : [];
+}
+
+/**
  * WHICH LENSES AN OFFLINE TEST MAY NAME IN `--only`.
  *
  * Both are selected by a CONTRACT KEY a fixture controls — `ui.surface` and `commands.run` — so a
@@ -85,7 +96,7 @@ export const OFFLINE_SAFE_LENSES = Object.freeze(['ui-audit', 'feature-verify'])
  * 20261025-082729-srf-remediation's full check: five stop-guard tests passed only where the depth was unset).
  */
 export function sessionHookEnv(extra = {}) {
-  const env = { ...process.env, ...extra };
+  const env = { ...commitEnvFor(process.env), ...extra }; // secret-shaped names and the runtime's auth do not cross (G-37)
   for (const k of ['GRAPH_NODE_DEPTH', 'QUORATE_RUN_ID', 'QUORATE_NODE_ID']) if (!Object.hasOwn(extra, k)) delete env[k];
   return env;
 }
@@ -232,7 +243,7 @@ export function runScript(name, args = [], { env = {}, cwd = REPO_ROOT, mayFanOu
       }
     }
   }
-  const res = spawnSync(process.execPath, [path.join(SCRIPTS_DIR, name), ...args], {
+  const res = spawnSync(process.execPath, [path.isAbsolute(name) ? name : path.join(SCRIPTS_DIR, name), ...args], {
     cwd,
     encoding: 'utf8',
     // Inherit, then override. A developer's own GRAPH_NODE_DEPTH or ANTHROPIC_API_KEY must not
@@ -244,8 +255,11 @@ export function runScript(name, args = [], { env = {}, cwd = REPO_ROOT, mayFanOu
     // QUORATE_HOME too, for the same reason one level out: a mint writes there now, and the suite
     // must not leave anything in the operator's own home. A caller that needs its own home passes
     // one and wins, as with every other variable here.
+    // The INHERITED half loses every secret-shaped name and the runtime's auth, by the engine's own commit scrub (G-37 of
+    // 20261122-232627-m3s7-b4-review, I-22): spreading process.env whole handed ANTHROPIC_API_KEY and the developer's
+    // other credentials to every child script. A test that needs one passes it in `env`, which still wins.
     env: {
-      ...process.env,
+      ...commitEnvFor(process.env),
       GRAPH_NODE_DEPTH: undefined,
       QUORATE_RUN_ID: undefined,
       QUORATE_HOME: TEST_HOME,
@@ -353,6 +367,43 @@ export function detectorFixture() {
   git('init', '-q'); git('config', 'user.email', 'x@x'); git('config', 'user.name', 'x');
   git('add', '-A'); git('commit', '-qm', 'fixture');
   return dir;
+}
+
+/**
+ * THE CODES A PLATFORM REFUSES A LINK WITH, the one list (link-failure-owner.plan.md stage 1): Windows without the
+ * privilege (EPERM), a filesystem that takes no links of the kind (ENOTSUP, EINVAL on some Windows volumes), access
+ * (EACCES), and a hard link across volumes (EXDEV). Any other code is a fault in the test, and is rethrown: libuv's
+ * catch-all UNKNOWN most of all, since it names no refusal (G-3 of 20261120-235710-lfo-delivery).
+ */
+export const LINK_REFUSALS = Object.freeze(['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL', 'EXDEV']);
+const KIND = { file: 'file symlink', dir: 'directory symlink', junction: 'directory junction', hard: 'hard link' };
+
+/**
+ * A LINK, OR A SAID SKIP: THE ONE PLACE A TEST CATCHES A LINK FAILURE (link-failure-owner.plan.md; design LF-D1 A).
+ * Makes a link of `type` (`file`, `dir`, `junction` or `hard`) at `at` to `target`. On a platform's refusal it makes the
+ * fallback if one is given, a junction at `at` to `fallback.dir` (a junction can only target a directory), and calls
+ * `t.diagnostic('link fallback: directory junction')`; with none, or a refused fallback, it calls `t.skip(<why>)` and
+ * returns null, and the caller returns. A hard link takes no fallback. Any other error is rethrown. Returns
+ * `{ kind, target }` for the link made. `fs` is injectable for the helper's own tests. The census
+ * (regression-link-failures-not-silent) refuses a link call caught anywhere else.
+ */
+export function makeLink(t, { target, at, type = 'file', fallback = null, fs: io = fs }) {
+  const make = (ty, to) => (ty === 'hard' ? io.linkSync(to, at) : io.symlinkSync(to, at, ty));
+  const refused = (e) => LINK_REFUSALS.includes(e?.code);
+  try { make(type, target); return { kind: KIND[type], target }; } catch (e) {
+    if (!refused(e)) throw e;
+    if (type === 'hard' || !fallback?.dir) {
+      t.skip(`this platform refused a ${KIND[type]} (${e.code}) and the test has no fallback, so its link check did not run`);
+      return null;
+    }
+    try { make('junction', fallback.dir); } catch (e2) {
+      if (!refused(e2)) throw e2;
+      t.skip(`this platform refused a ${KIND[type]} (${e.code}) and its junction fallback (${e2.code}), so the link check did not run`);
+      return null;
+    }
+    t.diagnostic('link fallback: directory junction');
+    return { kind: KIND.junction, target: fallback.dir };
+  }
 }
 
 /** A disposable directory, removed even when the test throws. */
@@ -498,7 +549,7 @@ export function seedReviewerProbe(probesDirPath, { reviewer = 'codex', model = '
   const adapter = builtinReviewers()[reviewer];
   const limits = io.probeLimits(adapter, rawTable().probe_defaults);
   const pathKey = Object.keys(process.env).find((k) => k.toLowerCase() === 'path') ?? 'PATH';
-  const version = io.cliVersion(adapter, limits, { env: { ...process.env, ...(pathValue ? { [pathKey]: pathValue } : {}) } });
+  const version = io.cliVersion(adapter, limits, { env: { ...commitEnvFor(process.env), ...(pathValue ? { [pathKey]: pathValue } : {}) } });
   if (!version.ok) throw new Error(`seedReviewerProbe: the fake's version command failed: ${version.reason}`);
   const combination = {
     adapter: reviewer, adapter_hash: io.adapterHash(adapter), model, effort, mode, route,

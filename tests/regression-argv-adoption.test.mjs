@@ -50,6 +50,7 @@ const TRAILING = {
   'resume-run': { argv: ['--repo-root'], flag: '--repo-root' },
   'external-review': { argv: ['--reviewer'], flag: '--reviewer' },
   publish: { argv: ['--ref'], flag: '--ref' },
+  'pr-comments': { argv: ['--run-dir'], flag: '--run-dir' },
   'check-reviewers': { argv: ['--reviewer'], flag: '--reviewer' },
   'check-plan-verdict': { argv: ['--verdict'], flag: '--verdict' },
   'check-intent-grant': { argv: ['--out'], flag: '--out' },
