@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { SCRIPTS_DIR, makeLink } from './helpers.mjs';
+import { SCRIPTS_DIR, makeLink, publishedFormIn } from './helpers.mjs';
 import { buildReview, rightSideLines, postRefusal } from '../scripts/lib/pr-comments.mjs';
 import { confirmedGroupIds } from '../scripts/lib/run-artifacts.mjs';
 
@@ -175,6 +175,12 @@ test('a BLOCKED run with nothing reconciled posts its verdict, the gate\'s reaso
   assert.match(review.body, /`test`: the build failed, so no test ran/, 'the not-checked list is missing');
 });
 
+// THE PURE RULES, each the defect it prevents (pr-review-comments.md AC2 and AC5; G-2 of
+// 20261125-013403-m3-pr10-remediation-review, which found this test naming none): a comment placed on a line the patch
+// does not show on its new side, which GitHub rejects and so loses the whole review, a removed line being given a
+// new-file number; a run with no recorded head_commit posted as though its lines were the pull request's; the confirmed
+// set filtered differently here than by new-run --remediates and remediate.mjs, so a symptom or a null entry posted; and
+// a rationale longer than GitHub's comment limit posted whole, refused, or cut without saying so.
 test('the pure rules: which lines a patch lets a comment sit on, the refusals, the one confirmed set', () => {
   assert.deepEqual([...rightSideLines(PATCH)], [1, 2, 3]);
   assert.deepEqual([...rightSideLines('@@ -5,3 +7,2 @@\n ctx\n-gone\n+new\n')], [7, 8], 'a removed line takes no new-file number');
@@ -238,9 +244,9 @@ test('G-2: the published CLAUDE.md cites no file under a path the publish manife
   const root = path.resolve(SCRIPTS_DIR, '..');
   const { exclude } = JSON.parse(fs.readFileSync(path.join(root, 'publish', 'manifest.json'), 'utf8'));
   // Whichever file is the public CLAUDE.md (operator, 2026-11-24: "Tests read whichever is the public CLAUDE.md
-  // (Recommended)"): the snapshot ships publish/CLAUDE.public.md as its CLAUDE.md.
-  const pub = fs.existsSync(path.join(root, 'publish', 'CLAUDE.public.md')) ? path.join('publish', 'CLAUDE.public.md') : 'CLAUDE.md';
-  const text = fs.readFileSync(path.join(root, pub), 'utf8');
+  // (Recommended)"): the snapshot ships publish/CLAUDE.public.md as its CLAUDE.md. helpers.mjs's publishedFormIn says
+  // which, and refuses a source tree that lost it (G-2 of 20261125-004142-m3-pr10-review).
+  const text = fs.readFileSync(path.join(root, publishedFormIn(root, 'CLAUDE.md')), 'utf8');
   // A cited DOCUMENT (.md): a path the engine writes in a project, as `.claude/reviews/ledger.json`, is not a citation.
   const cited = [...text.matchAll(/(?<![\w./-])(\.?[\w-]+(?:\/[\w.-]+)+\.md)\b/g)].map((m) => m[1]);
   const bad = cited.filter((p) => exclude.some((e) => p === e || p.startsWith(`${e}/`)));

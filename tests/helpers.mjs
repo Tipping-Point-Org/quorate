@@ -26,6 +26,7 @@ import { CONTRACT_CANDIDATES, chooseContractSource } from '../scripts/lib/contra
 import { parseContractYaml } from '../scripts/lib/contract-yaml.mjs';
 import { defaultReviewsRoot } from '../scripts/lib/reviews-root.mjs';
 import { commitEnvFor } from '../scripts/lib/decisions.mjs';
+import { gitSync } from '../scripts/io/git.mjs';
 
 // fileURLToPath, not new URL(...).pathname: on Windows the latter yields a slash, the drive letter and its colon, then
 // the folder with each space percent-encoded — a path that does not exist. That exact bug shipped once.
@@ -165,22 +166,46 @@ export function privateRecord(rel) {
 
 // A FILE THE RELEASE SNAPSHOT REPLACES (m2-public-release.plan.md stage 9c; the dry run of 7573fd44 found five tests red in
 // the snapshot). publish/manifest.json's `replace` owns which published path takes which source's content, and the source
-// never ships under its own name (lib/publish.mjs). So the source's presence is what tells the two trees apart: in this
-// repository `CLAUDE.md` is the private contract and publish/CLAUDE.public.md the published one; in the snapshot,
-// `CLAUDE.md` IS the published one and the source is absent.
-const PUBLISH_REPLACE = (() => {
-  try { return JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'publish', 'manifest.json'), 'utf8')).replace ?? {}; } catch { return {}; }
-})();
-// The file holding the published text of `target`: its replace source here, `target` itself in the snapshot.
-export function publishedForm(target) {
-  const from = PUBLISH_REPLACE[target];
-  return from && fs.existsSync(path.join(REPO_ROOT, from)) ? from : target;
+// never ships under its own name (lib/publish.mjs). In this repository `CLAUDE.md` is the private contract and
+// publish/CLAUDE.public.md the published one; in the snapshot, `CLAUDE.md` IS the published one and the source is absent.
+// The source's own presence must NOT tell the two trees apart (G-2 of 20261125-004142-m3-pr10-review): a source tree
+// that lost it would read the private file as the published one and pass. A SOURCE TREE is one where GIT TRACKS something
+// the manifest excludes or a replace source (.claude/requests is tracked here; the snapshot's commit holds none of them,
+// lib/publish.mjs planSnapshot), and there a missing replace source is refused. What stands on disk does not decide (G-1
+// of 20261125-013403-m3-pr10-remediation-review): a published checkout acquires an excluded path through use, an archived
+// run's .claude/reviews, untracked. Only a tree that is not its own git checkout falls back to what stands on disk.
+function publishManifest(root) {
+  try { return JSON.parse(fs.readFileSync(path.join(root, 'publish', 'manifest.json'), 'utf8')); } catch { return null; }
 }
+export function isSourceTree(root = REPO_ROOT) {
+  const m = publishManifest(root);
+  if (!m) return false;
+  const paths = [...(m.exclude ?? []), ...Object.values(m.replace ?? {})];
+  if (paths.length === 0) return false;
+  const top = gitSync(['rev-parse', '--show-cdup'], { cwd: root, encoding: 'utf8' });
+  if (top.status === 0 && top.stdout.trim() === '') {
+    const tracked = gitSync(['ls-files', '-z', '--', ...paths], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    if (tracked.status !== 0) throw new Error(`git ls-files failed in ${root}, so whether it is a source tree is unknown: ${tracked.stderr}`);
+    return tracked.stdout.length > 0;
+  }
+  return (m.exclude ?? []).some((e) => fs.existsSync(path.join(root, e)));
+}
+// The file holding the published text of `target` under `root`: its replace source in a source tree, `target` itself in
+// the snapshot. Throws when a source tree has lost the source.
+export function publishedFormIn(root, target) {
+  const from = publishManifest(root)?.replace?.[target];
+  if (!from || !isSourceTree(root)) return target;
+  if (!fs.existsSync(path.join(root, from))) {
+    throw new Error(`${from} is missing from a source tree (publish/manifest.json replaces ${target} with it), so the published text of ${target} cannot be read`);
+  }
+  return from;
+}
+export function publishedForm(target) { return publishedFormIn(REPO_ROOT, target); }
 // A skip reason when `target` is, in this tree, the published replacement of a private file, so a check of the private
 // file's text has nothing to read; false otherwise. Never silent: the caller names it as privateRecord's callers do.
 export function replacedInSnapshot(target) {
-  const from = PUBLISH_REPLACE[target];
-  return from && !fs.existsSync(path.join(REPO_ROOT, from))
+  const from = publishManifest(REPO_ROOT)?.replace?.[target];
+  return from && !isSourceTree(REPO_ROOT)
     ? `${target} here is the published form (publish/manifest.json replaces it with ${from}), so the private file's text is not here to check`
     : false;
 }

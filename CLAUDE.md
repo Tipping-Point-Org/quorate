@@ -28,7 +28,7 @@ marketplace. Consuming projects mount it at `.claude/skills/quorate/`, where its
 | `skills/` | The 12 skills a person actually invokes. Plugin convention — a plugin's own skills live here. |
 | `shared/` | Doctrine every skill cites: `disk-first-protocol.md` is the one to read first. |
 | `QUORATE.md` | Consumer onboarding: a project mounting this submodule references it from its own `CLAUDE.md` (`@.claude/skills/quorate/QUORATE.md`) to enable everything — setup, contract template, hooks, panel, usage. |
-| `tests/` | 5027 regression tests. Every one records the defect it exists to prevent. The count is verified against the tree on every push — see `scripts/check-counted-facts.mjs`. |
+| `tests/` | 5028 regression tests. Every one records the defect it exists to prevent. The count is verified against the tree on every push — see `scripts/check-counted-facts.mjs`. |
 | `.claude/hooks/` | Git hooks (`pre-commit`, `pre-push`) and their installer. **Not** Claude Code lifecycle hooks — a different mechanism. |
 
 ## Building
